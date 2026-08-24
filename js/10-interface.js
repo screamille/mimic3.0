@@ -1111,24 +1111,44 @@ function loop(t){
     }
 
     updateMusic();
-    animateShopIcons();
-    paintLobby(t / 1000);
+    /*
+    Tout le corps de l'image est protege : une erreur dans un
+    seul dessin ne doit jamais arreter le jeu entier. On la
+    signale une fois, puis on continue.
+    */
+    try{
 
-    if(playing && !paused && !portraitBlock){
-        update(dt);
-        lasUpdate(dt);
-    }else if(!playing){
-        updateAmbient(dt);
+        animateShopIcons();
+        paintLobby(t / 1000);
+
+        if(playing && !paused && !portraitBlock){
+            update(dt);
+            lasUpdate(dt);
+        }else if(!playing){
+            updateAmbient(dt);
+        }
+
+        draw();
+
+    }catch(err){
+        mimicReport(err);
     }
-
-    draw();
 
     requestAnimationFrame(loop);
 
 }
 
-i18nCollect();
-applyLang();
+
+/* le moteur demarre AVANT tout le reste : plus rien ne peut l'empecher */
+startLoop();
+
+
+/* petit utilitaire : executer une etape de demarrage sans tout casser */
+function safeStep(name, fn){
+    try{ fn(); }catch(err){ mimicReport(err, name); }
+}
+
+safeStep("langues", () => { i18nCollect(); applyLang(); });
 
 /*
 Sur iPhone, Safari garde ses barres : le seul vrai plein
@@ -1167,10 +1187,10 @@ fois, et seulement si on n'est pas deja en mode autonome.
 
 })();
 
-document.body.classList.toggle("cb", daltonien);
-syncSettings();
+safeStep("reglages", () => {
+    document.body.classList.toggle("cb", daltonien);
+    syncSettings();
+});
 
-checkOrientation();
-setMusic(musicOn);
-
-requestAnimationFrame(loop);
+safeStep("orientation", () => checkOrientation());
+safeStep("musique",     () => setMusic(musicOn));

@@ -1,3 +1,69 @@
+/* =========================================================
+   FILET DE SECURITE
+
+   Le jeu est decoupe en dix fichiers : si l'un d'eux
+   trebuche, rien ne doit empecher le moteur de tourner
+   ni laisser l'ecran fige sans explication.
+========================================================= */
+
+let mimicErrorShown = false;
+
+function mimicReport(err, where){
+
+    try{
+
+        const msg =
+            (where ? "[" + where + "] " : "") +
+            ((err && err.message) ? err.message : String(err));
+
+        if(window.console && console.warn){
+            console.warn("MIMIC :", msg, err);
+        }
+
+        if(mimicErrorShown){
+            return;
+        }
+
+        mimicErrorShown = true;
+
+        const el = document.getElementById("errBanner");
+
+        if(el){
+            el.textContent = "⚠️ " + msg;
+            el.style.display = "block";
+        }
+
+    }catch(e){}
+
+}
+
+addEventListener("error", e => {
+    mimicReport(
+        e.error || e.message,
+        (e.filename || "").split("/").pop() + ":" + e.lineno
+    );
+});
+
+addEventListener("unhandledrejection", e => mimicReport(e.reason, "promesse"));
+
+
+/* la boucle demarre des que possible, et une seule fois */
+let loopStarted = false;
+
+function startLoop(){
+
+    if(loopStarted || typeof loop !== "function"){
+        return;
+    }
+
+    loopStarted = true;
+
+    requestAnimationFrame(loop);
+
+}
+
+addEventListener("load", startLoop);
+
 "use strict";
 
 /* =========================================================
