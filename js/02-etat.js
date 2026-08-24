@@ -86,4 +86,4 @@ const ARCHER_INTERVAL = 20; /* secondes entre deux tirs, par archer */
 const SLIME_LIFE      = 5;  /* secondes avant décomposition d'un slime */
 
 let lastFrame = 0;
-let hudShown  = true;
+let hudShown  = false;

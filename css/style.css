@@ -45,11 +45,18 @@ html,body{
 
 #gameUI{
     position:fixed;
+
+    /*
+    Cachee au demarrage : si un script tarde ou plante, la
+    barre d'infos ne se retrouve pas plaquee sur le salon.
+    C'est la boucle de jeu qui la rallume en partie.
+    */
+    display:none;
+
     top:calc(12px + env(safe-area-inset-top));
     left:12px;
     right:12px;
 
-    display:flex;
     justify-content:space-between;
     align-items:center;
 

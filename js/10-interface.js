@@ -160,7 +160,7 @@ function lobbySetMode(mode){
    DÉCOR ANIMÉ DERRIÈRE LE MENU
 ========================================================= */
 
-let ambient = [];
+ambient = [];
 
 function buildAmbient(){
 
@@ -216,7 +216,7 @@ function updateAmbient(dt){
    donner de la profondeur.
 ========================================================= */
 
-let lobbyArt = null;
+lobbyArt = null;
 
 
 function buildLobbyArt(){

@@ -56,12 +56,29 @@ function resize(){
         : 12;
 }
 
+var ambient    = [];
+var lobbyArt   = null;
+var floorCache = null;
+
 function onViewportChange(){
-    resize();
-    ambient  = [];
-    lobbyArt = null;
-    floorCache = null;
-    checkOrientation();
+
+    /*
+    Un redimensionnement peut arriver avant que tous les
+    scripts soient charges : on ne laisse pas une erreur
+    ici interrompre le demarrage du jeu.
+    */
+    try{
+
+        resize();
+
+        ambient    = [];
+        lobbyArt   = null;
+        floorCache = null;
+
+        checkOrientation();
+
+    }catch(err){}
+
 }
 
 addEventListener("resize", onViewportChange);

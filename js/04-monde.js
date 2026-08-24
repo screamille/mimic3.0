@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "2.6";
+const VERSION = "2.7";
 
 (function(){
 
@@ -1026,7 +1026,7 @@ function updateArchers(dt){
    de détail sans coûter une seule fraction de seconde.
 ========================================================= */
 
-let floorCache = null;
+floorCache = null;
 let floorZone  = null;
 let floorW     = 0;
 let floorH     = 0;
