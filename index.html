@@ -10,7 +10,7 @@
 
 <title>MIMIC</title>
 
-<link rel="stylesheet" href="css/style.css?v=3.0">
+<link rel="stylesheet" href="css/style.css?v=3.1">
 </head>
 
 <body>
@@ -151,7 +151,7 @@
         <b id="bestScore">0</b>
     </div>
 
-    <div class="version" id="versionTag">V 3.0</div>
+    <div class="version" id="versionTag">V 3.1</div>
 
     <div id="errBanner" class="errBanner" style="display:none"></div>
 
@@ -332,6 +332,14 @@
         </div>
 
         <div class="foe">
+            <canvas class="foeIcon" data-kind="guimauve"></canvas>
+            <span class="txt">
+                <span class="nm" style="color:#ff6fae">GUIMAUVE</span>
+                <span class="ds">Au pays des bonbons. Elle rebondit en ligne droite et s'écrase à chaque choc : sa trajectoire est lisible, anticipe le rebond au lieu de courir devant elle.</span>
+            </span>
+        </div>
+
+        <div class="foe">
             <canvas class="foeIcon" data-kind="anguille"></canvas>
             <span class="txt">
                 <span class="nm" style="color:#3fe0ff">ANGUILLE</span>
@@ -369,11 +377,6 @@
             <div class="step">
                 <span class="lv" style="color:#8fa5d0" data-i18n="g.nBlock">⬜ BLOC</span>
                 <span class="ds" data-i18n="g.block">Solide. Sers-t'en pour faire perdre du terrain à tes poursuivants.</span>
-            </div>
-
-            <div class="step">
-                <span class="lv" style="color:#a8e52a" data-i18n="g.nPuddle">🟢 FLAQUE</span>
-                <span class="ds" data-i18n="g.puddle">Dans le marais. On ne la traverse pas : la toucher coûte une vie.</span>
             </div>
 
             <div class="step">
@@ -844,16 +847,16 @@ fonctionne parfaitement même si aucun des deux ne répond.
 })();
 </script>
 
-<script src="js/01-moteur.js?v=3.0"></script>
-<script src="js/02-etat.js?v=3.0"></script>
-<script src="js/03-skins.js?v=3.0"></script>
-<script src="js/04-monde.js?v=3.0"></script>
-<script src="js/05-jeu.js?v=3.0"></script>
-<script src="js/06-boutique.js?v=3.0"></script>
-<script src="js/07-duel.js?v=3.0"></script>
-<script src="js/08-langues.js?v=3.0"></script>
-<script src="js/09-laser.js?v=3.0"></script>
-<script src="js/10-interface.js?v=3.0"></script>
+<script src="js/01-moteur.js?v=3.1"></script>
+<script src="js/02-etat.js?v=3.1"></script>
+<script src="js/03-skins.js?v=3.1"></script>
+<script src="js/04-monde.js?v=3.1"></script>
+<script src="js/05-jeu.js?v=3.1"></script>
+<script src="js/06-boutique.js?v=3.1"></script>
+<script src="js/07-duel.js?v=3.1"></script>
+<script src="js/08-langues.js?v=3.1"></script>
+<script src="js/09-laser.js?v=3.1"></script>
+<script src="js/10-interface.js?v=3.1"></script>
 
 </body>
 </html>

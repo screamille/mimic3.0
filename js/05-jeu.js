@@ -279,10 +279,11 @@ function createMimic(forcedType){
 
     /* le TRAQUEUR NOIR vient EN PLUS des cinq autres */
     /*
-    Dans LE MARAIS, aucun poursuivant : ni HUNTER, ni PREDICTOR,
-    ni TRAQUEUR, ni TRAQUEUR NOIR. Les slimes y règnent seuls.
+    Dans LE MARAIS, LE PAYS DES BONBONS et LES ABYSSES, aucun
+    poursuivant du monde 1 : ni HUNTER, ni PREDICTOR, ni
+    TRAQUEUR, ni TRAQUEUR NOIR. Chaque monde a ses habitants.
     */
-    if(zone === "marais" || zone === "bonbon"){
+    if(zone === "marais" || zone === "bonbon" || zone === "abysse"){
         return;
     }
 
@@ -429,7 +430,9 @@ function reset(){
     anguilles = [];
     lanternes = [];
     bulles    = [];
+    guimauves = [];
     abyssTimer = 0;
+    guimauveTimer = 0;
     gloutonTimer = 0;
     drips     = [];
     portal    = null;
@@ -981,6 +984,7 @@ function update(dt){
 
     updatePortal(dt);
     updateGloutons(dt);
+    updateGuimauves(dt);
     updateAnguilles(dt);
     updateLanternes(dt);
     updateBulles(dt);
@@ -1007,6 +1011,10 @@ function update(dt){
             }
 
             for(const g of gloutons){
+                g.stunned = 3.2;
+            }
+
+            for(const g of guimauves){
                 g.stunned = 3.2;
             }
 
@@ -1165,8 +1173,8 @@ function update(dt){
 
         }else if(zone === "marais"){
 
-            if(puddles.length < 5 && level % 2 === 0){
-                spawnPuddle();
+            if(logs.length < 6 && level % 2 === 0){
+                spawnLog();
             }
 
         }else{
@@ -1521,6 +1529,11 @@ function drawRaw(){
             continue;
         }
 
+        if(zone === "abysse"){
+            drawAbyssRock(s, nowSec);
+            continue;
+        }
+
         if(!marais && zone !== "bonbon"){
             drawPlanet(s, nowSec);
             continue;
@@ -1773,9 +1786,10 @@ function drawRaw(){
     drawAnguilles();
 
 
-    /* GLOUTONS */
+    /* GLOUTONS ET GUIMAUVES */
 
     drawGloutons();
+    drawGuimauves();
 
 
     /* MILLE-PATTES */

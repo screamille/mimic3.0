@@ -1141,6 +1141,45 @@ function paintCreature(c, kind, x, y, r, ang, t){
             c.fill();
         });
 
+    }else if(kind === "guimauve"){
+
+        const w = r * .85, h = r * .8;
+
+        c.beginPath();
+
+        if(c.roundRect){
+            c.roundRect(-w, -h, w * 2, h * 2, r * .32);
+        }else{
+            c.ellipse(0, 0, w, h, 0, 0, Math.PI * 2);
+        }
+
+        const g = c.createLinearGradient(0, -h, 0, h);
+        g.addColorStop(0,   "#fff2f7");
+        g.addColorStop(.55, "#ffb3d4");
+        g.addColorStop(1,   "#ff6fae");
+
+        c.fillStyle = g;
+        c.fill();
+
+        c.lineWidth   = Math.max(1.6, r * .09);
+        c.strokeStyle = "#ff6fae";
+        c.stroke();
+
+        c.fillStyle = "#4a1030";
+
+        [-1, 1].forEach(sg => {
+            c.beginPath();
+            c.arc(sg * w * .36, -h * .06, r * .13, 0, Math.PI * 2);
+            c.fill();
+        });
+
+        c.strokeStyle = "#4a1030";
+        c.lineWidth   = Math.max(1.3, r * .07);
+        c.lineCap     = "round";
+        c.beginPath();
+        c.arc(0, h * .18, r * .2, .25, Math.PI - .25);
+        c.stroke();
+
     }else if(kind === "anguille"){
 
         /* un ruban qui ondule, la tete a droite */
@@ -1337,7 +1376,7 @@ function renderGuideIcons(){
             size / 2 + (kind === "slime" ? 3 : 0),
             kind === "slime" ? 17 : 15,
             (kind === "slime" || kind === "crawler" || kind === "glouton" ||
-             kind === "anguille" || kind === "lanterne") ? 0 : -.35,
+             kind === "guimauve" || kind === "anguille" || kind === "lanterne") ? 0 : -.35,
             1.1
         );
 

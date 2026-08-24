@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "3.0";
+const VERSION = "3.1";
 
 (function(){
 
@@ -129,17 +129,6 @@ const ABILITIES = [
         color:"#ffb347",
         color2:"#a8420a",
         desc:"Une onde de choc qui repousse et sonne tout ce qui t'entoure pendant 2,6 s. Recharge 13 s."
-    },
-    {
-        id:"saut",
-        name:"SAUT",
-        icon:"⇢",
-        price:1500,
-        rarity:3,
-        cd:BLINK_CD,
-        color:"#c88bff",
-        color2:"#4a1a8a",
-        desc:"Un saut instantané qui traverse les blocs, dans la direction où tu vas. Recharge 9 s."
     }
 ];
 
@@ -194,7 +183,7 @@ function skillTick(dt){
 
 /* toutes les creatures qui savent etre sonnees */
 function stunnableCreatures(){
-    return [].concat(mimics, blobs, gloutons, anguilles, lanternes);
+    return [].concat(mimics, blobs, gloutons, guimauves, anguilles, lanternes);
 }
 
 
@@ -2012,10 +2001,6 @@ function enterMarais(){
         spawnLog();
     }
 
-    for(let i = 0; i < 3; i++){
-        spawnPuddle();
-    }
-
     addCoin();
     addOrb();
 
@@ -2078,12 +2063,385 @@ function enterCandy(){
         spawnGlouton();
     }
 
+    guimauves     = [];
+    guimauveTimer = 0;
+
+    for(let i = 0; i < 2; i++){
+        spawnGuimauve();
+    }
+
     addCoin();
     addOrb();
 
     pickupMessage("🍬 LE PAYS DES BONBONS", "#ff8fc4");
 
     sound(520, .5, "triangle", .06);
+
+}
+
+
+
+
+/* =========================================================
+   LA GUIMAUVE  (PAYS DES BONBONS)
+
+   Elle rebondit en ligne droite et s'ecrase a chaque
+   impact. Sa trajectoire est lisible : c'est en anticipant
+   son rebond qu'on s'en sort, pas en courant devant elle.
+========================================================= */
+
+const GUIMAUVE_TONS = [
+    ["#fff2f7", "#ffb3d4", "#ff6fae"],
+    ["#f4fff0", "#b8f0a8", "#65c95f"],
+    ["#fffaf0", "#ffe08a", "#ffab3d"],
+    ["#f2f8ff", "#b8dcff", "#6fa8ff"]
+];
+
+
+function spawnGuimauve(){
+
+    if(guimauves.length >= MAX_GUIMAUVES){
+        return;
+    }
+
+    const r = (28 + rnd() * 10) * unit;
+
+    const p = findSpot(r, 300) || findSpot(r, 190);
+
+    if(!p){
+        return;
+    }
+
+    const a = rnd() * Math.PI * 2;
+
+    const tons = GUIMAUVE_TONS[Math.floor(rnd() * GUIMAUVE_TONS.length)];
+
+    guimauves.push({
+        x:p.x,
+        y:p.y,
+        r:r,
+        ang:a,
+        squash:0,
+        squashAng:0,
+        birth:.6,
+        stunned:0,
+        blink:2 + rnd() * 4,
+        tons:tons,
+        sugar:Array.from({length:12}, () => ({
+            a:rnd() * 6.28,
+            d:.15 + rnd() * .75,
+            s:.03 + rnd() * .035
+        }))
+    });
+
+}
+
+
+function guimauveBounce(g, nx, ny){
+
+    /* on renvoie l'angle par rapport a la normale du choc */
+    const dot = Math.cos(g.ang) * nx + Math.sin(g.ang) * ny;
+
+    const rx = Math.cos(g.ang) - 2 * dot * nx;
+    const ry = Math.sin(g.ang) - 2 * dot * ny;
+
+    g.ang       = Math.atan2(ry, rx);
+    g.squash    = 1;
+    g.squashAng = Math.atan2(ny, nx);
+
+    sound(260, .09, "triangle", .035);
+
+}
+
+
+function updateGuimauves(dt){
+
+    if(zone !== "bonbon"){
+
+        if(guimauves.length){
+            guimauves = [];
+        }
+
+        return;
+
+    }
+
+    guimauveTimer -= dt;
+
+    if(guimauveTimer <= 0 && guimauves.length < MAX_GUIMAUVES){
+        spawnGuimauve();
+        guimauveTimer = 8;
+    }
+
+    const area  = playArea();
+    const speed = mimicSpeed({type:MIMIC_TYPES[0]}) * 1.15;
+
+    for(const g of guimauves){
+
+        if(g.squash > 0){
+            g.squash = Math.max(0, g.squash - dt * 4.5);
+        }
+
+        g.blink -= dt;
+
+        if(g.blink < -.14){
+            g.blink = 2.4 + rnd() * 4;
+        }
+
+        if(g.birth > 0){
+            g.birth = Math.max(0, g.birth - dt);
+            continue;
+        }
+
+        if(g.stunned > 0){
+            g.stunned -= dt;
+            continue;
+        }
+
+        g.x += Math.cos(g.ang) * speed * dt;
+        g.y += Math.sin(g.ang) * speed * dt;
+
+        /* les bords du terrain */
+        if(g.x < area.x0 + g.r){ g.x = area.x0 + g.r; guimauveBounce(g,  1, 0); }
+        if(g.x > area.x1 - g.r){ g.x = area.x1 - g.r; guimauveBounce(g, -1, 0); }
+        if(g.y < area.y0 + g.r){ g.y = area.y0 + g.r; guimauveBounce(g, 0,  1); }
+        if(g.y > area.y1 - g.r){ g.y = area.y1 - g.r; guimauveBounce(g, 0, -1); }
+
+        /* les friandises solides */
+        for(const s of solids){
+
+            if(s.hidden){
+                continue;
+            }
+
+            const dx = g.x - s.x;
+            const dy = g.y - s.y;
+            const d  = Math.hypot(dx, dy);
+
+            if(d < s.r + g.r && d > .001){
+
+                const nx = dx / d;
+                const ny = dy / d;
+
+                g.x = s.x + nx * (s.r + g.r + .5);
+                g.y = s.y + ny * (s.r + g.r + .5);
+
+                guimauveBounce(g, nx, ny);
+
+            }
+
+        }
+
+        if(player.invincible <= 0 && collide(player, g)){
+            loseLife(null);
+            burst(g.x, g.y, 22, g.tons[2]);
+        }
+
+    }
+
+}
+
+
+function drawGuimauves(){
+
+    for(const g of guimauves){
+
+        const grow = g.birth > 0 ? 1 - g.birth / .6 : 1;
+        const r    = g.r * Math.max(.15, grow);
+
+        ctx.save();
+        ctx.translate(g.x, g.y);
+
+        /* l'ombre au sol */
+        ctx.globalAlpha = .22;
+        ctx.fillStyle   = "#a82f6a";
+        ctx.beginPath();
+        ctx.ellipse(0, r * .9, r * 1.05, r * .3, 0, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        /* elle s'ecrase dans l'axe du choc */
+        if(g.squash > .01){
+            ctx.rotate(g.squashAng);
+            ctx.scale(1 - g.squash * .35, 1 + g.squash * .30);
+            ctx.rotate(-g.squashAng);
+        }
+
+        const w = r * .92;
+        const h = r * .86;
+        const k = r * .34;   /* arrondi des coins */
+
+        /* le corps : un coussin arrondi */
+        const body = ctx.createLinearGradient(0, -h, 0, h);
+        body.addColorStop(0,  g.tons[0]);
+        body.addColorStop(.55, g.tons[1]);
+        body.addColorStop(1,  g.tons[2]);
+
+        ctx.fillStyle = body;
+
+        ctx.beginPath();
+
+        if(ctx.roundRect){
+            ctx.roundRect(-w, -h, w * 2, h * 2, k);
+        }else{
+            ctx.ellipse(0, 0, w, h, 0, 0, Math.PI * 2);
+        }
+
+        ctx.fill();
+
+        ctx.lineWidth   = Math.max(1.6, r * .07);
+        ctx.strokeStyle = g.stunned > 0 ? "#7f8ba8" : g.tons[2];
+        ctx.stroke();
+
+        /* le sucre glace */
+        ctx.globalAlpha = .55;
+        ctx.fillStyle   = "#ffffff";
+
+        for(const sg of g.sugar){
+            ctx.beginPath();
+            ctx.arc(
+                Math.cos(sg.a) * w * sg.d,
+                Math.sin(sg.a) * h * sg.d,
+                r * sg.s, 0, Math.PI * 2
+            );
+            ctx.fill();
+        }
+
+        ctx.globalAlpha = 1;
+
+        /* la brillance sur le haut */
+        ctx.globalAlpha = .5;
+        ctx.fillStyle   = "#ffffff";
+        ctx.beginPath();
+        ctx.ellipse(-w * .3, -h * .48, w * .38, h * .2, -.3, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        /* le visage */
+        const ex = w * .36;
+        const ey = -h * .06;
+        const er = r * .15;
+
+        if(g.blink < 0 || g.stunned > 0){
+
+            ctx.strokeStyle = "#4a1030";
+            ctx.lineWidth   = Math.max(1.4, r * .07);
+            ctx.lineCap     = "round";
+
+            [-1, 1].forEach(sgn => {
+                ctx.beginPath();
+                ctx.moveTo(sgn * ex - er, ey);
+                ctx.lineTo(sgn * ex + er, ey);
+                ctx.stroke();
+            });
+
+        }else{
+
+            [-1, 1].forEach(sgn => {
+
+                ctx.fillStyle = "#4a1030";
+                ctx.beginPath();
+                ctx.arc(sgn * ex, ey, er, 0, Math.PI * 2);
+                ctx.fill();
+
+                ctx.fillStyle = "#ffffff";
+                ctx.beginPath();
+                ctx.arc(sgn * ex - er * .3, ey - er * .35, er * .38, 0, Math.PI * 2);
+                ctx.fill();
+
+            });
+
+        }
+
+        /* la bouche : un petit sourire content */
+        ctx.strokeStyle = "#4a1030";
+        ctx.lineWidth   = Math.max(1.4, r * .07);
+        ctx.lineCap     = "round";
+
+        ctx.beginPath();
+        ctx.arc(0, h * .18, r * .22, .25, Math.PI - .25);
+        ctx.stroke();
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* --- les rochers des abysses, a la place des planetes --- */
+function drawAbyssRock(s, t){
+
+    ctx.save();
+    ctx.translate(s.x, s.y);
+
+    /* la lueur froide qui les detoure */
+    const halo = ctx.createRadialGradient(0, 0, s.r * .7, 0, 0, s.r * 1.7);
+    halo.addColorStop(0, "rgba(80,200,240,.26)");
+    halo.addColorStop(1, "rgba(80,200,240,0)");
+
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(0, 0, s.r * 1.7, 0, Math.PI * 2);
+    ctx.fill();
+
+    /* la masse : un caillou irregulier, stable dans le temps */
+    const seed = (s.pulse * 97) % 6.28;
+
+    ctx.beginPath();
+
+    for(let i = 0; i <= 11; i++){
+
+        const a  = (i / 11) * Math.PI * 2;
+        const rr = s.r * (.82 + .22 * Math.abs(Math.sin(a * 2.3 + seed)));
+
+        ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+
+    }
+
+    ctx.closePath();
+
+    const g = ctx.createLinearGradient(0, -s.r, 0, s.r);
+    g.addColorStop(0, "#3d6f88");
+    g.addColorStop(1, "#12303f");
+
+    ctx.fillStyle = g;
+    ctx.fill();
+
+    ctx.lineWidth   = Math.max(2, s.r * .08);
+    ctx.strokeStyle = "#6fd0e8";
+    ctx.stroke();
+
+    /* les coraux lumineux accroches dessus */
+    for(let i = 0; i < 4; i++){
+
+        const a  = seed + i * 1.57;
+        const bx = Math.cos(a) * s.r * .7;
+        const by = Math.sin(a) * s.r * .7;
+
+        const pulse = .35 + .35 * Math.sin(t * 1.6 + i + seed);
+
+        ctx.globalAlpha = pulse;
+        ctx.strokeStyle = i % 2 ? "#5fe8ff" : "#7bffca";
+        ctx.lineWidth   = Math.max(1.2, s.r * .05);
+        ctx.lineCap     = "round";
+
+        ctx.beginPath();
+        ctx.moveTo(bx, by);
+        ctx.lineTo(bx + Math.cos(a) * s.r * .3, by + Math.sin(a) * s.r * .3);
+        ctx.stroke();
+
+        ctx.globalAlpha = pulse;
+        ctx.fillStyle   = i % 2 ? "#9ff2ff" : "#b6ffe4";
+
+        ctx.beginPath();
+        ctx.arc(bx + Math.cos(a) * s.r * .34, by + Math.sin(a) * s.r * .34, s.r * .07, 0, Math.PI * 2);
+        ctx.fill();
+
+    }
+
+    ctx.globalAlpha = 1;
+    ctx.restore();
 
 }
 
@@ -2247,6 +2605,7 @@ function enterAbyss(){
     drips   = [];
     candies = [];
     gloutons = [];
+    guimauves = [];
 
     trace       = [];
     traceLength = 0;
