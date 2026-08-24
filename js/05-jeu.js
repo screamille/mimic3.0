@@ -1218,6 +1218,7 @@ function update(dt){
     }
 
     paintDashButton();
+    lasBoard();
 
     if(duel.active){
         duelUpdate(dt);

@@ -237,6 +237,68 @@ html,body{
 }
 
 
+/* ---- mode laser : le bandeau des vies, en jeu ---- */
+
+.lasBoard{
+    position:fixed;
+
+    left:50%;
+    top:calc(76px + env(safe-area-inset-top));
+    transform:translateX(-50%);
+
+    display:flex;
+    flex-wrap:wrap;
+    justify-content:center;
+    gap:7px;
+
+    max-width:92vw;
+
+    z-index:12;
+
+    pointer-events:none;
+}
+
+.lasTag{
+    display:flex;
+    align-items:center;
+    gap:7px;
+
+    padding:5px 11px;
+
+    border-radius:999px;
+
+    background:rgba(6,10,26,.72);
+    border:1px solid rgba(120,150,220,.22);
+
+    backdrop-filter:blur(8px);
+
+    font-size:12px;
+    color:#dbe6ff;
+}
+
+.lasTag b{
+    font-weight:700;
+    letter-spacing:.4px;
+}
+
+.lasHp{
+    color:#ff6b8a;
+    letter-spacing:1px;
+}
+
+.lasTag.out{
+    opacity:.45;
+}
+
+.lasTag.out .lasHp{
+    color:#8fa0c8;
+}
+
+@media (max-height:500px){
+    .lasBoard{ top:calc(60px + env(safe-area-inset-top)); gap:5px; }
+    .lasTag{ padding:4px 9px; font-size:10.5px; }
+}
+
 /* ---- mode laser : liste des joueurs ---- */
 
 .lasList{
@@ -1552,6 +1614,26 @@ button:active{
         inset 0 1px 0 rgba(255,255,255,.06);
 }
 
+/*
+Le haut du casier reste colle en place : on peut changer
+d'onglet ou refermer sans avoir a redescendre tout en bas
+de la grille.
+*/
+.shopSticky{
+    position:sticky;
+    top:0;
+    z-index:5;
+
+    margin:-26px -26px 14px;
+    padding:20px 26px 2px;
+
+    /* opaque : sinon les cartes defilent au travers */
+    background:#111a35;
+
+    border-bottom:1px solid rgba(120,150,220,.16);
+    box-shadow:0 10px 22px rgba(4,7,18,.55);
+}
+
 .shopHeader{
     display:flex;
     justify-content:space-between;
@@ -1559,8 +1641,45 @@ button:active{
 
     gap:12px;
 
-    padding-bottom:16px;
+    padding-bottom:14px;
     border-bottom:1px solid rgba(120,150,220,.16);
+}
+
+.shopHeadRight{
+    display:flex;
+    align-items:center;
+    gap:10px;
+}
+
+.shopX{
+    width:38px;
+    height:38px;
+
+    padding:0;
+
+    border:1px solid rgba(120,150,220,.3);
+    border-radius:12px;
+
+    background:rgba(255,255,255,.05);
+    color:#dce6ff;
+
+    font-size:15px;
+    line-height:1;
+}
+
+.shopX:hover{
+    background:rgba(255,90,120,.2);
+    border-color:rgba(255,120,150,.5);
+    color:#fff;
+}
+
+@media (max-width:560px){
+    .shopSticky{ margin:-16px -14px 12px; padding:14px 14px 2px; }
+    .shopX{ width:32px; height:32px; font-size:13px; }
+}
+
+@media (max-height:500px){
+    .shopSticky{ margin:-14px -14px 10px; padding:12px 14px 2px; }
 }
 
 .shopHeader h1{
@@ -1660,7 +1779,7 @@ button:active{
 }
 
 .shopCount{
-    margin:0 2px 12px;
+    margin:0 2px 10px;
 
     font-size:11px;
     letter-spacing:1.2px;

@@ -17,6 +17,13 @@
 const LAS_PREFIX  = "mimiclaser-";
 const LAS_MAX     = 5;
 
+/*
+Chacun a trois vies : on ne voit pas les autres joueurs sur
+le terrain, on suit seulement leurs vies dans le bandeau du
+haut. Trois vies laissent le temps de lire l'adversaire.
+*/
+const LAS_LIVES   = 3;
+
 /* couleur de chaque joueur, dans l'ordre d'arrivee */
 const LAS_COLORS = ["#4fd8ff", "#ffd24d", "#8dff6a", "#ff7ba8", "#c78cff"];
 
@@ -341,7 +348,17 @@ function drawLaserBeams(){
    LES JOUEURS
 ========================================================= */
 
+/*
+Les adversaires restent invisibles : chacun joue son propre
+terrain, et l'on suit les autres au tableau des vies.
+Cette fonction ne dessine donc plus rien — on la garde pour
+que le reste du code n'ait pas a s'en soucier.
+*/
 function drawLaserPlayers(){
+
+    if(true){
+        return;
+    }
 
     laser.players.forEach((pl, i) => {
 
@@ -370,6 +387,71 @@ function drawLaserPlayers(){
         ctx.textAlign   = "center";
         ctx.fillText(pl.name, q.x, q.y - 26 * unit);
         ctx.restore();
+
+    });
+
+}
+
+
+/* =========================================================
+   LE TABLEAU DES VIES
+
+   Un bandeau de pastilles en haut : une par joueur, avec sa
+   couleur et ses coeurs restants. C'est la seule chose que
+   l'on sait des autres pendant la partie.
+========================================================= */
+
+function lasBoard(){
+
+    const box = document.getElementById("lasBoard");
+
+    if(!box){
+        return;
+    }
+
+    if(!laser.active){
+        box.style.display = "none";
+        return;
+    }
+
+    box.style.display = "flex";
+
+    /* on ne reconstruit qu'au besoin : c'est appele a chaque image */
+    const sig = laser.players.map(p => p.lives + (p.alive ? "v" : "m")).join("|");
+
+    if(box.dataset.sig === sig){
+        return;
+    }
+
+    box.dataset.sig = sig;
+    box.innerHTML   = "";
+
+    laser.players.forEach((pl, i) => {
+
+        const tag = document.createElement("div");
+
+        tag.className = "lasTag" + (pl.alive ? "" : " out");
+
+        const dot = document.createElement("span");
+        dot.className = "lasDot";
+        dot.style.background = pl.color;
+        dot.style.color      = pl.color;
+
+        const nm = document.createElement("b");
+        nm.textContent = i === laser.me ? T("las.you") : pl.name;
+
+        const hp = document.createElement("span");
+        hp.className = "lasHp";
+
+        hp.textContent = pl.alive
+            ? "♥".repeat(Math.max(0, pl.lives))
+            : "✕";
+
+        tag.appendChild(dot);
+        tag.appendChild(nm);
+        tag.appendChild(hp);
+
+        box.appendChild(tag);
 
     });
 
@@ -428,7 +510,8 @@ function lasSend(msg){
 function lasRoster(){
 
     return laser.players.map(p => ({
-        name:p.name, skin:p.skin, color:p.color, alive:p.alive, time:p.time
+        name:p.name, skin:p.skin, color:p.color,
+        alive:p.alive, lives:p.lives, time:p.time
     }));
 
 }
@@ -513,7 +596,7 @@ function lasBind(conn, isHost){
                 name:T("las.player") + " " + (laser.players.length + 1),
                 skin:"cyber",
                 color:LAS_COLORS[laser.players.length % LAS_COLORS.length],
-                x:0, y:0, alive:true, time:0
+                x:0, y:0, alive:true, lives:LAS_LIVES, time:0
             });
 
             lasSend({t:"room", players:lasRoster()});
@@ -597,6 +680,7 @@ function lasMessage(d, conn, isHost){
             if(p){
                 p.x = d.x; p.y = d.y;
                 p.alive = d.a;
+                p.lives = d.hp;
                 p.time  = d.tm;
             }
 
@@ -608,7 +692,8 @@ function lasMessage(d, conn, isHost){
             const p = laser.players[conn.__idx];
 
             if(p){
-                p.alive = false;
+                p.lives = d.hp;
+                p.alive = d.hp > 0;
                 p.time  = d.tm;
             }
 
@@ -662,6 +747,7 @@ function lasMessage(d, conn, isHost){
             laser.players[i].x     = p.x;
             laser.players[i].y     = p.y;
             laser.players[i].alive = p.alive;
+            laser.players[i].lives = p.lives;
             laser.players[i].time  = p.time;
 
         });
@@ -738,6 +824,7 @@ function lasBegin(){
     /* chacun demarre a une place fixe, la meme sur tous les ecrans */
     laser.players.forEach((p, i) => {
         p.alive = true;
+        p.lives = LAS_LIVES;
         p.time  = 0;
         p.x = .18 + i * .16;
         p.y = .5;
@@ -790,6 +877,7 @@ function lasFinish(winner){
     laser.active = false;
 
     lasHudLabels(false);
+    lasBoard();
     playing      = false;
 
     document.getElementById("pauseBtn").style.display = "none";
@@ -848,17 +936,32 @@ function lasUpdate(dt){
 
                 if(lasBeamLethal(b) && lasHit(b, player.x, player.y, player.r * .7)){
 
-                    me.alive = false;
+                    me.lives = Math.max(0, me.lives - 1);
                     me.time  = laser.time;
 
                     burst(player.x, player.y, 26, "#ff4f6e");
                     sound(160, .3, "sawtooth", .06);
 
+                    if(me.lives <= 0){
+
+                        me.alive = false;
+
+                        pickupMessage("💥 " + T("las.eliminated"), "#ff466e");
+
+                    }else{
+
+                        /* on repart avec un court repit */
+                        player.invincible = 1.6;
+
+                        pickupMessage("💔 " + me.lives, "#ff466e");
+
+                    }
+
                     if(laser.host){
                         lasSend({t:"all", players:lasRoster()});
                         lasCheckEnd();
                     }else{
-                        lasSend({t:"out", tm:laser.time});
+                        lasSend({t:"out", hp:me.lives, tm:laser.time});
                     }
 
                     break;
@@ -885,7 +988,7 @@ function lasUpdate(dt){
             laser.players[laser.me].y = n.y;
             lasSend({t:"all", players:lasRoster()});
         }else if(me){
-            lasSend({t:"p", x:n.x, y:n.y, a:me.alive, tm:laser.time});
+            lasSend({t:"p", x:n.x, y:n.y, a:me.alive, hp:me.lives, tm:laser.time});
         }
 
     }
@@ -965,7 +1068,7 @@ function lasHostRoom(){
         name:T("las.player") + " 1",
         skin:currentSkin,
         color:LAS_COLORS[0],
-        x:0, y:0, alive:true, time:0
+        x:0, y:0, alive:true, lives:LAS_LIVES, time:0
     }];
 
     lasStatus(T("las.creating"));

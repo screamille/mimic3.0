@@ -20,7 +20,13 @@ const DUEL_SERVERS = [
     {host:"0.peerjs.com",   port:443, secure:true, path:"/"}
 ];
 
-const DUEL_TIMEOUT = 6000;   /* ms avant de considérer un serveur muet */
+/*
+6 s ne suffisaient pas : sur un reseau mobile la poignee de
+main PeerJS depasse souvent ce delai, et le jeu abandonnait
+un serveur qui allait repondre. Le mode laser, lui, n'avait
+aucun delai — c'est pour ca qu'il marchait et pas le duel.
+*/
+const DUEL_TIMEOUT = 18000;  /* ms avant de considérer un serveur muet */
 
 let duelServer  = 0;
 let duelTimer   = null;
@@ -316,6 +322,11 @@ message figé : on essaie le suivant, puis on explique quoi faire.
 function duelServerFailed(reason){
 
     clearDuelTimer();
+
+    /* le serveur a fini par repondre : on ne change rien */
+    if(duel.peer && duel.peer.open){
+        return;
+    }
 
     if(duel.peer){
         try{ duel.peer.destroy(); }catch(e){}

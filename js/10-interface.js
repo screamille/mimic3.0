@@ -839,7 +839,7 @@ document.getElementById("lasAgain").onclick = () => {
         return;
     }
 
-    laser.players.forEach(p => { p.alive = true; p.time = 0; });
+    laser.players.forEach(p => { p.alive = true; p.lives = LAS_LIVES; p.time = 0; });
 
     laser.seed = Math.floor(Math.random() * 1e9) + 1;
 
@@ -950,6 +950,7 @@ document.getElementById("duelRematch").onclick = () => {
 document.getElementById("openShop").onclick        = openShop;
 document.getElementById("gameOverShop").onclick    = openShop;
 document.getElementById("closeShop").onclick       = closeShop;
+document.getElementById("shopX").onclick           = closeShop;
 document.getElementById("lockerButton").onclick    = showLocker;
 document.getElementById("shopSkinsButton").onclick = showShop;
 

@@ -47,6 +47,9 @@
 
 <button id="pauseBtn">⏸</button>
 
+<!-- mode laser : les vies de chaque joueur -->
+<div id="lasBoard" class="lasBoard" style="display:none"></div>
+
 <!-- competences : en bas a droite, sous le bouton pause -->
 <div id="skillBar">
     <button id="dashBtn" class="skillBtn" aria-label="Dash">
@@ -156,7 +159,7 @@
         <b id="bestScore">0</b>
     </div>
 
-    <div class="version" id="versionTag">V 2.4</div>
+    <div class="version" id="versionTag">V 2.5</div>
 
     <div id="iosTip" class="iosTip" style="display:none">
         <span data-i18n="ios.tip">Pour le plein écran : Partager ▸ Sur l'écran d'accueil</span>
@@ -732,12 +735,20 @@
 
     <div class="shopWindow">
 
+        <div class="shopSticky">
+
         <div class="shopHeader">
 
             <h1 id="shopTitle">🎒 CASIER</h1>
 
-            <div class="coinDisplay">
-                <i class="coinDot"></i> <b id="coinText">0</b>
+            <div class="shopHeadRight">
+
+                <div class="coinDisplay">
+                    <i class="coinDot"></i> <b id="coinText">0</b>
+                </div>
+
+                <button id="shopX" class="shopX" aria-label="Fermer">✕</button>
+
             </div>
 
         </div>
@@ -773,6 +784,8 @@
         </div>
 
         <div id="shopCount" class="shopCount"></div>
+
+        </div><!-- fin du bloc collant -->
 
         <div id="shopContent"></div>
 
