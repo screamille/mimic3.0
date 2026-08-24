@@ -1620,18 +1620,44 @@ d'onglet ou refermer sans avoir a redescendre tout en bas
 de la grille.
 */
 .shopSticky{
-    position:sticky;
-    top:0;
-    z-index:5;
+    /*
+    Le haut defile normalement avec la grille : c'est la croix
+    flottante (.shopFloatX) qui permet de sortir a tout moment.
+    */
+    margin:0 0 14px;
+}
 
-    margin:-26px -26px 14px;
-    padding:20px 26px 2px;
+.shopFloatX{
+    position:fixed;
+    top:max(12px, env(safe-area-inset-top));
+    right:12px;
+    z-index:40;
 
-    /* opaque : sinon les cartes defilent au travers */
-    background:#111a35;
+    width:44px;
+    height:44px;
 
-    border-bottom:1px solid rgba(120,150,220,.16);
-    box-shadow:0 10px 22px rgba(4,7,18,.55);
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    padding:0;
+
+    border:1px solid rgba(140,170,235,.4);
+    border-radius:14px;
+
+    background:rgba(14,22,45,.92);
+    color:#dce6ff;
+
+    font-size:17px;
+    line-height:1;
+
+    box-shadow:0 8px 22px rgba(4,7,18,.6);
+}
+
+.shopFloatX:hover{
+    background:rgba(255,90,120,.28);
+    border-color:rgba(255,120,150,.6);
+    color:#fff;
 }
 
 .shopHeader{
@@ -1674,12 +1700,9 @@ de la grille.
 }
 
 @media (max-width:560px){
-    .shopSticky{ margin:-16px -14px 12px; padding:14px 14px 2px; }
+    .shopSticky{ margin:0 0 12px; }
     .shopX{ width:32px; height:32px; font-size:13px; }
-}
-
-@media (max-height:500px){
-    .shopSticky{ margin:-14px -14px 10px; padding:12px 14px 2px; }
+    .shopFloatX{ width:40px; height:40px; font-size:15px; right:10px; }
 }
 
 .shopHeader h1{

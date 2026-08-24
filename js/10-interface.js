@@ -950,7 +950,7 @@ document.getElementById("duelRematch").onclick = () => {
 document.getElementById("openShop").onclick        = openShop;
 document.getElementById("gameOverShop").onclick    = openShop;
 document.getElementById("closeShop").onclick       = closeShop;
-document.getElementById("shopX").onclick           = closeShop;
+document.getElementById("shopFloatX").onclick      = closeShop;
 document.getElementById("lockerButton").onclick    = showLocker;
 document.getElementById("shopSkinsButton").onclick = showShop;
 

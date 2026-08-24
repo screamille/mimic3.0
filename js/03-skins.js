@@ -67,7 +67,21 @@ const SKINS = [
     {id:"holo",      name:"HOLO SLIME",      color:"#5fe8ff", color2:"#1a6a8a", price:500,  effect:"holo",      rarity:3},
     {id:"vitrail",   name:"VITRAIL SLIME",   color:"#ff5f9e", color2:"#2a1a6a", price:500, effect:"vitrail",   rarity:3},
     {id:"plasma",    name:"PLASMA SLIME",    color:"#c86aff", color2:"#3a0a6a", price:500, effect:"plasma",    rarity:3},
-    {id:"vangogh",   name:"NUIT ÉTOILÉE",    color:"#4a7ad8", color2:"#12204a", price:500, effect:"vangogh",   rarity:3}
+    {id:"vangogh",   name:"NUIT ÉTOILÉE",    color:"#4a7ad8", color2:"#12204a", price:500, effect:"vangogh",   rarity:3},
+
+    /* --- douzieme fournee --- */
+    {id:"sirene",    name:"SIRÈNE SLIME",    color:"#4fe6c8", color2:"#1a6fa0", price:250,  effect:"sirene",    rarity:1},
+    {id:"abeille",   name:"ABEILLE SLIME",   color:"#ffcf3d", color2:"#a8730a", price:250,  effect:"abeille",   rarity:1},
+    {id:"automne",   name:"AUTOMNE SLIME",   color:"#ff9b45", color2:"#9a3f14", price:250,  effect:"automne",   rarity:1},
+    {id:"meduse",    name:"MÉDUSE SLIME",    color:"#c9a6ff", color2:"#5a3ba8", price:250,  effect:"meduse",    rarity:1},
+    {id:"koi",       name:"KOÏ SLIME",       color:"#fff3ea", color2:"#d95a2a", price:400,  effect:"koi",       rarity:2},
+    {id:"bambou",    name:"BAMBOU SLIME",    color:"#8fd94f", color2:"#2f6b1e", price:400,  effect:"bambou",    rarity:2},
+    {id:"arcade",    name:"ARCADE SLIME",    color:"#ff4f8b", color2:"#2a0f4a", price:400,  effect:"arcade",    rarity:2},
+    {id:"encre",     name:"ENCRE SLIME",     color:"#f2f4f8", color2:"#1a1d26", price:400,  effect:"encre",     rarity:2},
+    {id:"aurore",    name:"AURORE SLIME",    color:"#5fffc8", color2:"#123a6a", price:500,  effect:"aurore",    rarity:3},
+    {id:"miroir",    name:"MIROIR SLIME",    color:"#dfe9f7", color2:"#7a90ad", price:500,  effect:"miroir",    rarity:3},
+    {id:"tornade",   name:"TORNADE SLIME",   color:"#9fb4c9", color2:"#2c3a4d", price:500,  effect:"tornade",   rarity:3},
+    {id:"nova",      name:"NOVA SLIME",      color:"#ffd76a", color2:"#a8241a", price:500,  effect:"nova",      rarity:3}
 ];
 
 
@@ -495,6 +509,11 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
             tokyo:  ["#3affd0", "#3affd0"],
             plasma: ["#f0d0ff", "#c86aff"],
             vangogh:["#fff3b0", "#ffd24d"],
+            encre:  ["#1a1d26", "#1a1d26"],
+            tornade:["#e8f2ff", "#e8f2ff"],
+            aurore: ["#c8fff0", "#7ef0d0"],
+            arcade: ["#5ffff0", "#5ffff0"],
+            nova:   ["#fff6d0", "#ffd76a"],
             lampe:  ["#ffd0f5", "#ff6ad5"],
             holo:   ["#d8feff", "#5fe8ff"],
             requin: ["#eef4fa", "#eef4fa"],
@@ -4110,6 +4129,481 @@ function paintSkinInner(c, skin, w, h, r, t, f){
         return;
 
     }
+
+    /* ---------- SIRENE : ecailles irisees ---------- */
+    if(e === "sirene"){
+
+        c.lineWidth = r * .05;
+
+        for(let ry = -3; ry <= 3; ry++){
+            for(let cx = -3; cx <= 3; cx++){
+
+                const px  = cx * w * .34 + (ry % 2 ? w * .17 : 0);
+                const py  = ry * h * .26;
+                const hue = (ry * 24 + cx * 14 + t * 45) % 360;
+
+                c.globalAlpha = .5;
+                c.strokeStyle = "hsl(" + hue + ",85%,72%)";
+
+                c.beginPath();
+                c.arc(px, py, w * .19, Math.PI * .12, Math.PI * .88);
+                c.stroke();
+
+            }
+        }
+
+        c.globalAlpha = 1;
+        return;
+
+    }
+
+    /* ---------- ABEILLE : rayures en diagonale ---------- */
+    if(e === "abeille"){
+
+        c.save();
+        c.rotate(-.28);
+
+        c.globalAlpha = .85;
+        c.fillStyle   = "#2a1c04";
+
+        for(let i = -4; i <= 4; i++){
+            c.fillRect(-w * 1.6, i * h * .36 - h * .075, w * 3.2, h * .15);
+        }
+
+        c.restore();
+
+        /* le duvet dore entre les bandes */
+        c.globalAlpha = .3;
+        c.fillStyle   = "#fff0a8";
+
+        for(let i = 0; i < 14; i++){
+            const a = i * 2.39 + t * .2;
+            c.beginPath();
+            c.arc(Math.cos(a) * w * .7, Math.sin(a) * h * .7, r * .035, 0, Math.PI * 2);
+            c.fill();
+        }
+
+        c.globalAlpha = 1;
+        return;
+
+    }
+
+    /* ---------- AUTOMNE : feuilles qui tombent ---------- */
+    if(e === "automne"){
+
+        const TONS = ["#ffb347", "#e8622a", "#c9412a", "#f5d06a"];
+
+        for(let i = 0; i < 7; i++){
+
+            const ph = (t * .3 + i * .143) % 1;
+            const px = Math.sin(i * 2.1 + t * .8) * w * .7;
+            const py = (ph - .5) * h * 2.1;
+
+            c.globalAlpha = .95 * Math.min(1, Math.sin(ph * Math.PI) * 1.6);
+            c.fillStyle   = TONS[i % 4];
+
+            c.save();
+            c.translate(px, py);
+            c.rotate(t * 1.1 + i);
+
+            /* une feuille en amande, avec sa nervure */
+            c.beginPath();
+            c.moveTo(-r * .24, 0);
+            c.quadraticCurveTo(0, -r * .17, r * .24, 0);
+            c.quadraticCurveTo(0,  r * .17, -r * .24, 0);
+            c.fill();
+
+            c.strokeStyle = "#7a3410";
+            c.lineWidth   = r * .022;
+            c.beginPath();
+            c.moveTo(-r * .24, 0);
+            c.lineTo(r * .24, 0);
+            c.stroke();
+
+            c.restore();
+
+        }
+
+        c.globalAlpha = 1;
+        return;
+
+    }
+
+    /* ---------- MEDUSE : ombrelle et filaments ---------- */
+    if(e === "meduse"){
+
+        /* le dome translucide */
+        c.globalAlpha = .55;
+
+        const gm = c.createLinearGradient(0, -h * .8, 0, h * .1);
+        gm.addColorStop(0,  "#fdf4ff");
+        gm.addColorStop(1,  "rgba(160,110,255,.15)");
+
+        c.fillStyle = gm;
+        c.beginPath();
+        c.ellipse(0, -h * .12, w * .85, h * .6, 0, Math.PI, 0);
+        c.fill();
+
+        c.globalAlpha = .7;
+        c.strokeStyle = "#f6ecff";
+        c.lineWidth   = r * .05;
+        c.beginPath();
+        c.ellipse(0, -h * .12, w * .85, h * .6, 0, Math.PI, 0);
+        c.stroke();
+
+        /* les filaments qui ondulent */
+        c.globalAlpha = .8;
+        c.strokeStyle = "#fbf2ff";
+        c.lineWidth   = r * .06;
+        c.lineCap     = "round";
+
+        for(let i = 0; i < 6; i++){
+
+            const bx = (i - 2.5) * w * .3;
+
+            c.beginPath();
+            c.moveTo(bx, h * .05);
+
+            for(let k = 1; k <= 6; k++){
+                const kk = k / 6;
+                c.lineTo(bx + Math.sin(t * 3 + i + kk * 3) * w * .12, h * (.05 + kk * .95));
+            }
+
+            c.stroke();
+
+        }
+
+        c.globalAlpha = 1;
+        return;
+
+    }
+
+    /* ---------- KOI : taches et ondes a la surface ---------- */
+    if(e === "koi"){
+
+        const TACHES = [[-.45,-.35,.30],[.4,-.15,.24],[-.1,.45,.27],[.5,.5,.18]];
+
+        TACHES.forEach((p, i) => {
+
+            c.globalAlpha = .8;
+            c.fillStyle   = i % 2 ? "#d95a2a" : "#20242c";
+
+            c.save();
+            c.translate(p[0] * w, p[1] * h);
+            c.rotate(Math.sin(t * .5 + i) * .2 + i);
+
+            c.beginPath();
+            c.ellipse(0, 0, w * p[2], h * p[2] * .72, 0, 0, Math.PI * 2);
+            c.fill();
+
+            c.restore();
+
+        });
+
+        /* les ronds dans l'eau */
+        c.globalAlpha = .3;
+        c.strokeStyle = "#ffffff";
+        c.lineWidth   = r * .04;
+
+        for(let i = 0; i < 3; i++){
+            const rr = ((t * .4 + i / 3) % 1) * r * 1.3;
+            c.beginPath();
+            c.ellipse(0, h * .1, rr, rr * .55, 0, 0, Math.PI * 2);
+            c.stroke();
+        }
+
+        c.globalAlpha = 1;
+        return;
+
+    }
+
+    /* ---------- BAMBOU : cannes et noeuds ---------- */
+    if(e === "bambou"){
+
+        for(let i = -3; i <= 3; i++){
+
+            const px = i * w * .32 + Math.sin(t * .4 + i) * w * .03;
+
+            c.globalAlpha = .55;
+            c.fillStyle   = i % 2 ? "#2f6b1e" : "#4d8f2c";
+            c.fillRect(px - w * .1, -h * 1.4, w * .2, h * 2.8);
+
+            /* les noeuds */
+            c.globalAlpha = .7;
+            c.fillStyle   = "#1d4a12";
+
+            for(let k = -2; k <= 2; k++){
+                c.fillRect(px - w * .12, k * h * .5, w * .24, h * .05);
+            }
+
+        }
+
+        c.globalAlpha = 1;
+        return;
+
+    }
+
+    /* ---------- ARCADE : pixels qui s'allument ---------- */
+    if(e === "arcade"){
+
+        const TON = ["#ff4f8b", "#5ffff0", "#ffe14f", "#a45cff"];
+        const px  = w * .27, py = h * .27;
+
+        for(let gx = -3; gx <= 3; gx++){
+            for(let gy = -3; gy <= 3; gy++){
+
+                const k = Math.sin(gx * 1.7 + gy * 2.3 + t * 2.2);
+
+                if(k < .25) continue;
+
+                c.globalAlpha = .25 + k * .5;
+                c.fillStyle   = TON[(gx + gy + 8) % 4];
+                c.fillRect(gx * px - px * .42, gy * py - py * .42, px * .84, py * .84);
+
+            }
+        }
+
+        c.globalAlpha = 1;
+        return;
+
+    }
+
+    /* ---------- ENCRE : volutes noires sur blanc ---------- */
+    if(e === "encre"){
+
+        c.globalAlpha = .8;
+        c.fillStyle   = "#f4f6fa";
+        c.fillRect(-w * 1.3, -h * 1.4, w * 2.6, h * 2.8);
+
+        c.strokeStyle = "#161922";
+        c.lineCap     = "round";
+
+        for(let i = 0; i < 4; i++){
+
+            c.globalAlpha = .75;
+            c.lineWidth   = r * (.14 - i * .025);
+
+            c.beginPath();
+
+            for(let k = 0; k <= 16; k++){
+                const kk = k / 16;
+                const a  = t * .3 + i * 1.6 + kk * 5;
+                const rr = kk * r * (.5 + i * .18);
+                c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr * .9);
+            }
+
+            c.stroke();
+
+        }
+
+        /* les gouttes */
+        c.globalAlpha = .7;
+        c.fillStyle   = "#161922";
+
+        for(let i = 0; i < 5; i++){
+            const a = i * 1.25 + t * .5;
+            c.beginPath();
+            c.arc(Math.cos(a) * w * .8, Math.sin(a) * h * .8, r * .05, 0, Math.PI * 2);
+            c.fill();
+        }
+
+        c.globalAlpha = 1;
+        return;
+
+    }
+
+    /* ---------- AURORE : rideaux de lumiere ---------- */
+    if(e === "aurore"){
+
+        c.fillStyle = "#0d1f3d";
+        c.fillRect(-w * 1.3, -h * 1.4, w * 2.6, h * 2.8);
+
+        for(let i = 0; i < 4; i++){
+
+            const bx  = (i - 1.5) * w * .5;
+            const hue = 140 + Math.sin(t * .6 + i * 1.4) * 80;
+
+            const g = c.createLinearGradient(0, -h, 0, h);
+            g.addColorStop(0,   "hsla(" + hue + ",95%,70%,0)");
+            g.addColorStop(.45, "hsla(" + hue + ",95%,68%,.75)");
+            g.addColorStop(1,   "hsla(" + (hue + 40) + ",95%,60%,0)");
+
+            c.globalAlpha = .9;
+            c.strokeStyle = g;
+            c.lineWidth   = w * .30;
+            c.lineCap     = "round";
+            c.lineJoin    = "round";
+
+            c.beginPath();
+
+            for(let k = 0; k <= 12; k++){
+                const kk = k / 12;
+                c.lineTo(bx + Math.sin(t * 1.1 + i * 1.7 + kk * 3.4) * w * .38, -h * 1.2 + kk * h * 2.4);
+            }
+
+            c.stroke();
+
+        }
+
+        /* quelques etoiles au fond */
+        c.globalAlpha = .8;
+        c.fillStyle   = "#eaf6ff";
+
+        for(let i = 0; i < 8; i++){
+            const a = i * 2.4;
+            c.beginPath();
+            c.arc(Math.cos(a) * w * .85, Math.sin(a * 1.7) * h * .85, r * .025, 0, Math.PI * 2);
+            c.fill();
+        }
+
+        c.globalAlpha = 1;
+        return;
+
+    }
+
+    /* ---------- MIROIR : facettes qui renvoient la lumiere ---------- */
+    if(e === "miroir"){
+
+        for(let i = 0; i < 7; i++){
+
+            const a = i * .9 + t * .25;
+
+            c.globalAlpha = .10 + .16 * (1 + Math.sin(t * 1.6 + i)) / 2;
+            c.fillStyle   = i % 2 ? "#ffffff" : "#9fc0e8";
+
+            c.beginPath();
+            c.moveTo(Math.cos(a) * w * .12, Math.sin(a) * h * .12);
+            c.lineTo(Math.cos(a + .5) * w * 1.3, Math.sin(a + .5) * h * 1.3);
+            c.lineTo(Math.cos(a - .3) * w * 1.3, Math.sin(a - .3) * h * 1.3);
+            c.closePath();
+            c.fill();
+
+        }
+
+        /* l'eclat qui balaie */
+        const sx = Math.sin(t * .9) * w * .6;
+
+        const g = c.createLinearGradient(sx - w * .3, 0, sx + w * .3, 0);
+        g.addColorStop(0,  "rgba(255,255,255,0)");
+        g.addColorStop(.5, "rgba(255,255,255,.55)");
+        g.addColorStop(1,  "rgba(255,255,255,0)");
+
+        c.globalAlpha = 1;
+        c.fillStyle   = g;
+        c.fillRect(-w * 1.3, -h * 1.4, w * 2.6, h * 2.8);
+
+        return;
+
+    }
+
+    /* ---------- TORNADE : spirale de debris ---------- */
+    if(e === "tornade"){
+
+        c.strokeStyle = "#c7d8ea";
+        c.lineCap     = "round";
+
+        for(let i = 0; i < 5; i++){
+
+            c.globalAlpha = .5 + i * .09;
+            c.lineWidth   = r * .10;
+
+            c.beginPath();
+
+            for(let k = 0; k <= 18; k++){
+
+                const kk = k / 18;
+                const a  = t * 3 + i * 1.25 + kk * 7;
+                const rr = (.15 + kk * .8) * w;
+
+                c.lineTo(Math.cos(a) * rr, -h + kk * h * 2.1);
+
+            }
+
+            c.stroke();
+
+        }
+
+        /* les brindilles emportees */
+        c.globalAlpha = .7;
+        c.fillStyle   = "#6a5340";
+
+        for(let i = 0; i < 7; i++){
+
+            const a  = t * 4 + i * .9;
+            const kk = (t * .5 + i / 7) % 1;
+
+            c.beginPath();
+            c.arc(Math.cos(a) * w * (.2 + kk * .8), -h + kk * h * 2, r * .04, 0, Math.PI * 2);
+            c.fill();
+
+        }
+
+        c.globalAlpha = 1;
+        return;
+
+    }
+
+    /* ---------- NOVA : l'etoile qui explose ---------- */
+    if(e === "nova"){
+
+        c.fillStyle = "#2a0a06";
+        c.fillRect(-w * 1.3, -h * 1.4, w * 2.6, h * 2.8);
+
+        /* les ondes de choc */
+        for(let i = 0; i < 3; i++){
+
+            const kk = (t * .55 + i / 3) % 1;
+
+            c.globalAlpha = (1 - kk) * .8;
+            c.strokeStyle = "#ffb347";
+            c.lineWidth   = r * .07 * (1 - kk);
+
+            c.beginPath();
+            c.arc(0, 0, kk * r * 1.5, 0, Math.PI * 2);
+            c.stroke();
+
+        }
+
+        /* les rayons */
+        c.lineCap = "round";
+
+        for(let i = 0; i < 6; i++){
+
+            const a  = i * Math.PI / 3 + t * .4;
+            const rr = r * (.85 + Math.sin(t * 3 + i) * .25);
+
+            const gr = c.createLinearGradient(0, 0, Math.cos(a) * rr, Math.sin(a) * rr);
+            gr.addColorStop(0, "rgba(255,233,168,.7)");
+            gr.addColorStop(1, "rgba(255,150,50,0)");
+
+            c.globalAlpha = .8;
+            c.strokeStyle = gr;
+            c.lineWidth   = r * .10;
+
+            c.beginPath();
+            c.moveTo(0, 0);
+            c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+            c.stroke();
+
+        }
+
+        /* le coeur incandescent */
+        const g = c.createRadialGradient(0, 0, 0, 0, 0, r * .55);
+        g.addColorStop(0,  "#fffdf2");
+        g.addColorStop(.4, "#ffd76a");
+        g.addColorStop(1,  "rgba(255,120,40,0)");
+
+        c.globalAlpha = 1;
+        c.fillStyle   = g;
+
+        c.beginPath();
+        c.arc(0, 0, r * .55, 0, Math.PI * 2);
+        c.fill();
+
+        return;
+
+    }
+
 
 }
 
