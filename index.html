@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#050711">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+
+<title>MIMIC</title>
+
+<link rel="stylesheet" href="css/style.css">
+</head>
+
+<body>
+
+<canvas id="game"></canvas>
+
+<!-- =========================
+     UI
+========================= -->
+
+<div id="gameUI">
+
+    <div class="stat">
+        <span data-i18n="hud.score">SCORE</span>
+        <b id="score">0</b>
+    </div>
+
+    <div class="stat">
+        <span data-i18n="hud.level">NIVEAU</span>
+        <b id="level">1</b>
+    </div>
+
+    <div class="stat">
+        <span><i class="coinDot"></i> <em data-i18n="hud.coins">PIÈCES</em></span>
+        <b id="coins">0</b>
+    </div>
+
+    <div class="stat" id="livesStat">
+        <span>❤️ <em data-i18n="hud.lives">VIES</em></span>
+        <b id="lives">♥♥♥</b>
+    </div>
+
+</div>
+
+<button id="pauseBtn">⏸</button>
+
+<!-- competences : en bas a droite, sous le bouton pause -->
+<div id="skillBar">
+    <button id="dashBtn" class="skillBtn" aria-label="Dash">
+        <span class="skillRing"></span>
+        <span class="skillFace">
+            <span class="skillIcon">»</span>
+            <span class="skillName" data-i18n="skill.dash">DASH</span>
+        </span>
+    </button>
+</div>
+
+<div id="duelBar">
+
+    <div class="row">
+        <span class="who">TOI</span>
+        <b id="myTime">0.0 s</b>
+        <b id="myLives">♥♥♥</b>
+    </div>
+
+    <div class="row" style="margin-top:5px">
+        <span class="who" id="foeName">ADVERSAIRE</span>
+        <b id="foeTime">0.0 s</b>
+        <b id="foeLives">♥♥♥</b>
+    </div>
+
+</div>
+
+<div id="countdown"></div>
+
+<div id="rotate">
+
+    <div class="phoneIcon"></div>
+
+    <h2 data-i18n="orient.title">Tourne ton téléphone</h2>
+
+    <p>
+        <em data-i18n="orient.body">MIMIC se joue à l'horizontale. Le terrain y est bien plus large — et tu vois venir de bien plus loin.</em>
+    </p>
+
+</div>
+
+<div id="pickupMessage"></div>
+
+<!-- =========================
+     MENU PRINCIPAL
+========================= -->
+
+<div id="mainMenu" class="lobby">
+
+    <!-- barre du haut -->
+    <div class="lobbyTop">
+
+        <div class="lobbyNav">
+            <button class="navTab active" id="navPlay" data-i18n="nav.play">JOUER</button>
+            <button class="navTab" id="openShopStore" data-i18n="nav.shop">BOUTIQUE</button>
+            <button class="navTab" id="openShop" data-i18n="nav.locker">CASIER</button>
+            <button class="navTab" id="duelButton" data-i18n="nav.duel">DUEL</button>
+            <button class="navTab" id="guideButton" data-i18n="nav.guide">GUIDE</button>
+        </div>
+
+        <div class="lobbyRight">
+
+            <div class="coinPill">
+                <i class="coinDot"></i> <b id="menuCoins">0</b>
+            </div>
+
+            <button class="iconBtn" id="codeButton" title="Code secret">🔑</button>
+            <button class="iconBtn" id="settingsButton" title="Paramètres">⚙</button>
+
+        </div>
+
+    </div>
+
+    <!-- le slime sur son socle -->
+    <div class="lobbyStage">
+
+        <div class="lobbyTag">
+            <span class="lobbyLvl" id="skinCount">1</span>
+            <span class="lobbyTagText">
+                <b id="lobbySkinName">CYBER SLIME</b>
+                <small id="lobbyRarity">COMMUN</small>
+            </span>
+        </div>
+
+        <canvas id="lobbyCanvas"></canvas>
+
+    </div>
+
+    <!-- panneau de lancement, en bas a gauche -->
+    <div class="lobbyPlay">
+
+        <div class="lobbyMode" id="lobbyModeName">
+            MIMIC<br><span>SURVIE INFINIE</span>
+        </div>
+
+        <button class="lobbyPick" id="lobbyModePick">
+            <span class="pickIcon">◈</span> <span id="lobbyPickText">Solo</span>
+        </button>
+
+        <button class="playBig" id="startButton" data-i18n="lobby.play">JOUER</button>
+
+    </div>
+
+    <!-- record, en bas a droite -->
+    <div class="lobbyBadge">
+        <small data-i18n="lobby.record">RECORD</small>
+        <b id="bestScore">0</b>
+    </div>
+
+    <div class="version" id="versionTag">V 2.4</div>
+
+    <div id="iosTip" class="iosTip" style="display:none">
+        <span data-i18n="ios.tip">Pour le plein écran : Partager ▸ Sur l'écran d'accueil</span>
+        <button id="iosTipClose" aria-label="ok">✕</button>
+    </div>
+
+</div>
+
+
+<!-- =========================
+     PARAMÈTRES
+========================= -->
+
+<div id="settings" class="overlay" style="display:none">
+
+    <div class="menu">
+
+        <h1 style="margin:0 0 4px" data-i18n="set.title">⚙ PARAMÈTRES</h1>
+
+        <div class="setBlock">
+
+            <div class="setLabel" data-i18n="set.lang">LANGUE</div>
+
+            <div id="langGrid" class="langGrid"></div>
+
+        </div>
+
+        <div class="setBlock">
+
+            <div class="setLabel" data-i18n="set.access">ACCESSIBILITÉ</div>
+
+            <button class="setRow" id="cbToggle">
+                <span class="setRowText">
+                    <b data-i18n="set.cb">Mode daltonien</b>
+                    <small data-i18n="set.cbHint">Palette et repères adaptés</small>
+                </span>
+                <span class="setSwitch"><i></i></span>
+            </button>
+
+            <button class="setRow" id="musicToggle">
+                <span class="setRowText">
+                    <b data-i18n="set.music">Musique</b>
+                    <small data-i18n="set.musicHint">Nappes du menu et du jeu</small>
+                </span>
+                <span class="setSwitch"><i></i></span>
+            </button>
+
+        </div>
+
+        <div class="menuButtons" style="margin-top:14px">
+            <button class="primary" id="settingsClose" data-i18n="ui.back">← RETOUR</button>
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     CODE SECRET
+========================= -->
+
+<div id="codeScreen" class="overlay">
+
+    <div class="menu">
+
+        <h1 style="margin:0 0 4px" data-i18n="code.title">🔑 CODE SECRET</h1>
+
+        <p class="tagline" style="margin:8px auto 0">
+            Quatre chiffres.
+        </p>
+
+        <div class="codeDisplay">
+            <div class="codeDigit" data-slot="0"></div>
+            <div class="codeDigit" data-slot="1"></div>
+            <div class="codeDigit" data-slot="2"></div>
+            <div class="codeDigit" data-slot="3"></div>
+        </div>
+
+        <div class="keypad">
+            <button data-key="1">1</button>
+            <button data-key="2">2</button>
+            <button data-key="3">3</button>
+            <button data-key="4">4</button>
+            <button data-key="5">5</button>
+            <button data-key="6">6</button>
+            <button data-key="7">7</button>
+            <button data-key="8">8</button>
+            <button data-key="9">9</button>
+            <button data-key="del">⌫</button>
+            <button data-key="0">0</button>
+            <button data-key="ok" class="ok">✓</button>
+        </div>
+
+        <p id="codeMessage"></p>
+
+        <div class="menuButtons" style="margin-top:12px">
+            <button class="secondary" id="codeBack">← RETOUR</button>
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     GUIDE
+========================= -->
+
+<div id="guide" class="overlay">
+
+    <div class="menu">
+
+        <h1 class="guideTitle" data-i18n="nav.guide2">📖 GUIDE</h1>
+
+        <div class="guideSection" data-i18n="g.move">SE DÉPLACER</div>
+
+        <p class="keys">
+            <em data-i18n="g.moveTxt">Sur téléphone : pose ton doigt n'importe où sur l'écran et glisse. Plus tu éloignes le doigt, plus tu vas vite. Sur ordinateur : WASD ou les flèches, P ou Échap pour la pause. Le bouton clé du menu ouvre un pavé à quatre chiffres.</em>
+        </p>
+
+        <div class="guideSection" data-i18n="shop.abilities">COMPÉTENCES</div>
+
+        <p class="keys">
+            <em data-i18n="g.dashTxt">DASH : le bouton rond en bas à droite. Une ruée très rapide dans la direction où tu vas, avec un court instant d'invincibilité. L'anneau bleu montre la recharge (3,8 s). Elle s'achète à la boutique, onglet CAPACITÉS. Au clavier : Espace ou Maj.</em>
+        </p>
+
+        <div class="guideSection" data-i18n="g.foes">LES ENNEMIS</div>
+
+        <div class="foe">
+            <canvas class="foeIcon" data-kind="hunter"></canvas>
+            <span class="txt">
+                <span class="nm" style="color:#ff713d">HUNTER</span>
+                <span class="ds" data-i18n="g.hunter">Il fonce droit sur toi et contourne les blocs. Le plus simple à lire.</span>
+            </span>
+        </div>
+
+        <div class="foe">
+            <canvas class="foeIcon" data-kind="predictor"></canvas>
+            <span class="txt">
+                <span class="nm" style="color:#a855ff">PREDICTOR</span>
+                <span class="ds" data-i18n="g.predictor">Il vise là où tu seras, pas où tu es. Il coupe tes virages.</span>
+            </span>
+        </div>
+
+        <div class="foe">
+            <canvas class="foeIcon" data-kind="traqueur"></canvas>
+            <span class="txt">
+                <span class="nm" style="color:#ff2f4d">TRAQUEUR</span>
+                <span class="ds" data-i18n="g.traqueur">Il remonte ta piste et sprinte parfois. Si tu t'arrêtes, il te rattrape.</span>
+            </span>
+        </div>
+
+        <div class="foe">
+            <canvas class="foeIcon" data-kind="slime"></canvas>
+            <span class="txt">
+                <span class="nm" style="color:#7fdc3f">SLIME</span>
+                <span class="ds" data-i18n="g.slime">Maître du marais. Il s'écrase au sol avant de bondir : c'est ton signal.</span>
+            </span>
+        </div>
+
+        <div class="foe">
+            <canvas class="foeIcon" data-kind="crawler"></canvas>
+            <span class="txt">
+                <span class="nm" style="color:#e0742f" data-i18n="foe.crawler">MILLE-PATTES</span>
+                <span class="ds" data-i18n="g.crawler">Il dort dans les rondins. Approche-toi trop, il sort — et il serpente vite.</span>
+            </span>
+        </div>
+
+        <div class="foe">
+            <canvas class="foeIcon" data-kind="glouton"></canvas>
+            <span class="txt">
+                <span class="nm" style="color:#ff5fa2" data-i18n="foe.glouton">GLOUTON</span>
+                <span class="ds" data-i18n="g.glouton">Au pays des bonbons. Il rampe, ouvre grand la gueule… puis se rue sur toi.</span>
+            </span>
+        </div>
+
+        <div class="guideSection" data-i18n="g.field">SUR LE TERRAIN</div>
+
+        <div class="steps">
+
+            <div class="step">
+                <span class="lv" style="color:#ffd84d" data-i18n="g.nCoin">🪙 PIÈCE</span>
+                <span class="ds" data-i18n="g.coin">+1 pièce et +20 points. Elles servent à acheter les skins.</span>
+            </div>
+
+            <div class="step">
+                <span class="lv" style="color:#69ff88" data-i18n="g.nHeart">💚 CŒUR</span>
+                <span class="ds" data-i18n="g.heart">Rend une vie. Rare, et seulement si tu en as perdu une.</span>
+            </div>
+
+            <div class="step">
+                <span class="lv" style="color:#b66cff" data-i18n="g.nOrb">🟣 ORBE</span>
+                <span class="ds" data-i18n="g.orb">Fige les poursuivants 3 s. Les traqueurs sont seulement ralentis.</span>
+            </div>
+
+            <div class="step">
+                <span class="lv" style="color:#8fa5d0" data-i18n="g.nBlock">⬜ BLOC</span>
+                <span class="ds" data-i18n="g.block">Solide. Sers-t'en pour faire perdre du terrain à tes poursuivants.</span>
+            </div>
+
+            <div class="step">
+                <span class="lv" style="color:#a8e52a" data-i18n="g.nPuddle">🟢 FLAQUE</span>
+                <span class="ds" data-i18n="g.puddle">Dans le marais. On ne la traverse pas : la toucher coûte une vie.</span>
+            </div>
+
+            <div class="step">
+                <span class="lv" style="color:#c99a5e" data-i18n="g.nLog">🪵 RONDIN</span>
+                <span class="ds" data-i18n="g.log">Solide, et habité. Rôder autour réveille ce qui dort dedans.</span>
+            </div>
+
+        </div>
+
+        <div class="guideSection" data-i18n="g.tiers">LES PALIERS</div>
+
+        <div class="steps">
+
+            <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 5</span><span class="ds" data-i18n="g.t5">Le TRAQUEUR entre en piste</span></div>
+            <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 8</span><span class="ds" data-i18n="g.t8">Un quatrième ennemi, au hasard</span></div>
+            <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 11</span><span class="ds" data-i18n="g.t11">Un cinquième ennemi</span></div>
+            <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 20</span><span class="ds" data-i18n="g.t20">🌀 Un portail t'aspire vers LE MARAIS, le monde des slimes</span></div>
+            <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 30</span><span class="ds" data-i18n="g.t30">Le terrain se referme</span></div>
+            <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 40</span><span class="ds" data-i18n="g.t40">🍬 Un second portail t'emmène au PAYS DES BONBONS</span></div>
+
+        </div>
+
+        <div class="menuButtons" style="margin-top:22px">
+            <button class="primary" id="guideClose" data-i18n="ui.back">← RETOUR</button>
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     DUEL
+========================= -->
+
+<div id="duelScreen" class="overlay">
+
+    <div class="menu">
+
+        <h1 style="margin:0 0 6px" data-i18n="duel.title">⚔️ DUEL</h1>
+
+        <p id="fileWarning" class="hint" style="display:none;margin:10px 0 0;color:#ffd84d">
+            <em data-i18n="duel.fileWarn">⚠️ Le jeu est ouvert depuis un fichier, pas depuis un lien. Le QR code ne peut donc contenir que le code à recopier. Mets le jeu en ligne et scanner lancera le duel directement.</em>
+        </p>
+
+        <p class="subtitle" style="margin:8px auto 18px">
+            <em data-i18n="duel.sub">Même terrain, mêmes ennemis, chacun sur son téléphone.</em>
+            <b data-i18n="duel.sub2">Celui qui survit le plus longtemps gagne.</b>
+        </p>
+
+        <div class="menuButtons">
+
+            <button class="primary" id="hostButton">
+                <em data-i18n="duel.create">📡 CRÉER LA PARTIE</em>
+            </button>
+
+        </div>
+
+        <div id="hostBox" style="display:none">
+
+            <div class="codeBox">
+                <small data-i18n="duel.give">DONNE CE CODE À TON ADVERSAIRE</small>
+                <span class="code" id="myCode">····</span>
+            </div>
+
+            <div id="qrWrap">
+                <canvas id="qrCanvas"></canvas>
+            </div>
+
+            <p id="qrHint"></p>
+
+        </div>
+
+        <div id="joinBox" style="margin-top:16px">
+
+            <p class="hint" style="margin:0 0 8px">
+                <em data-i18n="duel.orJoin">ou rejoins une partie existante</em>
+            </p>
+
+            <input
+                id="codeInput"
+                maxlength="4"
+                placeholder="CODE"
+                autocomplete="off"
+                autocapitalize="characters"
+            >
+
+            <button class="secondary" id="joinButton" style="width:100%">
+                <em data-i18n="duel.join">🔗 REJOINDRE</em>
+            </button>
+
+        </div>
+
+        <p id="duelStatus"></p>
+
+        <div class="menuButtons" style="margin-top:10px">
+
+            <button class="secondary" id="duelRetryButton">
+                🔁 RÉESSAYER
+            </button>
+
+            <button class="secondary" id="duelBack">
+                ← RETOUR
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<div id="duelJoining" class="overlay" style="display:none">
+
+    <div class="menu">
+
+        <h1 style="margin:0 0 10px">⚔️ DUEL</h1>
+
+        <p class="subtitle" style="margin:8px auto 6px">
+            Invitation reçue.
+        </p>
+
+        <div class="codeBox">
+            <small>PARTIE</small>
+            <span class="code" id="joiningCode">····</span>
+        </div>
+
+        <p id="joiningStatus" style="color:#8b99bd;font-size:13px;margin:14px 0 4px">
+            Connexion à ton adversaire…
+        </p>
+
+        <div class="menuButtons" style="margin-top:10px">
+            <button class="secondary" id="joiningCancel">
+                <em data-i18n="ui.cancel">← ANNULER</em>
+            </button>
+        </div>
+
+    </div>
+
+</div>
+
+
+<div id="duelResult" class="overlay">
+
+    <div class="menu">
+
+        <h1 id="duelVerdict" style="margin:0 0 8px">VICTOIRE</h1>
+
+        <p id="duelDetail" class="subtitle" style="margin:8px auto 18px"></p>
+
+        <div class="menuStats">
+
+            <div class="menuStat">
+                <small data-i18n="duel.yourTime">TON TEMPS</small>
+                <b id="duelMine">0 s</b>
+            </div>
+
+            <div class="menuStat">
+                <small data-i18n="duel.opponent">ADVERSAIRE</small>
+                <b id="duelTheirs">0 s</b>
+            </div>
+
+            <div class="menuStat">
+                <small data-i18n="duel.levelReached">NIVEAU ATTEINT</small>
+                <b id="duelLevel">1</b>
+            </div>
+
+        </div>
+
+        <div class="menuButtons">
+
+            <button class="primary" id="duelRematch">
+                <em data-i18n="duel.rematch">🔄 REVANCHE</em>
+            </button>
+
+            <button class="secondary" id="duelQuit">
+                <em data-i18n="ui.menu">🏠 MENU</em>
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     MODE LASER (2 à 5 joueurs)
+========================= -->
+
+<div id="laserScreen" class="overlay" style="display:none">
+
+    <div class="menu">
+
+        <h1 style="margin:0 0 6px" data-i18n="las.title">☄️ SURVIE LASER</h1>
+
+        <p class="subtitle" style="margin:8px auto 14px">
+            <em data-i18n="las.sub">De 2 à 5 joueurs. Des rayons balaient l'arène : le dernier debout gagne.</em>
+            <b data-i18n="las.noCoin">Ce mode ne rapporte aucune pièce.</b>
+        </p>
+
+        <div class="menuButtons">
+            <button class="primary" id="lasHost">
+                <em data-i18n="las.create">📡 CRÉER LE SALON</em>
+            </button>
+        </div>
+
+        <div id="lasHostBox" style="display:none">
+
+            <div class="codeBox">
+                <small data-i18n="las.give">DONNE CE CODE AUX AUTRES</small>
+                <span class="code" id="lasCode">····</span>
+            </div>
+
+            <div id="lasQrWrap">
+                <canvas id="lasQrCanvas"></canvas>
+            </div>
+
+        </div>
+
+        <div id="lasJoinBox" style="margin-top:16px">
+
+            <p class="hint" style="margin:0 0 8px">
+                <em data-i18n="las.orJoin">ou rejoins un salon existant</em>
+            </p>
+
+            <input id="lasInput" maxlength="4" placeholder="CODE"
+                   autocomplete="off" autocapitalize="characters">
+
+            <button class="secondary" id="lasJoin" style="width:100%">
+                <em data-i18n="las.join">🔗 REJOINDRE</em>
+            </button>
+
+        </div>
+
+        <div id="lasRoom" style="display:none;margin-top:16px">
+
+            <div class="setLabel" data-i18n="las.players">JOUEURS</div>
+            <div id="lasList" class="lasList"></div>
+
+            <button class="primary" id="lasStart" style="width:100%;margin-top:12px">
+                <em data-i18n="las.start">⚡ LANCER</em>
+            </button>
+
+        </div>
+
+        <p id="lasStatus" style="color:#8b99bd;font-size:13px;margin:14px 0 4px"></p>
+
+        <div class="menuButtons" style="margin-top:10px">
+            <button class="secondary" id="lasClose" data-i18n="ui.back">← RETOUR</button>
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- résultat du mode laser -->
+<div id="lasResult" class="overlay" style="display:none">
+
+    <div class="menu">
+
+        <h1 id="lasVerdict" style="margin:0 0 8px">VICTOIRE</h1>
+
+        <div id="lasRank" class="lasList" style="margin-top:14px"></div>
+
+        <div class="menuButtons" style="margin-top:18px">
+            <button class="primary" id="lasAgain">
+                <em data-i18n="las.again">🔄 REJOUER</em>
+            </button>
+            <button class="secondary" id="lasQuit" data-i18n="ui.menu">🏠 MENU</button>
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     PAUSE
+========================= -->
+
+<div id="pauseScreen" class="overlay">
+
+    <div class="menu">
+
+        <h1 style="margin:0 0 10px" data-i18n="pause.title">⏸ PAUSE</h1>
+
+        <p class="subtitle" style="margin-top:0">
+            <em data-i18n="pause.sub">Le temps est arrêté. Reprends quand tu veux.</em>
+        </p>
+
+        <div class="menuButtons">
+
+            <button class="primary" id="resumeButton">
+                <em data-i18n="pause.resume">▶ REPRENDRE</em>
+            </button>
+
+            <button class="secondary" id="quitButton">
+                <em data-i18n="pause.quit">🏠 QUITTER LA PARTIE</em>
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =========================
+     GAME OVER
+========================= -->
+
+<div id="gameOver" class="overlay">
+
+    <div class="menu">
+
+        <h1 class="gameOverTitle">
+            <em data-i18n="over.title">CAUGHT!</em>
+        </h1>
+
+        <p>
+            <em data-i18n="over.sub">Ton propre mouvement vient de se retourner contre toi.</em>
+        </p>
+
+        <div class="menuStats">
+
+            <div class="menuStat">
+                <small data-i18n="hud.score">SCORE</small>
+                <b id="finalScore">0</b>
+            </div>
+
+            <div class="menuStat">
+                <small data-i18n="hud.level">NIVEAU</small>
+                <b id="finalLevel">1</b>
+            </div>
+
+            <div class="menuStat">
+                <small data-i18n="over.best">MEILLEUR</small>
+                <b id="finalBest">0</b>
+            </div>
+
+        </div>
+
+        <div class="menuButtons">
+
+            <button class="primary" id="retryButton">
+                <em data-i18n="over.retry">🔄 REJOUER</em>
+            </button>
+
+            <button class="secondary" id="gameOverShop">
+                <em data-i18n="nav.locker2">🎒 CASIER</em>
+            </button>
+
+            <button class="secondary" id="menuButton">
+                <em data-i18n="ui.menu">🏠 MENU</em>
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<!-- =========================
+     SHOP
+========================= -->
+
+<div id="shop">
+
+    <div class="shopWindow">
+
+        <div class="shopHeader">
+
+            <h1 id="shopTitle">🎒 CASIER</h1>
+
+            <div class="coinDisplay">
+                <i class="coinDot"></i> <b id="coinText">0</b>
+            </div>
+
+        </div>
+
+        <div class="shopTabs">
+
+            <button id="lockerButton" data-i18n="nav.locker2">🎒 CASIER</button>
+
+            <button id="shopSkinsButton" data-i18n="nav.shop2">🛒 BOUTIQUE</button>
+
+        </div>
+
+        <div class="shopTabs sub">
+
+            <button id="catSkinsButton" data-i18n="shop.skins">SKINS</button>
+
+            <button id="catAbilityButton" data-i18n="shop.abilities">CAPACITÉS</button>
+
+        </div>
+
+        <div class="shopFilters" id="shopFilters">
+
+            <button class="chip" id="filtOwned">
+                <em data-i18n="shop.onlyMissing">Non possédés</em>
+            </button>
+
+            <span class="chipSep"></span>
+
+            <button class="chip on" id="sortRarity" data-i18n="shop.byRarity">Rareté</button>
+            <button class="chip" id="sortCheap"   data-i18n="shop.byCheap">Prix ↑</button>
+            <button class="chip" id="sortRich"    data-i18n="shop.byRich">Prix ↓</button>
+
+        </div>
+
+        <div id="shopCount" class="shopCount"></div>
+
+        <div id="shopContent"></div>
+
+        <br>
+
+        <button id="closeShop" class="secondary" data-i18n="ui.back">← RETOUR</button>
+
+    </div>
+
+</div>
+
+<script>
+/*
+Le duel a besoin de la librairie WebRTC. On essaie deux hébergeurs :
+si le premier est injoignable, on bascule sur le second. Le jeu solo
+fonctionne parfaitement même si aucun des deux ne répond.
+*/
+(function(){
+
+    var sources = [
+        "https://cdn.jsdelivr.net/npm/peerjs@1.5.4/dist/peerjs.min.js",
+        "https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"
+    ];
+
+    function load(i){
+
+        if(i >= sources.length){
+            return;
+        }
+
+        var tag = document.createElement("script");
+
+        tag.src   = sources[i];
+        tag.async = false;
+
+        tag.onerror = function(){ load(i + 1); };
+
+        document.head.appendChild(tag);
+
+    }
+
+    load(0);
+
+})();
+</script>
+
+<script src="js/01-moteur.js"></script>
+<script src="js/02-etat.js"></script>
+<script src="js/03-skins.js"></script>
+<script src="js/04-monde.js"></script>
+<script src="js/05-jeu.js"></script>
+<script src="js/06-boutique.js"></script>
+<script src="js/07-duel.js"></script>
+<script src="js/08-langues.js"></script>
+<script src="js/09-laser.js"></script>
+<script src="js/10-interface.js"></script>
+
+</body>
+</html>
