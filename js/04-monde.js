@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "2.7";
+const VERSION = "2.9";
 
 (function(){
 
@@ -78,6 +78,23 @@ const DASH_MULT = 3;     /* multiplicateur de vitesse      */
 const dash = {t:0, cd:0, dx:1, dy:0, puff:0};
 
 
+const SHIELD_TIME = 2.4;   /* duree de la bulle                */
+const SHIELD_CD   = 15;    /* recharge de la bulle             */
+const WAVE_CD     = 13;    /* recharge de l'onde de choc       */
+const WAVE_R      = 215;   /* rayon de l'onde, en unites       */
+const WAVE_STUN   = 2.6;   /* temps de sonnage des ennemis     */
+const BLINK_CD    = 9;     /* recharge du saut                 */
+const BLINK_DIST  = 235;   /* distance du saut, en unites      */
+
+/* recharge en cours de chaque competence */
+const skillCd = {};
+
+/* effets visuels */
+let shieldFx = 0;
+let waveFx   = null;
+let blinkFx  = null;
+
+
 /* catalogue des capacites achetables */
 const ABILITIES = [
     {
@@ -86,9 +103,43 @@ const ABILITIES = [
         icon:"»",
         price:600,
         rarity:2,
+        cd:DASH_CD,
         color:"#4fd8ff",
         color2:"#1b6fd6",
         desc:"Ruée courte et très rapide, avec un instant d'invincibilité. Recharge 3,8 s."
+    },
+    {
+        id:"bouclier",
+        name:"BOUCLIER",
+        icon:"◎",
+        price:900,
+        rarity:2,
+        cd:SHIELD_CD,
+        color:"#7bffca",
+        color2:"#0f7a5a",
+        desc:"Une bulle qui te rend intouchable pendant 2,4 s. Recharge 15 s."
+    },
+    {
+        id:"onde",
+        name:"ONDE",
+        icon:"◉",
+        price:1200,
+        rarity:3,
+        cd:WAVE_CD,
+        color:"#ffb347",
+        color2:"#a8420a",
+        desc:"Une onde de choc qui repousse et sonne tout ce qui t'entoure pendant 2,6 s. Recharge 13 s."
+    },
+    {
+        id:"saut",
+        name:"SAUT",
+        icon:"⇢",
+        price:1500,
+        rarity:3,
+        cd:BLINK_CD,
+        color:"#c88bff",
+        color2:"#4a1a8a",
+        desc:"Un saut instantané qui traverse les blocs, dans la direction où tu vas. Recharge 9 s."
     }
 ];
 
@@ -98,8 +149,153 @@ function hasAbility(id){
 }
 
 
+/* au moins une competence achetee ? */
+function anyAbility(){
+    return ABILITIES.some(ab => hasAbility(ab.id));
+}
+
+
 function dashReady(){
-    return playing && !paused && hasAbility("dash") && dash.cd <= 0 && dash.t <= 0;
+    return skillReady("dash") && dash.t <= 0;
+}
+
+
+/* une competence est prete si on la possede et qu'elle est rechargee */
+function skillReady(id){
+    return playing && !paused && hasAbility(id) && (skillCd[id] || 0) <= 0;
+}
+
+
+/* la recharge s'ecoule, quelle que soit la competence */
+function skillTick(dt){
+
+    for(const ab of ABILITIES){
+        if(skillCd[ab.id] > 0){
+            skillCd[ab.id] = Math.max(0, skillCd[ab.id] - dt);
+        }
+    }
+
+    if(shieldFx > 0){
+        shieldFx = Math.max(0, shieldFx - dt);
+    }
+
+    if(waveFx){
+        waveFx.t += dt;
+        if(waveFx.t > .55){ waveFx = null; }
+    }
+
+    if(blinkFx){
+        blinkFx.t += dt;
+        if(blinkFx.t > .35){ blinkFx = null; }
+    }
+
+}
+
+
+/* toutes les creatures qui savent etre sonnees */
+function stunnableCreatures(){
+    return [].concat(mimics, blobs, gloutons, anguilles, lanternes);
+}
+
+
+function useSkill(id){
+
+    if(id === "dash"){
+        tryDash();
+        return;
+    }
+
+    if(!skillReady(id)){
+        return;
+    }
+
+    if(id === "bouclier"){
+
+        skillCd.bouclier  = SHIELD_CD;
+        shieldFx          = SHIELD_TIME;
+        player.invincible = Math.max(player.invincible, SHIELD_TIME);
+
+        burst(player.x, player.y, 18, "#7bffca");
+
+        sound(420, .18, "sine",     .05);
+        sound(630, .22, "triangle", .04);
+
+        return;
+
+    }
+
+    if(id === "onde"){
+
+        skillCd.onde = WAVE_CD;
+
+        const R = WAVE_R * unit;
+        const a = playArea();
+
+        for(const m of stunnableCreatures()){
+
+            const d = Math.hypot(m.x - player.x, m.y - player.y);
+
+            if(d > R){
+                continue;
+            }
+
+            m.stunned = Math.max(m.stunned || 0, WAVE_STUN);
+
+            const k  = (R - d) / R;
+            const an = d < .001 ? rnd() * 6.28 : Math.atan2(m.y - player.y, m.x - player.x);
+
+            m.x = Math.max(a.x0 + m.r, Math.min(a.x1 - m.r, m.x + Math.cos(an) * 150 * unit * k));
+            m.y = Math.max(a.y0 + m.r, Math.min(a.y1 - m.r, m.y + Math.sin(an) * 150 * unit * k));
+
+        }
+
+        waveFx = {t:0, r:R, x:player.x, y:player.y};
+
+        burst(player.x, player.y, 26, "#ffb347");
+
+        sound(140, .35, "sawtooth", .05);
+        sound(70,  .45, "sine",     .06);
+
+        return;
+
+    }
+
+    if(id === "saut"){
+
+        skillCd.saut = BLINK_CD;
+
+        const v = inputVector();
+
+        let dx, dy;
+
+        if(v.mag > .05){
+            dx = v.dx; dy = v.dy;
+        }else{
+            dx = Math.cos(pfx.angle); dy = Math.sin(pfx.angle);
+        }
+
+        const from = {x:player.x, y:player.y};
+        const a    = playArea();
+
+        player.x = Math.max(a.x0 + player.r, Math.min(a.x1 - player.r, player.x + dx * BLINK_DIST * unit));
+        player.y = Math.max(a.y0 + player.r, Math.min(a.y1 - player.r, player.y + dy * BLINK_DIST * unit));
+
+        resolveSolids(player);
+
+        player.invincible = Math.max(player.invincible, .4);
+
+        blinkFx = {t:0, x0:from.x, y0:from.y, x1:player.x, y1:player.y};
+
+        burst(from.x, from.y, 14, "#c88bff");
+        burst(player.x, player.y, 14, "#e2c4ff");
+
+        sound(880, .08, "sine",     .04);
+        sound(520, .12, "triangle", .04);
+
+        return;
+
+    }
+
 }
 
 
@@ -123,6 +319,8 @@ function tryDash(){
     dash.t  = DASH_TIME;
     dash.cd = DASH_CD;
 
+    skillCd.dash = DASH_CD;
+
     /* quelques instants d'invincibilite */
     player.invincible = Math.max(player.invincible, DASH_TIME + .1);
 
@@ -135,31 +333,113 @@ function tryDash(){
 
 
 function dashReset(){
+
     dash.t  = 0;
     dash.cd = 0;
     dash.puff = 0;
+
+    for(const ab of ABILITIES){
+        skillCd[ab.id] = 0;
+    }
+
+    shieldFx = 0;
+    waveFx   = null;
+    blinkFx  = null;
+
 }
 
 
-/* jauge circulaire du bouton */
-function paintDashButton(){
+/*
+La barre est reconstruite a chaque fois que la liste des
+competences possedees change : un bouton par competence,
+du bas vers le haut.
+*/
+function buildSkillBar(){
 
-    const btn = document.getElementById("dashBtn");
+    const bar = document.getElementById("skillBar");
 
-    if(!btn){
+    if(!bar){
         return;
     }
 
-    const ring = btn.querySelector(".skillRing");
+    bar.innerHTML = "";
 
-    if(ring){
-        const p = dash.cd > 0 ? 1 - dash.cd / DASH_CD : 1;
-        ring.style.background =
-            "conic-gradient(#4fd8ff " + (p * 360).toFixed(0) + "deg, rgba(255,255,255,.07) 0deg)";
+    ABILITIES.filter(ab => hasAbility(ab.id)).forEach(ab => {
+
+        const btn = document.createElement("button");
+
+        btn.className     = "skillBtn";
+        btn.dataset.skill = ab.id;
+        btn.setAttribute("aria-label", ab.name);
+
+        btn.innerHTML =
+            '<span class="skillRing"></span>' +
+            '<span class="skillFace">' +
+            '<span class="skillIcon"></span>' +
+            '<span class="skillName"></span>' +
+            '</span>';
+
+        btn.querySelector(".skillIcon").textContent = ab.icon;
+        btn.querySelector(".skillName").textContent = ab.name;
+
+        btn.style.setProperty("--sk",  ab.color);
+        btn.style.setProperty("--sk2", ab.color2);
+
+        /* au pointerdown : sur telephone on ne perd pas les ~120 ms du clic */
+        btn.addEventListener("pointerdown", e => {
+            e.preventDefault();
+            ensureAudio();
+            useSkill(ab.id);
+        });
+
+        btn.addEventListener("contextmenu", e => e.preventDefault());
+
+        bar.appendChild(btn);
+
+    });
+
+}
+
+
+/* jauges circulaires */
+function paintSkillBar(){
+
+    const bar = document.getElementById("skillBar");
+
+    if(!bar){
+        return;
     }
 
-    btn.classList.toggle("ready", dash.cd <= 0);
+    for(const btn of bar.children){
 
+        const ab = ABILITIES.find(a => a.id === btn.dataset.skill);
+
+        if(!ab){
+            continue;
+        }
+
+        const cd    = skillCd[ab.id] || 0;
+        const ready = cd <= 0;
+
+        const ring = btn.querySelector(".skillRing");
+
+        if(ring){
+            const k = ready ? 1 : 1 - cd / ab.cd;
+            ring.style.background =
+                "conic-gradient(" + ab.color + " " + (k * 360).toFixed(0) +
+                "deg, rgba(255,255,255,.07) 0deg)";
+        }
+
+        btn.classList.toggle("ready", ready);
+
+    }
+
+}
+
+
+/* compatibilite : l'ancien nom est encore appele ailleurs */
+function paintDashButton(){
+    paintSkillBar();
 }
 
 
@@ -1051,6 +1331,8 @@ function buildFloor(){
         paintEarth(c);
     }else if(zone === "bonbon"){
         paintCandy(c);
+    }else if(zone === "abysse"){
+        paintAbyss(c);
     }else{
         paintGalaxy(c);
     }
@@ -1566,6 +1848,10 @@ function portalTarget(){
         return "bonbon";
     }
 
+    if(zone === "bonbon" && level >= ABYSS_LEVEL){
+        return "abysse";
+    }
+
     return null;
 
 }
@@ -1613,8 +1899,8 @@ function spawnPortal(){
         birth:0,
         pull:0,
         target:target,
-        col:target === "bonbon" ? "#ff5fa2" : "#7bd93a",
-        col2:target === "bonbon" ? "#ffd0e6" : "#bdf58a"
+        col:  target === "abysse" ? "#2fe0ff" : target === "bonbon" ? "#ff5fa2" : "#7bd93a",
+        col2: target === "abysse" ? "#c8f6ff" : target === "bonbon" ? "#ffd0e6" : "#bdf58a"
     };
 
     pickupMessage("🌀 UN PORTAIL S'EST OUVERT", portal.col);
@@ -1802,6 +2088,841 @@ function enterCandy(){
 }
 
 
+/* =========================================================
+   MONDE 4 : LES ABYSSES
+
+   Apres le pays des bonbons, le portail s'ouvre vers le
+   fond de l'ocean. Il fait noir, tout brille faiblement,
+   et deux choses vivent la : l'ANGUILLE, qui ondule sans
+   jamais s'arreter, et la LANTERNE, immobile, qui attire
+   dans sa lueur avant de se jeter sur toi.
+========================================================= */
+
+/* --- le decor --- */
+function paintAbyss(c){
+
+    /* l'eau, de plus en plus noire vers le bas */
+    const base = c.createLinearGradient(0, 0, W * .15, H);
+    base.addColorStop(0,   "#0b2f52");
+    base.addColorStop(.35, "#06203c");
+    base.addColorStop(.75, "#03101f");
+    base.addColorStop(1,   "#01070f");
+
+    c.fillStyle = base;
+    c.fillRect(0, 0, W, H);
+
+    /* les rais de lumiere qui tombent de la surface */
+    c.save();
+
+    for(let i = 0; i < 7; i++){
+
+        const x = (i + .5) / 7 * W + (Math.random() - .5) * W * .06;
+        const w = (40 + Math.random() * 90) * unit;
+
+        const g = c.createLinearGradient(x, 0, x + w * .4, H);
+        g.addColorStop(0,  "rgba(150,225,255,.16)");
+        g.addColorStop(.5, "rgba(110,190,235,.06)");
+        g.addColorStop(1,  "rgba(90,160,210,0)");
+
+        c.fillStyle = g;
+
+        c.beginPath();
+        c.moveTo(x - w * .35, 0);
+        c.lineTo(x + w * .35, 0);
+        c.lineTo(x + w * .95, H);
+        c.lineTo(x - w * .05, H);
+        c.closePath();
+        c.fill();
+
+    }
+
+    c.restore();
+
+    /* les massifs sombres du fond */
+    for(let i = 0; i < 9; i++){
+
+        const x  = Math.random() * W;
+        const hh = (100 + Math.random() * 260) * unit;
+        const ww = (90 + Math.random() * 180) * unit;
+
+        c.fillStyle = "rgba(2,10,20,.75)";
+
+        c.beginPath();
+        c.moveTo(x - ww / 2, H);
+
+        for(let k = 0; k <= 8; k++){
+            const kk = k / 8;
+            c.lineTo(
+                x - ww / 2 + kk * ww,
+                H - Math.sin(kk * Math.PI) * hh * (.7 + Math.random() * .3)
+            );
+        }
+
+        c.closePath();
+        c.fill();
+
+    }
+
+    /* les algues qui montent du sol */
+    for(let i = 0; i < 26; i++){
+
+        const x  = Math.random() * W;
+        const hh = (70 + Math.random() * 220) * unit;
+
+        c.strokeStyle = "rgba(20,80,90,.45)";
+        c.lineWidth   = (2 + Math.random() * 3) * unit;
+        c.lineCap     = "round";
+
+        c.beginPath();
+        c.moveTo(x, H);
+
+        for(let k = 1; k <= 5; k++){
+            const kk = k / 5;
+            c.lineTo(x + Math.sin(kk * 3 + i) * 22 * unit, H - kk * hh);
+        }
+
+        c.stroke();
+
+    }
+
+    /* le plancton : de tout petits points lumineux */
+    const motes = Math.round(W * H / 5200);
+
+    for(let i = 0; i < motes; i++){
+
+        const x = Math.random() * W;
+        const y = Math.random() * H;
+        const r = (.7 + Math.random() * 1.9) * unit;
+
+        const tint = Math.random() < .25 ? "160,255,240" : "120,200,255";
+
+        const g = c.createRadialGradient(x, y, 0, x, y, r * 4);
+        g.addColorStop(0, "rgba(" + tint + ",.85)");
+        g.addColorStop(1, "rgba(" + tint + ",0)");
+
+        c.fillStyle = g;
+        c.beginPath();
+        c.arc(x, y, r * 4, 0, Math.PI * 2);
+        c.fill();
+
+    }
+
+    /* la pression : les bords se referment */
+    const vig = c.createRadialGradient(
+        W / 2, H * .42, Math.min(W, H) * .22,
+        W / 2, H / 2, Math.max(W, H) * .78
+    );
+
+    vig.addColorStop(0, "rgba(0,0,0,0)");
+    vig.addColorStop(1, "rgba(0,4,10,.78)");
+
+    c.fillStyle = vig;
+    c.fillRect(0, 0, W, H);
+
+    twinkles = [];
+
+}
+
+
+/* --- l'arrivee --- */
+function enterAbyss(){
+
+    zone = "abysse";
+
+    portal = null;
+
+    solids  = [];
+    orbs    = [];
+    coins   = [];
+    hearts  = [];
+    balls   = [];
+    slimes  = [];
+    trails  = [];
+    mimics  = [];
+    archers = [];
+    blobs   = [];
+    puddles = [];
+    logs    = [];
+    crawlers = [];
+    drips   = [];
+    candies = [];
+    gloutons = [];
+
+    trace       = [];
+    traceLength = 0;
+
+    const a = playArea();
+
+    player.x = (a.x0 + a.x1) / 2;
+    player.y = (a.y0 + a.y1) / 2;
+
+    player.invincible = 2.2;
+
+    anguilles = [];
+    lanternes = [];
+    bulles    = [];
+    abyssTimer = 0;
+
+    for(let i = 0; i < 2; i++){
+        spawnAnguille();
+    }
+
+    spawnLanterne();
+
+    addCoin();
+    addOrb();
+
+    pickupMessage("🌑 LES ABYSSES", "#2fe0ff");
+
+    sound(120, .9, "sine",     .07);
+    sound(180, .6, "triangle", .04);
+
+    /* la recompense : un skin qu'on ne trouve pas en boutique */
+    unlockExclusive("abyssal");
+
+}
+
+
+/* =========================================================
+   LE SKIN EXCLUSIF
+
+   Il ne s'achete pas : on le gagne en traversant tout le
+   pays des bonbons et en franchissant le dernier portail.
+========================================================= */
+
+function unlockExclusive(id){
+
+    if(ownedSkins.includes(id)){
+        return;
+    }
+
+    const skin = SKINS.find(s => s.id === id);
+
+    if(!skin){
+        return;
+    }
+
+    ownedSkins.push(id);
+    saveGame();
+
+    setTimeout(() => {
+        pickupMessage("🏆 " + skin.name + " DÉBLOQUÉ", skin.color);
+        coinChime();
+    }, 1400);
+
+}
+
+
+/* =========================================================
+   L'ANGUILLE
+
+   Elle ondule en permanence et se dirige vers toi, mais
+   elle tourne lentement : on la seme en changeant d'angle
+   au dernier moment.
+========================================================= */
+
+function spawnAnguille(){
+
+    if(anguilles.length >= MAX_ANGUILLES){
+        return;
+    }
+
+    const r = (19 + rnd() * 7) * unit;
+
+    const p = findSpot(r * 2, 300) || findSpot(r * 2, 170);
+
+    if(!p){
+        return;
+    }
+
+    const ang = rnd() * Math.PI * 2;
+
+    const seg = [];
+
+    for(let i = 0; i < 16; i++){
+        seg.push({x:p.x, y:p.y});
+    }
+
+    anguilles.push({
+        x:p.x,
+        y:p.y,
+        r:r,
+        ang:ang,
+        seg:seg,
+        wob:rnd() * 6.28,
+        birth:.7,
+        stunned:0,
+        glow:rnd() * 6.28,
+        hue:rnd() < .5 ? "#3fe0ff" : "#7bffca"
+    });
+
+}
+
+
+function updateAnguilles(dt){
+
+    if(zone !== "abysse"){
+        return;
+    }
+
+    const area = playArea();
+
+    const base = mimicSpeed({type:MIMIC_TYPES[0]}) * .92;
+
+    for(const e of anguilles){
+
+        if(e.birth > 0){
+            e.birth = Math.max(0, e.birth - dt);
+            continue;
+        }
+
+        if(e.stunned > 0){
+            e.stunned -= dt;
+            e.wob     += dt * 2;
+            continue;
+        }
+
+        /* elle vise le joueur, mais ne tourne que lentement */
+        const want = Math.atan2(player.y - e.y, player.x - e.x);
+
+        let diff = want - e.ang;
+
+        while(diff >  Math.PI){ diff -= Math.PI * 2; }
+        while(diff < -Math.PI){ diff += Math.PI * 2; }
+
+        e.ang += Math.max(-1.5 * dt, Math.min(1.5 * dt, diff));
+
+        e.wob  += dt * 7;
+        e.glow += dt * 3;
+
+        /* l'ondulation : elle n'avance jamais tout droit */
+        const swim = e.ang + Math.sin(e.wob) * .55;
+
+        e.x += Math.cos(swim) * base * dt;
+        e.y += Math.sin(swim) * base * dt;
+
+        /* elle rebondit sur les bords */
+        if(e.x < area.x0 + e.r){ e.x = area.x0 + e.r; e.ang = Math.PI - e.ang; }
+        if(e.x > area.x1 - e.r){ e.x = area.x1 - e.r; e.ang = Math.PI - e.ang; }
+        if(e.y < area.y0 + e.r){ e.y = area.y0 + e.r; e.ang = -e.ang; }
+        if(e.y > area.y1 - e.r){ e.y = area.y1 - e.r; e.ang = -e.ang; }
+
+        /* le corps suit la tete */
+        e.seg.unshift({x:e.x, y:e.y});
+        e.seg.length = 16;
+
+        if(player.invincible <= 0 && collide(player, e)){
+            loseLife(null);
+            burst(e.x, e.y, 20, e.hue);
+        }
+
+    }
+
+    /* elles reviennent si on en tue... elles ne meurent pas : on complete */
+    abyssTimer -= dt;
+
+    if(abyssTimer <= 0){
+
+        abyssTimer = 9;
+
+        if(anguilles.length < MAX_ANGUILLES){
+            spawnAnguille();
+        }else if(lanternes.length < MAX_LANTERNES){
+            spawnLanterne();
+        }
+
+    }
+
+}
+
+
+function drawAnguilles(){
+
+    for(const e of anguilles){
+
+        const grow = e.birth > 0 ? 1 - e.birth / .7 : 1;
+        const k    = Math.max(.12, grow);
+
+        ctx.save();
+
+        /* le halo dans l'eau */
+        const halo = ctx.createRadialGradient(e.x, e.y, 0, e.x, e.y, e.r * 7);
+        halo.addColorStop(0, hexA(e.hue, .30));
+        halo.addColorStop(1, hexA(e.hue, 0));
+
+        ctx.fillStyle = halo;
+        ctx.beginPath();
+        ctx.arc(e.x, e.y, e.r * 7, 0, Math.PI * 2);
+        ctx.fill();
+
+        /* le corps : un ruban qui s'affine */
+        for(let i = e.seg.length - 1; i >= 0; i--){
+
+            const sgm = e.seg[i];
+            const kk  = 1 - i / e.seg.length;
+            const rr  = e.r * k * (.25 + kk * .75);
+
+            ctx.globalAlpha = e.stunned > 0 ? .5 : .95;
+            ctx.fillStyle   = i % 2 ? "#12587a" : "#1a6f96";
+
+            ctx.beginPath();
+            ctx.arc(sgm.x, sgm.y, rr, 0, Math.PI * 2);
+            ctx.fill();
+
+        }
+
+        /* la ligne lumineuse sur le dos */
+        ctx.globalAlpha = .8;
+        ctx.strokeStyle = e.hue;
+        ctx.lineWidth   = 2.8 * unit;
+        ctx.lineCap     = "round";
+        ctx.shadowColor = e.hue;
+        ctx.shadowBlur  = 12;
+
+        ctx.beginPath();
+
+        for(let i = 0; i < e.seg.length; i++){
+            ctx.lineTo(e.seg[i].x, e.seg[i].y);
+        }
+
+        ctx.stroke();
+        ctx.shadowBlur = 0;
+
+        /* la tete */
+        ctx.globalAlpha = 1;
+        ctx.save();
+        ctx.translate(e.x, e.y);
+        ctx.rotate(e.ang);
+
+        ctx.fillStyle = "#134f6c";
+        ctx.beginPath();
+        ctx.ellipse(0, 0, e.r * k * 1.5, e.r * k, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        /* la machoire */
+        ctx.fillStyle = "#0a2436";
+        ctx.beginPath();
+        ctx.moveTo(e.r * k * 1.5, 0);
+        ctx.lineTo(e.r * k * .5, -e.r * k * .45);
+        ctx.lineTo(e.r * k * .5,  e.r * k * .45);
+        ctx.closePath();
+        ctx.fill();
+
+        /* les yeux */
+        ctx.fillStyle   = e.stunned > 0 ? "#8fa0c0" : "#ffe680";
+        ctx.shadowColor = "#ffd24d";
+        ctx.shadowBlur  = e.stunned > 0 ? 0 : 8;
+
+        [-1, 1].forEach(sgn => {
+            ctx.beginPath();
+            ctx.arc(e.r * k * .35, sgn * e.r * k * .45, e.r * k * .22, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        ctx.restore();
+        ctx.restore();
+
+    }
+
+}
+
+
+/* =========================================================
+   LA LANTERNE
+
+   Elle ne bouge presque pas. Sa lueur porte loin : entre
+   dedans et elle se ramasse, puis se detend d'un coup.
+========================================================= */
+
+function spawnLanterne(){
+
+    if(lanternes.length >= MAX_LANTERNES){
+        return;
+    }
+
+    const r = (34 + rnd() * 12) * unit;
+
+    const p = findSpot(r, 320) || findSpot(r, 200);
+
+    if(!p){
+        return;
+    }
+
+    lanternes.push({
+        x:p.x,
+        y:p.y,
+        r:r,
+        vx:0,
+        vy:0,
+        phase:"idle",
+        timer:0,
+        lure:rnd() * 6.28,
+        birth:.7,
+        stunned:0,
+        facing:1,
+        chomp:0
+    });
+
+}
+
+
+function lanterneRange(l){
+    return l.r * 5.4;
+}
+
+
+function updateLanternes(dt){
+
+    if(zone !== "abysse"){
+        return;
+    }
+
+    const area = playArea();
+
+    const rush = mimicSpeed({type:MIMIC_TYPES[0]}) * 2.6;
+
+    for(const l of lanternes){
+
+        if(l.birth > 0){
+            l.birth = Math.max(0, l.birth - dt);
+            continue;
+        }
+
+        l.lure += dt * 2.2;
+
+        if(l.chomp > 0){
+            l.chomp = Math.max(0, l.chomp - dt * 3);
+        }
+
+        if(l.stunned > 0){
+            l.stunned -= dt;
+            l.phase    = "idle";
+            l.timer    = .6;
+            continue;
+        }
+
+        const d = Math.hypot(player.x - l.x, player.y - l.y);
+
+        if(l.phase === "idle"){
+
+            /* elle derive tres doucement */
+            l.x += Math.cos(l.lure * .3) * 12 * unit * dt;
+            l.y += Math.sin(l.lure * .21) * 12 * unit * dt;
+
+            l.timer = Math.max(0, l.timer - dt);
+
+            if(d < lanterneRange(l) && l.timer <= 0){
+
+                l.phase = "wind";
+                l.timer = .45;
+
+                sound(90, .25, "sine", .05);
+
+            }
+
+        }else if(l.phase === "wind"){
+
+            /* elle se ramasse : c'est le signal */
+            l.timer -= dt;
+
+            if(l.timer <= 0){
+
+                const a = Math.atan2(player.y - l.y, player.x - l.x);
+
+                l.vx = Math.cos(a) * rush;
+                l.vy = Math.sin(a) * rush;
+
+                l.facing = l.vx < 0 ? -1 : 1;
+
+                l.phase = "rush";
+                l.timer = .85;
+                l.chomp = 1;
+
+                sound(220, .18, "sawtooth", .05);
+
+            }
+
+        }else{
+
+            l.timer -= dt;
+
+            l.x += l.vx * dt;
+            l.y += l.vy * dt;
+
+            l.vx *= Math.pow(.12, dt);
+            l.vy *= Math.pow(.12, dt);
+
+            if(l.timer <= 0){
+                l.phase = "idle";
+                l.timer = 1.6;
+            }
+
+        }
+
+        l.x = Math.max(area.x0 + l.r, Math.min(area.x1 - l.r, l.x));
+        l.y = Math.max(area.y0 + l.r, Math.min(area.y1 - l.r, l.y));
+
+        resolveSolids(l);
+
+        if(player.invincible <= 0 && collide(player, l)){
+            loseLife(null);
+            burst(l.x, l.y, 22, "#5fe8ff");
+        }
+
+    }
+
+    /* elles ne se superposent pas */
+    for(let i = 0; i < lanternes.length; i++){
+        for(let j = i + 1; j < lanternes.length; j++){
+
+            const a = lanternes[i], b = lanternes[j];
+
+            let dx = b.x - a.x, dy = b.y - a.y;
+            let d  = Math.hypot(dx, dy);
+
+            const min = (a.r + b.r) * 1.3;
+
+            if(d < min){
+                if(d < .001){ dx = 1; dy = 0; d = 1; }
+                const push = (min - d) / 2;
+                a.x -= dx / d * push; a.y -= dy / d * push;
+                b.x += dx / d * push; b.y += dy / d * push;
+            }
+
+        }
+    }
+
+}
+
+
+function drawLanternes(){
+
+    for(const l of lanternes){
+
+        const grow = l.birth > 0 ? 1 - l.birth / .7 : 1;
+        const r    = l.r * Math.max(.12, grow);
+
+        const wind = l.phase === "wind";
+
+        /* le halo qui attire */
+        const R = lanterneRange(l);
+
+        const halo = ctx.createRadialGradient(l.x, l.y, r * .4, l.x, l.y, R);
+        halo.addColorStop(0,  wind ? "rgba(255,120,90,.30)" : "rgba(120,220,255,.20)");
+        halo.addColorStop(.6, wind ? "rgba(255,90,70,.10)"  : "rgba(90,190,235,.07)");
+        halo.addColorStop(1,  "rgba(60,150,200,0)");
+
+        ctx.save();
+        ctx.fillStyle = halo;
+        ctx.beginPath();
+        ctx.arc(l.x, l.y, R, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.translate(l.x, l.y);
+        ctx.scale(l.facing, 1);
+
+        /* elle se ramasse avant de bondir */
+        if(wind){
+            const k = 1 + Math.sin((1 - l.timer / .45) * Math.PI) * .18;
+            ctx.scale(1 / k, k);
+        }
+
+        /* la nageoire caudale */
+        ctx.fillStyle = "#0d3d55";
+        ctx.beginPath();
+        ctx.moveTo(-r * .85, 0);
+        ctx.lineTo(-r * 1.65, -r * .72);
+        ctx.lineTo(-r * 1.35, 0);
+        ctx.lineTo(-r * 1.65,  r * .72);
+        ctx.closePath();
+        ctx.fill();
+
+        /* le corps */
+        const body = ctx.createRadialGradient(-r * .1, -r * .35, r * .12, 0, 0, r * 1.3);
+        body.addColorStop(0, "#2f7a9c");
+        body.addColorStop(1, "#0a2c40");
+
+        ctx.fillStyle = body;
+        ctx.beginPath();
+        ctx.ellipse(-r * .05, 0, r * 1.05, r * .92, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        /* la gueule grande ouverte, vers l'avant */
+        const open = .34 + l.chomp * .55;
+
+        const jx  = r * .15;          /* charniere */
+        const tip = r * 1.5;          /* pointe des machoires */
+        const ty  = -r * open;
+        const by  =  r * open;
+
+        ctx.fillStyle = "#02101a";
+        ctx.beginPath();
+        ctx.moveTo(jx, 0);
+        ctx.lineTo(tip, ty);
+        ctx.lineTo(tip * .96, 0);
+        ctx.lineTo(tip, by);
+        ctx.closePath();
+        ctx.fill();
+
+        /* les dents : elles pointent vers l'interieur de la gueule */
+        ctx.fillStyle = "#eaf7ff";
+
+        for(let i = 0; i < 6; i++){
+
+            const kk = .12 + (i / 5) * .82;
+
+            const x  = jx + (tip - jx) * kk;
+            const yT = ty * kk;
+            const yB = by * kk;
+            const d  = r * .17 * (.5 + kk * .5);
+
+            ctx.beginPath();
+            ctx.moveTo(x - d * .5, yT);
+            ctx.lineTo(x + d * .5, yT);
+            ctx.lineTo(x,          yT + d);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.beginPath();
+            ctx.moveTo(x - d * .5, yB);
+            ctx.lineTo(x + d * .5, yB);
+            ctx.lineTo(x,          yB - d);
+            ctx.closePath();
+            ctx.fill();
+
+        }
+
+        /* l'oeil */
+        ctx.fillStyle = "#031722";
+        ctx.beginPath();
+        ctx.arc(r * .02, -r * .38, r * .28, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle   = l.stunned > 0 ? "#8fa0c0" : wind ? "#ff8a5a" : "#d8f8ff";
+        ctx.shadowColor = wind ? "#ff8a5a" : "#9ff0ff";
+        ctx.shadowBlur  = 10;
+
+        ctx.beginPath();
+        ctx.arc(r * .08, -r * .40, r * .14, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+
+        /* la tige et le leurre, en avant du museau */
+        const lx = r * (.95 + Math.sin(l.lure) * .12);
+        const ly = -r * (1.45 + Math.sin(l.lure * 1.3) * .10);
+
+        ctx.strokeStyle = "#0d3145";
+        ctx.lineWidth   = r * .11;
+        ctx.lineCap     = "round";
+
+        ctx.beginPath();
+        ctx.moveTo(-r * .25, -r * .78);
+        ctx.quadraticCurveTo(r * .25, -r * 1.6, lx, ly);
+        ctx.stroke();
+
+        const col = l.stunned > 0 ? "#7a8ba8" : wind ? "#ff9a5a" : "#9ff0ff";
+
+        const glow = ctx.createRadialGradient(lx, ly, 0, lx, ly, r * 1.05);
+        glow.addColorStop(0,   hexA(col, .95));
+        glow.addColorStop(.35, hexA(col, .45));
+        glow.addColorStop(1,   hexA(col, 0));
+
+        ctx.fillStyle = glow;
+        ctx.beginPath();
+        ctx.arc(lx, ly, r * 1.05, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle   = "#ffffff";
+        ctx.shadowColor = col;
+        ctx.shadowBlur  = 16;
+
+        ctx.beginPath();
+        ctx.arc(lx, ly, r * .19, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* =========================================================
+   LES BULLES
+
+   Purement decoratives : elles remontent vers la surface
+   et donnent le sens de la profondeur.
+========================================================= */
+
+function updateBulles(dt){
+
+    if(zone !== "abysse"){
+
+        if(bulles.length){
+            bulles = [];
+        }
+
+        return;
+
+    }
+
+    if(bulles.length < 30 && Math.random() < dt * 14){
+
+        bulles.push({
+            x:Math.random() * W,
+            y:H + 10,
+            r:(1.6 + Math.random() * 4.5) * unit,
+            sp:(24 + Math.random() * 46) * unit,
+            ph:Math.random() * 6.28
+        });
+
+    }
+
+    for(const b of bulles){
+        b.y  -= b.sp * dt;
+        b.ph += dt * 2.4;
+        b.x  += Math.sin(b.ph) * 9 * unit * dt;
+    }
+
+    bulles = bulles.filter(b => b.y > -20);
+
+}
+
+
+function drawBulles(){
+
+    if(zone !== "abysse"){
+        return;
+    }
+
+    ctx.save();
+
+    for(const b of bulles){
+
+        ctx.globalAlpha = .30;
+        ctx.strokeStyle = "#bfe9ff";
+        ctx.lineWidth   = Math.max(1, b.r * .28);
+
+        ctx.beginPath();
+        ctx.arc(b.x, b.y, b.r, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.globalAlpha = .5;
+        ctx.fillStyle   = "#e8f8ff";
+
+        ctx.beginPath();
+        ctx.arc(b.x - b.r * .3, b.y - b.r * .3, b.r * .26, 0, Math.PI * 2);
+        ctx.fill();
+
+    }
+
+    ctx.restore();
+
+}
+
+
+
 function updateWarp(dt){
 
     if(!warp){
@@ -1821,7 +2942,9 @@ function updateWarp(dt){
 
         if(k >= 1){
 
-            if(warp.target === "bonbon"){
+            if(warp.target === "abysse"){
+                enterAbyss();
+            }else if(warp.target === "bonbon"){
                 enterCandy();
             }else{
                 enterMarais();

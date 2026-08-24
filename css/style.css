@@ -1461,16 +1461,21 @@ button:active{
     flex-direction:column-reverse;
     align-items:center;
 
-    gap:10px;
+    gap:8px;
 
     z-index:16;
 }
 
+.skillIcon{ font-size:21px; }
+
 .skillBtn{
     position:relative;
 
-    width:74px;
-    height:74px;
+    /* couleur par defaut, remplacee par chaque competence */
+    --sk:#4fd8ff;
+
+    width:62px;
+    height:62px;
 
     padding:0;
 
@@ -1533,15 +1538,15 @@ button:active{
     font-weight:800;
 }
 
-/* pret : ca s'allume */
+/* pret : ca s'allume, a la couleur de la competence */
 .skillBtn.ready .skillIcon,
 .skillBtn.ready .skillName{
-    color:#9fe9ff;
+    color:var(--sk);
 }
 
 .skillBtn.ready .skillFace{
-    border-color:rgba(79,216,255,.65);
-    box-shadow:0 0 18px rgba(79,216,255,.35);
+    border-color:var(--sk);
+    box-shadow:0 0 16px color-mix(in srgb, var(--sk) 45%, transparent);
 }
 
 .skillBtn.ready:active .skillFace{
@@ -1859,8 +1864,12 @@ de la grille.
 
     color:#0a1024;
 
-    background:radial-gradient(circle at 34% 28%, #bff2ff 0%, #4fd8ff 48%, #1b6fd6 100%);
-    box-shadow:0 0 22px rgba(79,216,255,.4);
+    --g1:#bff2ff;
+    --g2:#4fd8ff;
+    --g3:#1b6fd6;
+
+    background:radial-gradient(circle at 34% 28%, var(--g1) 0%, var(--g2) 48%, var(--g3) 100%);
+    box-shadow:0 0 22px color-mix(in srgb, var(--g2) 40%, transparent);
 }
 
 .abilityDesc{
@@ -2211,12 +2220,20 @@ competences.
 @media (max-height:500px){
 
     .skillBtn{
-        width:62px;
-        height:62px;
+        width:50px;
+        height:50px;
     }
 
     .skillIcon{
-        font-size:20px;
+        font-size:17px;
+    }
+
+    .skillName{
+        font-size:7px;
+    }
+
+    #skillBar{
+        gap:6px;
     }
 
     #skillBar{

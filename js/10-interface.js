@@ -1003,19 +1003,8 @@ document.getElementById("filtOwned").onclick = () => {
 });
 document.getElementById("pauseBtn").onclick        = () => setPaused(true);
 
-/*
-Le dash part au pointerdown : sur telephone c'est
-immediat, on ne perd pas les ~120 ms du "click".
-*/
-const dashButton = document.getElementById("dashBtn");
-
-dashButton.addEventListener("pointerdown", e => {
-    e.preventDefault();
-    ensureAudio();
-    tryDash();
-});
-
-dashButton.addEventListener("contextmenu", e => e.preventDefault());
+/* la barre des competences est construite au demarrage */
+buildSkillBar();
 document.getElementById("resumeButton").onclick    = () => setPaused(false);
 document.getElementById("quitButton").onclick      = quitToMenu;
 

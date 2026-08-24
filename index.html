@@ -10,7 +10,7 @@
 
 <title>MIMIC</title>
 
-<link rel="stylesheet" href="css/style.css?v=2.7">
+<link rel="stylesheet" href="css/style.css?v=2.9">
 </head>
 
 <body>
@@ -51,15 +51,7 @@
 <div id="lasBoard" class="lasBoard" style="display:none"></div>
 
 <!-- competences : en bas a droite, sous le bouton pause -->
-<div id="skillBar">
-    <button id="dashBtn" class="skillBtn" aria-label="Dash">
-        <span class="skillRing"></span>
-        <span class="skillFace">
-            <span class="skillIcon">»</span>
-            <span class="skillName" data-i18n="skill.dash">DASH</span>
-        </span>
-    </button>
-</div>
+<div id="skillBar"></div>
 
 <div id="duelBar">
 
@@ -159,7 +151,7 @@
         <b id="bestScore">0</b>
     </div>
 
-    <div class="version" id="versionTag">V 2.7</div>
+    <div class="version" id="versionTag">V 2.9</div>
 
     <div id="iosTip" class="iosTip" style="display:none">
         <span data-i18n="ios.tip">Pour le plein écran : Partager ▸ Sur l'écran d'accueil</span>
@@ -337,6 +329,22 @@
             </span>
         </div>
 
+        <div class="foe">
+            <canvas class="foeIcon" data-kind="anguille"></canvas>
+            <span class="txt">
+                <span class="nm" style="color:#3fe0ff">ANGUILLE</span>
+                <span class="ds">Dans les abysses. Elle ondule sans jamais s'arrêter et tourne lentement : change d'angle au dernier moment et elle te dépasse.</span>
+            </span>
+        </div>
+
+        <div class="foe">
+            <canvas class="foeIcon" data-kind="lanterne"></canvas>
+            <span class="txt">
+                <span class="nm" style="color:#9ff0ff">LANTERNE</span>
+                <span class="ds">Immobile, sa lueur porte loin. Entre dedans et elle se ramasse — c'est le signal — puis se détend d'un coup.</span>
+            </span>
+        </div>
+
         <div class="guideSection" data-i18n="g.field">SUR LE TERRAIN</div>
 
         <div class="steps">
@@ -383,6 +391,7 @@
             <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 20</span><span class="ds" data-i18n="g.t20">🌀 Un portail t'aspire vers LE MARAIS, le monde des slimes</span></div>
             <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 30</span><span class="ds" data-i18n="g.t30">Le terrain se referme</span></div>
             <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 40</span><span class="ds" data-i18n="g.t40">🍬 Un second portail t'emmène au PAYS DES BONBONS</span></div>
+            <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 60</span><span class="ds">🌑 Un dernier portail t'entraîne dans LES ABYSSES — et te laisse l'ABYSSAL SLIME</span></div>
 
         </div>
 
@@ -833,16 +842,16 @@ fonctionne parfaitement même si aucun des deux ne répond.
 })();
 </script>
 
-<script src="js/01-moteur.js?v=2.7"></script>
-<script src="js/02-etat.js?v=2.7"></script>
-<script src="js/03-skins.js?v=2.7"></script>
-<script src="js/04-monde.js?v=2.7"></script>
-<script src="js/05-jeu.js?v=2.7"></script>
-<script src="js/06-boutique.js?v=2.7"></script>
-<script src="js/07-duel.js?v=2.7"></script>
-<script src="js/08-langues.js?v=2.7"></script>
-<script src="js/09-laser.js?v=2.7"></script>
-<script src="js/10-interface.js?v=2.7"></script>
+<script src="js/01-moteur.js?v=2.9"></script>
+<script src="js/02-etat.js?v=2.9"></script>
+<script src="js/03-skins.js?v=2.9"></script>
+<script src="js/04-monde.js?v=2.9"></script>
+<script src="js/05-jeu.js?v=2.9"></script>
+<script src="js/06-boutique.js?v=2.9"></script>
+<script src="js/07-duel.js?v=2.9"></script>
+<script src="js/08-langues.js?v=2.9"></script>
+<script src="js/09-laser.js?v=2.9"></script>
+<script src="js/10-interface.js?v=2.9"></script>
 
 </body>
 </html>

@@ -1137,6 +1137,19 @@ addEventListener("keydown", e => {
 
     }
 
+    /* 1 a 4 : les competences possedees, dans l'ordre de la barre */
+    if(playing && e.key >= "1" && e.key <= "4"){
+
+        const owned = ABILITIES.filter(ab => hasAbility(ab.id));
+        const ab    = owned[parseInt(e.key, 10) - 1];
+
+        if(ab){
+            e.preventDefault();
+            useSkill(ab.id);
+        }
+
+    }
+
 });
 
 addEventListener("keyup", e => {

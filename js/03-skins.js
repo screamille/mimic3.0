@@ -81,7 +81,10 @@ const SKINS = [
     {id:"aurore",    name:"AURORE SLIME",    color:"#5fffc8", color2:"#123a6a", price:500,  effect:"aurore",    rarity:3},
     {id:"miroir",    name:"MIROIR SLIME",    color:"#dfe9f7", color2:"#7a90ad", price:500,  effect:"miroir",    rarity:3},
     {id:"tornade",   name:"TORNADE SLIME",   color:"#9fb4c9", color2:"#2c3a4d", price:500,  effect:"tornade",   rarity:3},
-    {id:"nova",      name:"NOVA SLIME",      color:"#ffd76a", color2:"#a8241a", price:500,  effect:"nova",      rarity:3}
+    {id:"nova",      name:"NOVA SLIME",      color:"#ffd76a", color2:"#a8241a", price:500,  effect:"nova",      rarity:3},
+
+    /* --- recompense : il ne s'achete pas --- */
+    {id:"abyssal",   name:"ABYSSAL SLIME",   color:"#2fe0ff", color2:"#04243a", price:0,    effect:"abyssal",   rarity:4, exclusive:true}
 ];
 
 
@@ -514,6 +517,7 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
             aurore: ["#c8fff0", "#7ef0d0"],
             arcade: ["#5ffff0", "#5ffff0"],
             nova:   ["#fff6d0", "#ffd76a"],
+            abyssal:["#5fe8ff", "#7bffca"],
             lampe:  ["#ffd0f5", "#ff6ad5"],
             holo:   ["#d8feff", "#5fe8ff"],
             requin: ["#eef4fa", "#eef4fa"],
@@ -4539,6 +4543,101 @@ function paintSkinInner(c, skin, w, h, r, t, f){
         }
 
         c.globalAlpha = 1;
+        return;
+
+    }
+
+
+    /* ---------- ABYSSAL : la creature des profondeurs ---------- */
+    if(e === "abyssal"){
+
+        /* l'eau profonde */
+        c.fillStyle = "#0a3a56";
+        c.fillRect(-w * 1.3, -h * 1.4, w * 2.6, h * 2.8);
+
+        /* les courants */
+        c.strokeStyle = "#1d6d92";
+        c.lineWidth   = r * .09;
+        c.lineCap     = "round";
+        c.globalAlpha = .8;
+
+        for(let i = 0; i < 4; i++){
+
+            c.beginPath();
+
+            for(let k = 0; k <= 12; k++){
+                const kk = k / 12;
+                c.lineTo(
+                    -w + kk * w * 2,
+                    (i - 1.5) * h * .45 + Math.sin(t * 1.2 + i + kk * 4) * h * .12
+                );
+            }
+
+            c.stroke();
+
+        }
+
+        /* le banc de plancton lumineux */
+        for(let i = 0; i < 16; i++){
+
+            const a  = i * 2.39 + t * .5;
+            const rr = (.25 + (i % 5) * .17) * r;
+
+            c.globalAlpha = .4 + .5 * Math.sin(t * 3 + i);
+            c.fillStyle   = i % 3 ? "#5fe8ff" : "#7bffca";
+
+            c.beginPath();
+            c.arc(Math.cos(a) * rr * 1.6, Math.sin(a * 1.3) * rr * 1.4, r * .045, 0, Math.PI * 2);
+            c.fill();
+
+        }
+
+        /* les tentacules qui pendent */
+        c.globalAlpha = .85;
+        c.strokeStyle = "#2a90b8";
+        c.lineWidth   = r * .075;
+
+        for(let i = 0; i < 5; i++){
+
+            const bx = (i - 2) * w * .34;
+
+            c.beginPath();
+            c.moveTo(bx, h * .1);
+
+            for(let k = 1; k <= 5; k++){
+                const kk = k / 5;
+                c.lineTo(bx + Math.sin(t * 2.4 + i + kk * 3) * w * .14, h * (.1 + kk * .95));
+            }
+
+            c.stroke();
+
+        }
+
+        /* le leurre : une petite lanterne au-dessus */
+        const lx = Math.sin(t * 1.1) * w * .22;
+        const ly = -h * 1.02 + Math.sin(t * 1.7) * h * .06;
+
+        c.globalAlpha = .9;
+        c.strokeStyle = "#0d3145";
+        c.lineWidth   = r * .06;
+
+        c.beginPath();
+        c.moveTo(-w * .1, -h * .55);
+        c.quadraticCurveTo(0, -h * .95, lx, ly);
+        c.stroke();
+
+        const g = c.createRadialGradient(lx, ly, 0, lx, ly, r * .55);
+        g.addColorStop(0,   "rgba(255,255,255,.95)");
+        g.addColorStop(.35, "rgba(95,232,255,.6)");
+        g.addColorStop(1,   "rgba(95,232,255,0)");
+
+        c.globalAlpha = 1;
+        c.fillStyle   = g;
+
+        c.beginPath();
+        c.arc(lx, ly, r * .55, 0, Math.PI * 2);
+        c.fill();
+
         return;
 
     }

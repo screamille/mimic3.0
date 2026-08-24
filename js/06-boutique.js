@@ -38,7 +38,8 @@ const RARITIES = [
     {name:"COMMUN",      col:"#8fa0c0"},
     {name:"RARE",        col:"#4fa8ff"},
     {name:"ÉPIQUE",      col:"#b06cff"},
-    {name:"LÉGENDAIRE",  col:"#ffb01f"}
+    {name:"LÉGENDAIRE",  col:"#ffb01f"},
+    {name:"EXCLUSIF",    col:"#2fe0ff"}
 ];
 
 
@@ -56,7 +57,7 @@ function skinCard(skin, inShop){
         "skinCard" +
         (equipped ? " equipped" : "") +
         (owned ? "" : " locked") +
-        (broke ? " broke" : "");
+        (broke && !skin.exclusive ? " broke" : "");
 
     /* la teinte de la carte vient du slime lui-même */
     card.style.setProperty("--tint", skin.color + "33");
@@ -111,6 +112,10 @@ function skinCard(skin, inShop){
     }else if(owned){
         state.className   = "skinState own";
         state.textContent = "✅ " + T("shop.owned");
+    }else if(skin.exclusive){
+        state.className   = "skinState own";
+        state.style.color = "#2fe0ff";
+        state.textContent = "🔒 " + T("shop.exclusive");
     }else{
         state.className = "skinPrice";
         state.innerHTML =
@@ -123,11 +128,14 @@ function skinCard(skin, inShop){
 
     btn.className =
         "cardButton " +
-        (equipped ? "done" : owned ? "equip" : "buy");
+        (equipped ? "done" : owned ? "equip" : skin.exclusive ? "done" : "buy");
 
-    btn.textContent = equipped ? T("shop.equipped") : owned ? T("shop.equip") : T("shop.buy");
+    btn.textContent = equipped ? T("shop.equipped")
+                    : owned    ? T("shop.equip")
+                    : skin.exclusive ? T("shop.locked")
+                    : T("shop.buy");
 
-    if(equipped){
+    if(equipped || (!owned && skin.exclusive)){
         btn.disabled = true;
     }
 
@@ -243,6 +251,11 @@ function abilityCard(ab, inShop){
     glyph.className   = "abilityGlyph";
     glyph.textContent = ab.icon;
 
+    /* le medaillon prend la couleur de la competence */
+    glyph.style.setProperty("--g1", "#ffffff");
+    glyph.style.setProperty("--g2", ab.color);
+    glyph.style.setProperty("--g3", ab.color2);
+
     stage.appendChild(glyph);
     card.appendChild(stage);
 
@@ -270,7 +283,7 @@ function abilityCard(ab, inShop){
     const desc = document.createElement("div");
 
     desc.className   = "abilityDesc";
-    desc.textContent = T("ab.dashDesc");
+    desc.textContent = ab.id === "dash" ? T("ab.dashDesc") : ab.desc;
 
     card.appendChild(desc);
 
@@ -302,6 +315,8 @@ function abilityCard(ab, inShop){
         ownedAbilities.push(ab.id);
         saveGame();
         coinChime();
+
+        buildSkillBar();
 
         renderShop();
 

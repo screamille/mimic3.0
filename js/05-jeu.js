@@ -426,6 +426,10 @@ function reset(){
     crawlers  = [];
     gloutons  = [];
     candies   = [];
+    anguilles = [];
+    lanternes = [];
+    bulles    = [];
+    abyssTimer = 0;
     gloutonTimer = 0;
     drips     = [];
     portal    = null;
@@ -956,6 +960,11 @@ function update(dt){
     }
 
 
+    /* ---------- COMPETENCES ---------- */
+
+    skillTick(dt);
+
+
     /* ---------- BLOCS ---------- */
 
     for(const s of solids){
@@ -972,6 +981,9 @@ function update(dt){
 
     updatePortal(dt);
     updateGloutons(dt);
+    updateAnguilles(dt);
+    updateLanternes(dt);
+    updateBulles(dt);
     updatePuddles(dt);
     updateLogs(dt);
     updateCrawlers(dt);
@@ -996,6 +1008,14 @@ function update(dt){
 
             for(const g of gloutons){
                 g.stunned = 3.2;
+            }
+
+            for(const e of anguilles){
+                e.stunned = 3.2;
+            }
+
+            for(const l of lanternes){
+                l.stunned = 3.2;
             }
 
             burst(o.x, o.y, 28, "#a855ff");
@@ -1131,7 +1151,13 @@ function update(dt){
         }
 
         /* le marais se remplit de flaques, la surface de blocs */
-        if(zone === "bonbon"){
+        if(zone === "abysse"){
+
+            if(level % 3 === 0){
+                addSolid();
+            }
+
+        }else if(zone === "bonbon"){
 
             if(solids.length < 16){
                 spawnCandy();
@@ -1149,7 +1175,7 @@ function update(dt){
 
         }
 
-        if(zone !== "marais"){
+        if(zone !== "marais" && zone !== "abysse"){
 
             if(level % 3 === 0){
                 addSolid();
@@ -1740,6 +1766,13 @@ function drawRaw(){
     ctx.globalAlpha = 1;
 
 
+    /* LES ABYSSES */
+
+    drawBulles();
+    drawLanternes();
+    drawAnguilles();
+
+
     /* GLOUTONS */
 
     drawGloutons();
@@ -2060,6 +2093,8 @@ function drawRaw(){
 
     drawPlayer();
 
+    drawSkillFx();
+
     /* LES RAYONS PASSENT PAR-DESSUS TOUT */
 
     if(laser.active){
@@ -2191,6 +2226,109 @@ function drawHeart(x, y, size){
 }
 
 
+/* bulle, onde de choc et sillage du saut */
+function drawSkillFx(){
+
+    /* ---- la bulle du BOUCLIER ---- */
+    if(shieldFx > 0){
+
+        const k  = shieldFx / SHIELD_TIME;
+        const rr = player.r * (2.2 + Math.sin(gameTime * 8) * .08);
+
+        ctx.save();
+        ctx.translate(player.x, player.y);
+
+        const g = ctx.createRadialGradient(0, 0, rr * .55, 0, 0, rr);
+        g.addColorStop(0,  "rgba(123,255,202,0)");
+        g.addColorStop(.7, "rgba(123,255,202,.18)");
+        g.addColorStop(1,  "rgba(123,255,202,.42)");
+
+        ctx.globalAlpha = .55 + .45 * k;
+        ctx.fillStyle   = g;
+
+        ctx.beginPath();
+        ctx.arc(0, 0, rr, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = "#7bffca";
+        ctx.lineWidth   = 2.2 * unit;
+        ctx.shadowColor = "#7bffca";
+        ctx.shadowBlur  = 14;
+
+        ctx.beginPath();
+        ctx.arc(0, 0, rr, 0, Math.PI * 2);
+        ctx.stroke();
+
+        /* les facettes qui tournent */
+        ctx.globalAlpha = .3 + .3 * k;
+        ctx.lineWidth   = 1.3 * unit;
+
+        for(let i = 0; i < 6; i++){
+            const a = gameTime * 1.4 + i * 1.047;
+            ctx.beginPath();
+            ctx.arc(0, 0, rr, a, a + .45);
+            ctx.stroke();
+        }
+
+        ctx.restore();
+
+    }
+
+    /* ---- l'ONDE de choc ---- */
+    if(waveFx){
+
+        const k  = waveFx.t / .55;
+        const rr = waveFx.r * k;
+
+        ctx.save();
+
+        ctx.globalAlpha = (1 - k) * .9;
+        ctx.strokeStyle = "#ffb347";
+        ctx.lineWidth   = (10 - 7 * k) * unit;
+        ctx.shadowColor = "#ff8a1f";
+        ctx.shadowBlur  = 22;
+
+        ctx.beginPath();
+        ctx.arc(waveFx.x, waveFx.y, rr, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.globalAlpha = (1 - k) * .45;
+        ctx.lineWidth   = 3 * unit;
+
+        ctx.beginPath();
+        ctx.arc(waveFx.x, waveFx.y, rr * .72, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.restore();
+
+    }
+
+    /* ---- le sillage du SAUT ---- */
+    if(blinkFx){
+
+        const k = 1 - blinkFx.t / .35;
+
+        ctx.save();
+
+        ctx.globalAlpha = k * .7;
+        ctx.strokeStyle = "#c88bff";
+        ctx.lineWidth   = player.r * 1.5 * k;
+        ctx.lineCap     = "round";
+        ctx.shadowColor = "#c88bff";
+        ctx.shadowBlur  = 18;
+
+        ctx.beginPath();
+        ctx.moveTo(blinkFx.x0, blinkFx.y0);
+        ctx.lineTo(blinkFx.x1, blinkFx.y1);
+        ctx.stroke();
+
+        ctx.restore();
+
+    }
+
+}
+
+
 function drawPlayer(){
 
     const skin = SKINS.find(s => s.id === currentSkin) || SKINS[0];
@@ -2302,7 +2440,7 @@ function setPaused(state){
         paused ? "none" : "block";
 
     document.getElementById("skillBar").style.display =
-        (paused || !hasAbility("dash")) ? "none" : "flex";
+        (paused || !anyAbility()) ? "none" : "flex";
 
     if(paused){
         stickReset();
@@ -2365,8 +2503,10 @@ function startGame(seed){
     document.getElementById("pauseBtn").style.display =
         (inDuel || laser.active) ? "none" : "block";
 
+    buildSkillBar();
+
     document.getElementById("skillBar").style.display =
-        hasAbility("dash") ? "flex" : "none";
+        anyAbility() ? "flex" : "none";
 
     if(inDuel){
         duelBegin();

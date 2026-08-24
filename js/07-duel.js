@@ -1141,6 +1141,113 @@ function paintCreature(c, kind, x, y, r, ang, t){
             c.fill();
         });
 
+    }else if(kind === "anguille"){
+
+        /* un ruban qui ondule, la tete a droite */
+        c.strokeStyle = "#1a6f96";
+        c.lineWidth   = r * .52;
+        c.lineCap     = "round";
+        c.lineJoin    = "round";
+
+        c.beginPath();
+
+        for(let i = 0; i <= 10; i++){
+            const kk = i / 10;
+            c.lineTo(-r * 1.25 + kk * r * 2.3, Math.sin(kk * 6.2) * r * .42);
+        }
+
+        c.stroke();
+
+        c.strokeStyle = "#3fe0ff";
+        c.lineWidth   = r * .13;
+
+        c.beginPath();
+
+        for(let i = 0; i <= 10; i++){
+            const kk = i / 10;
+            c.lineTo(-r * 1.25 + kk * r * 2.3, Math.sin(kk * 6.2) * r * .42);
+        }
+
+        c.stroke();
+
+        c.fillStyle = "#134f6c";
+        c.beginPath();
+        c.ellipse(r * 1.0, 0, r * .5, r * .34, 0, 0, Math.PI * 2);
+        c.fill();
+
+        c.fillStyle = "#ffe680";
+        [-1, 1].forEach(sg => {
+            c.beginPath();
+            c.arc(r * .95, sg * r * .15, r * .09, 0, Math.PI * 2);
+            c.fill();
+        });
+
+    }else if(kind === "lanterne"){
+
+        c.fillStyle = "#0d3d55";
+        c.beginPath();
+        c.moveTo(-r * .7, 0);
+        c.lineTo(-r * 1.3, -r * .55);
+        c.lineTo(-r * 1.05, 0);
+        c.lineTo(-r * 1.3,  r * .55);
+        c.closePath();
+        c.fill();
+
+        c.fillStyle = "#2f7a9c";
+        c.beginPath();
+        c.ellipse(0, 0, r * .85, r * .74, 0, 0, Math.PI * 2);
+        c.fill();
+
+        c.fillStyle = "#02101a";
+        c.beginPath();
+        c.moveTo(r * .1, 0);
+        c.lineTo(r * 1.15, -r * .42);
+        c.lineTo(r * 1.1, 0);
+        c.lineTo(r * 1.15,  r * .42);
+        c.closePath();
+        c.fill();
+
+        c.fillStyle = "#eaf7ff";
+        for(let i = 0; i < 4; i++){
+            const kk = .2 + i * .25;
+            const x  = r * .1 + (r * 1.15 - r * .1) * kk;
+            const d  = r * .14;
+            c.beginPath();
+            c.moveTo(x - d * .5, -r * .42 * kk);
+            c.lineTo(x + d * .5, -r * .42 * kk);
+            c.lineTo(x,          -r * .42 * kk + d);
+            c.closePath();
+            c.fill();
+            c.beginPath();
+            c.moveTo(x - d * .5, r * .42 * kk);
+            c.lineTo(x + d * .5, r * .42 * kk);
+            c.lineTo(x,          r * .42 * kk - d);
+            c.closePath();
+            c.fill();
+        }
+
+        c.fillStyle = "#031722";
+        c.beginPath();
+        c.arc(0, -r * .3, r * .22, 0, Math.PI * 2);
+        c.fill();
+
+        c.fillStyle = "#d8f8ff";
+        c.beginPath();
+        c.arc(r * .05, -r * .32, r * .11, 0, Math.PI * 2);
+        c.fill();
+
+        c.strokeStyle = "#0d3145";
+        c.lineWidth   = r * .09;
+        c.beginPath();
+        c.moveTo(-r * .2, -r * .62);
+        c.quadraticCurveTo(r * .2, -r * 1.25, r * .8, -r * 1.1);
+        c.stroke();
+
+        c.fillStyle = "#9ff0ff";
+        c.beginPath();
+        c.arc(r * .8, -r * 1.1, r * .2, 0, Math.PI * 2);
+        c.fill();
+
     }else{
 
         /* le slime : dôme large, contour noir, yeux en fentes */
@@ -1229,7 +1336,8 @@ function renderGuideIcons(){
             size / 2,
             size / 2 + (kind === "slime" ? 3 : 0),
             kind === "slime" ? 17 : 15,
-            (kind === "slime" || kind === "crawler" || kind === "glouton") ? 0 : -.35,
+            (kind === "slime" || kind === "crawler" || kind === "glouton" ||
+             kind === "anguille" || kind === "lanterne") ? 0 : -.35,
             1.1
         );
 
