@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "3.5";
+const VERSION = "3.6";
 
 (function(){
 
@@ -934,8 +934,11 @@ function drawPlanet(s, t){
 
 function addOrb(){
 
-    /* le mode laser se joue dans une arene vide */
-    if(laser.active){
+    /*
+    Le mode laser et la salle du boss se jouent dans une
+    arene vide : rien ne doit distraire de l'esquive.
+    */
+    if(laser.active || zone === "neant"){
         return;
     }
 
@@ -957,8 +960,7 @@ function addOrb(){
 
 function addCoin(){
 
-    /* le mode laser se joue dans une arene vide */
-    if(laser.active){
+    if(laser.active || zone === "neant"){
         return;
     }
 
@@ -2104,7 +2106,7 @@ function enterCandy(){
 ========================================================= */
 
 const BOSS_TIME  = 95;    /* secondes de survie pour le vaincre */
-const BOSS_PUNCH = .10;   /* ce qu'il regagne quand il te touche */
+const BOSS_PUNCH = .07;   /* ce qu'il regagne quand il te touche */
 
 const BOSS_PHASES = [
     {name:"SALVES", col:"#c86aff"},
@@ -2298,7 +2300,9 @@ function enterVoid(){
         gaze:0
     };
 
-    addCoin();
+    coins  = [];
+    orbs   = [];
+    hearts = [];
 
     pickupMessage("👁 L'ŒIL DU NÉANT", "#c86aff");
 
@@ -2340,21 +2344,26 @@ function bossShot(x, y, ang, speed, r, col){
 
 function bossSalvo(){
 
-    const n   = 15;
+    const n   = 14;
     const gap = Math.floor(rnd() * n);
     const off = rnd() * 6.28;
 
+    /*
+    Deux trous de deux crans, opposes : assez larges pour
+    qu'on les voie venir et qu'on ait le temps de s'y placer.
+    */
+    const holes = [gap, (gap + 1) % n, (gap + 7) % n, (gap + 8) % n];
+
     for(let i = 0; i < n; i++){
 
-        /* deux trous dans la couronne : c'est par la qu'on passe */
-        if(i === gap || i === (gap + Math.floor(n / 2)) % n){
+        if(holes.indexOf(i) >= 0){
             continue;
         }
 
         bossShot(
             boss.x, boss.y,
             off + (i / n) * Math.PI * 2,
-            118 * unit,
+            104 * unit,
             9 * unit,
             "#c86aff"
         );
@@ -2366,14 +2375,23 @@ function bossSalvo(){
 }
 
 
+/*
+Toutes les faux tournent dans LE MEME sens et restent a
+egale distance : elles forment une croix qui pivote, et
+il suffit de marcher avec elle. En sens contraire, les
+deux lames se refermaient en ciseaux et il n'y avait
+aucune sortie.
+*/
 function bossSetBeams(count, spin){
 
     bossBeams = [];
 
+    const way = rnd() < .5 ? -1 : 1;
+
     for(let i = 0; i < count; i++){
         bossBeams.push({
             a:(i / count) * Math.PI * 2,
-            spin:spin * (i % 2 ? -1 : 1),
+            spin:spin * way,
             grow:0
         });
     }
@@ -2543,7 +2561,7 @@ function updateBoss(dt){
     }else if(ph === 1){
 
         if(!bossBeams.length){
-            bossSetBeams(2, .52);
+            bossSetBeams(2, .40);
         }
 
         boss.fire -= dt;
@@ -2554,28 +2572,28 @@ function updateBoss(dt){
             bossShot(
                 boss.x, boss.y,
                 Math.atan2(player.y - boss.y, player.x - boss.x),
-                165 * unit, 8 * unit, "#ff5f8f"
+                155 * unit, 8 * unit, "#ff5f8f"
             );
 
-            boss.fire = 1.5;
+            boss.fire = 2.1;
 
         }
 
     }else{
 
         if(!bossBeams.length){
-            bossSetBeams(3, .78);
+            bossSetBeams(3, .58);
         }
 
         boss.tele -= dt;
 
         if(boss.tele <= 0){
             bossTeleport();
-            boss.tele = 5.5;
+            boss.tele = 6.5;
         }
 
         /* la spirale, continue */
-        boss.spiral += dt * 4.6;
+        boss.spiral += dt * 3.4;
         boss.fire   -= dt;
 
         if(boss.fire <= 0){
@@ -2584,11 +2602,11 @@ function updateBoss(dt){
                 bossShot(
                     boss.x, boss.y,
                     boss.spiral + i * Math.PI,
-                    140 * unit, 8 * unit, "#ff3a52"
+                    122 * unit, 8 * unit, "#ff3a52"
                 );
             }
 
-            boss.fire = .16;
+            boss.fire = .23;
 
         }
 
@@ -2618,7 +2636,7 @@ function updateBoss(dt){
 
         const perp = Math.abs(-dx * Math.sin(bm.a) + dy * Math.cos(bm.a));
 
-        if(perp < 10 * unit + player.r * .6){
+        if(perp < 8 * unit + player.r * .5){
 
             loseLife(null);
 
@@ -2671,7 +2689,7 @@ function drawBoss(){
             ctx.shadowColor = col;
             ctx.shadowBlur  = on ? 26 : 8;
 
-            const th = (on ? 10 : 2.5) * unit * (.6 + bm.grow * .4);
+            const th = (on ? 8 : 2.2) * unit * (.6 + bm.grow * .4);
 
             ctx.fillRect(boss.r * .55, -th, reach, th * 2);
 
