@@ -812,6 +812,11 @@ function update(dt){
 
             target = traceAt(m, m.s + m.type.lookahead * unit) || here;
 
+            /* le leurre detourne meme le traqueur */
+            if(decoy){
+                target = {x:decoy.x, y:decoy.y};
+            }
+
         }else{
 
             /*
@@ -823,8 +828,10 @@ function update(dt){
 
             const area = playArea();
 
-            let tx = player.x + playerVX * m.type.lead;
-            let ty = player.y + playerVY * m.type.lead;
+            const aim = lureTarget();
+
+            let tx = aim === player ? player.x + playerVX * m.type.lead : aim.x;
+            let ty = aim === player ? player.y + playerVY * m.type.lead : aim.y;
 
             /*
             Décalage latéral personnel : il vient te prendre de côté.
@@ -972,6 +979,18 @@ function update(dt){
     skillTick(dt);
 
 
+    /* ---------- COMBO, FROLEMENT ET MISSIONS ---------- */
+
+    comboTick(dt);
+    slowTick(dt);
+    decoyTick(dt);
+    grazeCheck();
+
+    runNoHit += dt;
+
+    missionTick();
+
+
     /* ---------- BLOCS ---------- */
 
     for(const s of solids){
@@ -1068,12 +1087,17 @@ function update(dt){
 
         if(collide(player, c)){
 
+            comboUp();
+
+            const mult = comboMult();
+
             /* le mode laser ne rapporte aucune piece */
             if(!laser.active){
-                totalCoins++;
+                totalCoins += mult;
+                runCoins   += mult;
             }
 
-            score += 20;
+            score += 20 * mult;
 
             burst(c.x, c.y, 15, "#ffd84d");
 
@@ -1290,6 +1314,12 @@ function loseLife(m){
     }
 
     lives--;
+
+    comboBreak();
+
+    runNoHit = 0;
+
+    buzz([40, 60, 40]);
 
     burst(player.x, player.y, 35, "#ff466e");
 
@@ -2141,11 +2171,19 @@ function drawRaw(){
     }
 
 
+    /* LE LEURRE */
+
+    drawDecoy();
+
+
     /* JOUEUR */
 
     drawPlayer();
 
     drawSkillFx();
+
+    drawGrazeFlash();
+    drawCombo();
 
     /* LES RAYONS PASSENT PAR-DESSUS TOUT */
 
@@ -2452,6 +2490,11 @@ function endGame(){
         }
     }
 
+    if(!laser.active){
+        noteRecords();
+        addXP(final * .25 + gameTime * 2);
+    }
+
     saveGame();
 
     stickReset();
@@ -2568,6 +2611,21 @@ function startGame(seed){
     }
 
     keys.up = keys.down = keys.left = keys.right = false;
+
+    runCoins = 0;
+    runGraze = 0;
+    runCombo = 0;
+    runNoHit = 0;
+    runWorld = 1;
+
+    combo      = 0;
+    comboTimer = 0;
+    comboFlash = 0;
+    slowMo     = 0;
+    grazeFlash = 0;
+    decoy      = null;
+
+    checkDaily();
 
     reset();
 

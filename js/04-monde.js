@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "3.6";
+const VERSION = "4.0";
 
 (function(){
 
@@ -85,6 +85,8 @@ const WAVE_R      = 215;   /* rayon de l'onde, en unites       */
 const WAVE_STUN   = 2.6;   /* temps de sonnage des ennemis     */
 const BLINK_CD    = 9;     /* recharge du saut                 */
 const BLINK_DIST  = 235;   /* distance du saut, en unites      */
+const LURE_TIME   = 5;     /* duree du leurre                  */
+const LURE_CD     = 17;    /* recharge du leurre               */
 
 /* recharge en cours de chaque competence */
 const skillCd = {};
@@ -129,6 +131,17 @@ const ABILITIES = [
         color:"#ffb347",
         color2:"#a8420a",
         desc:"Une onde de choc qui repousse et sonne tout ce qui t'entoure pendant 2,6 s. Recharge 13 s."
+    },
+    {
+        id:"leurre",
+        name:"LEURRE",
+        icon:"◆",
+        price:1800,
+        rarity:3,
+        cd:LURE_CD,
+        color:"#7bffca",
+        color2:"#0f7a5a",
+        desc:"Un faux slime qui attire tout ce qui te poursuit pendant 5 s. Recharge 17 s."
     }
 ];
 
@@ -249,6 +262,27 @@ function useSkill(id){
 
     }
 
+    if(id === "leurre"){
+
+        skillCd.leurre = LURE_CD;
+
+        decoy = {
+            x:player.x,
+            y:player.y,
+            r:player.r,
+            life:LURE_TIME,
+            t:0
+        };
+
+        burst(player.x, player.y, 20, "#7bffca");
+
+        sound(520, .12, "triangle", .04);
+        sound(780, .10, "sine",     .03);
+
+        return;
+
+    }
+
     if(id === "saut"){
 
         skillCd.saut = BLINK_CD;
@@ -334,6 +368,7 @@ function dashReset(){
     shieldFx = 0;
     waveFx   = null;
     blinkFx  = null;
+    decoy    = null;
 
 }
 
@@ -417,6 +452,19 @@ function paintSkillBar(){
             ring.style.background =
                 "conic-gradient(" + ab.color + " " + (k * 360).toFixed(0) +
                 "deg, rgba(255,255,255,.07) 0deg)";
+        }
+
+        /* une petite vibration au moment ou elle redevient prete */
+        if(ready && btn.dataset.ready !== "1"){
+
+            if(playing){
+                buzz(15);
+            }
+
+            btn.dataset.ready = "1";
+
+        }else if(!ready){
+            btn.dataset.ready = "0";
         }
 
         btn.classList.toggle("ready", ready);
@@ -2024,6 +2072,8 @@ function enterMarais(){
         spawnBlob();
     }
 
+    noteWorld("marais");
+
     pickupMessage("🐸 LE MARAIS", "#8fe04a");
 
     sound(300, .5, "triangle", .06);
@@ -2085,6 +2135,8 @@ function enterCandy(){
     addCoin();
     addOrb();
 
+    noteWorld("bonbon");
+
     pickupMessage("🍬 LE PAYS DES BONBONS", "#ff8fc4");
 
     sound(520, .5, "triangle", .06);
@@ -2094,6 +2146,792 @@ function enterCandy(){
 
 
 
+
+
+
+
+/* =========================================================
+   PROGRESSION, MISSIONS ET COMBO
+
+   Tout ce qui survit d'une partie a l'autre : l'experience,
+   les records, les missions du jour et les mondes deja vus.
+========================================================= */
+
+let xpTotal    = Number(localStorage.getItem("mimicXP") || 0);
+let vibrateOn  = localStorage.getItem("mimicVibrate") !== "0";
+let records    = loadJSON("mimicRecords", {best:{}, bestTime:0, boss:0});
+let worldsSeen = loadJSON("mimicWorlds", ["cyber"]);
+let daily      = loadJSON("mimicDaily", null);
+
+if(!records || typeof records !== "object"){ records = {best:{}, bestTime:0, boss:0}; }
+if(!records.best) { records.best = {}; }
+if(!Array.isArray(worldsSeen) || !worldsSeen.length){ worldsSeen = ["cyber"]; }
+
+/* les compteurs de la partie en cours */
+let runCoins = 0, runGraze = 0, runCombo = 0, runNoHit = 0, runWorld = 1;
+
+/* le combo */
+let combo = 0, comboTimer = 0, comboFlash = 0;
+
+/* le ralenti au frolement */
+let slowMo = 0, grazeFlash = 0;
+
+/* le leurre */
+let decoy = null;
+
+
+function saveProgress(){
+
+    try{
+        localStorage.setItem("mimicXP",      xpTotal);
+        localStorage.setItem("mimicRecords", JSON.stringify(records));
+        localStorage.setItem("mimicWorlds",  JSON.stringify(worldsSeen));
+        localStorage.setItem("mimicDaily",   JSON.stringify(daily));
+    }catch(e){}
+
+}
+
+
+/* --- le niveau du joueur : 500 XP pour le 2, puis de plus en plus --- */
+function xpForLevel(n){
+    return 500 * (n - 1) * (n - 1);
+}
+
+function playerLevel(){
+    return 1 + Math.floor(Math.sqrt(xpTotal / 500));
+}
+
+function playerLevelProgress(){
+
+    const n  = playerLevel();
+    const a  = xpForLevel(n);
+    const b  = xpForLevel(n + 1);
+
+    return Math.max(0, Math.min(1, (xpTotal - a) / Math.max(1, b - a)));
+
+}
+
+
+function addXP(n){
+
+    if(n <= 0){
+        return;
+    }
+
+    const before = playerLevel();
+
+    xpTotal += Math.round(n);
+
+    const after = playerLevel();
+
+    if(after > before){
+
+        /* chaque niveau rapporte des pieces */
+        const gain = 150 * after;
+
+        totalCoins += gain;
+
+        pickupMessage("⭐ NIVEAU " + after + "   +" + gain + " 🪙", "#ffd84d");
+
+        coinChime();
+        buzz([30, 60, 30]);
+
+        saveGame();
+
+    }
+
+    saveProgress();
+
+}
+
+
+/* --- la vibration --- */
+function buzz(pattern){
+
+    if(!vibrateOn || !navigator.vibrate){
+        return;
+    }
+
+    try{ navigator.vibrate(pattern); }catch(e){}
+
+}
+
+
+function decoyTick(dt){
+
+    if(!decoy){
+        return;
+    }
+
+    decoy.t    += dt;
+    decoy.life -= dt;
+
+    if(decoy.life <= 0){
+
+        burst(decoy.x, decoy.y, 16, "#7bffca");
+
+        sound(300, .16, "sine", .03);
+
+        decoy = null;
+
+    }
+
+}
+
+
+/* la cible que suivent les poursuivants : le leurre s'il existe */
+function lureTarget(){
+    return decoy ? decoy : player;
+}
+
+
+function drawDecoy(){
+
+    if(!decoy){
+        return;
+    }
+
+    const k  = Math.min(1, decoy.life / .4);
+    const rr = decoy.r * (1 + Math.sin(decoy.t * 6) * .06);
+
+    ctx.save();
+
+    /* le halo qui appelle */
+    const g = ctx.createRadialGradient(decoy.x, decoy.y, 0, decoy.x, decoy.y, rr * 5);
+    g.addColorStop(0, "rgba(123,255,202,.30)");
+    g.addColorStop(1, "rgba(123,255,202,0)");
+
+    ctx.globalAlpha = k;
+    ctx.fillStyle   = g;
+    ctx.beginPath();
+    ctx.arc(decoy.x, decoy.y, rr * 5, 0, Math.PI * 2);
+    ctx.fill();
+
+    /* les ondes qui partent du leurre */
+    ctx.strokeStyle = "#7bffca";
+    ctx.lineWidth   = 2 * unit;
+
+    for(let i = 0; i < 2; i++){
+
+        const kk = ((decoy.t * .8 + i / 2) % 1);
+
+        ctx.globalAlpha = k * (1 - kk) * .7;
+
+        ctx.beginPath();
+        ctx.arc(decoy.x, decoy.y, rr + kk * rr * 3.5, 0, Math.PI * 2);
+        ctx.stroke();
+
+    }
+
+    /* le faux slime : la meme silhouette, en transparence */
+    ctx.globalAlpha = k * .6;
+    ctx.translate(decoy.x, decoy.y);
+
+    const skin = SKINS.find(sk => sk.id === currentSkin) || SKINS[0];
+
+    paintSkinSlime(ctx, skin, rr, gameTime, false, {blink:1});
+
+    ctx.restore();
+    ctx.globalAlpha = 1;
+
+}
+
+
+/* =========================================================
+   LE COMBO
+
+   Chaque piece ramassee sans se faire toucher fait monter
+   le multiplicateur. Un coup encaisse remet tout a zero.
+========================================================= */
+
+const COMBO_STEPS = [
+    {at:0,  mult:1},
+    {at:5,  mult:2},
+    {at:10, mult:3},
+    {at:18, mult:4},
+    {at:28, mult:5}
+];
+
+function comboMult(){
+
+    let m = 1;
+
+    for(const s of COMBO_STEPS){
+        if(combo >= s.at){ m = s.mult; }
+    }
+
+    return m;
+
+}
+
+
+function comboUp(){
+
+    const before = comboMult();
+
+    combo++;
+    comboTimer = 9;
+
+    runCombo = Math.max(runCombo, combo);
+
+    if(comboMult() > before){
+
+        comboFlash = 1;
+
+        pickupMessage("×" + comboMult() + " COMBO", "#ffd84d");
+
+        sound(880, .1, "sine",     .04);
+        sound(1320, .09, "triangle", .03);
+
+        buzz(20);
+
+    }
+
+}
+
+
+function comboBreak(){
+
+    if(combo > 2){
+        comboFlash = -1;
+    }
+
+    combo      = 0;
+    comboTimer = 0;
+
+}
+
+
+function comboTick(dt){
+
+    if(comboTimer > 0){
+
+        comboTimer -= dt;
+
+        if(comboTimer <= 0){
+            combo = 0;
+        }
+
+    }
+
+    if(comboFlash > 0){ comboFlash = Math.max(0, comboFlash - dt * 2); }
+    if(comboFlash < 0){ comboFlash = Math.min(0, comboFlash + dt * 2); }
+
+}
+
+
+function drawCombo(){
+
+    if(combo < 2 || !playing){
+        return;
+    }
+
+    const m = comboMult();
+
+    const a = playArea();
+
+    const x = (a.x0 + a.x1) / 2;
+    const y = a.y0 + 34 * unit;
+
+    ctx.save();
+    ctx.textAlign    = "center";
+    ctx.textBaseline = "middle";
+
+    const pop = 1 + Math.abs(comboFlash) * .35;
+
+    ctx.translate(x, y);
+    ctx.scale(pop, pop);
+
+    ctx.font        = "bold " + Math.round(26 * unit) + "px Arial";
+    ctx.fillStyle   = m >= 4 ? "#ff8a3d" : m >= 3 ? "#ffd84d" : "#9fe9ff";
+    ctx.shadowColor = ctx.fillStyle;
+    ctx.shadowBlur  = 18;
+
+    ctx.fillText("×" + m, 0, 0);
+
+    ctx.shadowBlur = 0;
+    ctx.font       = "bold " + Math.round(10 * unit) + "px Arial";
+    ctx.fillStyle  = "rgba(220,235,255,.75)";
+
+    ctx.fillText(combo + " D'AFFILÉE", 0, 20 * unit);
+
+    /* le temps qu'il reste avant que ca retombe */
+    const k = Math.max(0, Math.min(1, comboTimer / 9));
+
+    ctx.fillStyle = "rgba(255,255,255,.18)";
+    ctx.fillRect(-30 * unit, 28 * unit, 60 * unit, 3 * unit);
+
+    ctx.fillStyle = m >= 3 ? "#ffd84d" : "#9fe9ff";
+    ctx.fillRect(-30 * unit, 28 * unit, 60 * unit * k, 3 * unit);
+
+    ctx.restore();
+
+}
+
+
+/* =========================================================
+   LE FROLEMENT
+
+   Passer tout pres d'un danger sans le toucher ralentit le
+   temps un instant. C'est la recompense de ceux qui jouent
+   au plus juste au lieu de fuir.
+========================================================= */
+
+const GRAZE_MARGIN = 26;   /* en unites, au-dela du contact */
+const GRAZE_SLOW   = .16;  /* duree du ralenti, en secondes */
+
+function grazeCheck(){
+
+    if(!playing || slowMo > 0 || player.invincible > 0){
+        return;
+    }
+
+    const margin = GRAZE_MARGIN * unit;
+
+    const near = function(x, y, r){
+        const d = Math.hypot(x - player.x, y - player.y);
+        return d > r + player.r && d < r + player.r + margin;
+    };
+
+    let hit = false;
+
+    for(const m of mimics){
+        if(near(m.x, m.y, m.r)){ hit = true; break; }
+    }
+
+    if(!hit){
+        for(const b of bossShots){
+            if(near(b.x, b.y, b.r)){ hit = true; break; }
+        }
+    }
+
+    if(!hit){
+        for(const g of stunnableCreatures()){
+            if(near(g.x, g.y, g.r)){ hit = true; break; }
+        }
+    }
+
+    if(!hit){
+        return;
+    }
+
+    slowMo     = GRAZE_SLOW;
+    grazeFlash = 1;
+
+    runGraze++;
+
+    score += 5 * comboMult();
+
+    sound(1500, .05, "sine", .02);
+
+    buzz(12);
+
+}
+
+
+function slowTick(dt){
+
+    if(slowMo > 0){
+        slowMo = Math.max(0, slowMo - dt);
+    }
+
+    if(grazeFlash > 0){
+        grazeFlash = Math.max(0, grazeFlash - dt * 4);
+    }
+
+}
+
+
+function drawGrazeFlash(){
+
+    if(grazeFlash <= 0){
+        return;
+    }
+
+    ctx.save();
+
+    ctx.globalAlpha = grazeFlash * .18;
+
+    const g = ctx.createRadialGradient(
+        player.x, player.y, player.r * 2,
+        player.x, player.y, Math.max(W, H) * .5
+    );
+    g.addColorStop(0, "rgba(255,255,255,0)");
+    g.addColorStop(1, "rgba(160,220,255,.9)");
+
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, W, H);
+
+    ctx.restore();
+
+}
+
+
+/* =========================================================
+   LES MISSIONS DU JOUR
+
+   Trois objectifs tires au sort a partir de la date : tout
+   le monde a les memes le meme jour, et ils changent a
+   minuit.
+========================================================= */
+
+const MISSIONS = [
+    {id:"coins", min:20, max:55, step:5,   reward:250, txt:g => "Ramasse " + g + " pièces en une partie"},
+    {id:"score", min:600, max:2400, step:200, reward:300, txt:g => "Fais " + g + " points en une partie"},
+    {id:"world", min:2,  max:4,  step:1,   reward:400, txt:g => "Atteins le monde " + g},
+    {id:"time",  min:60, max:180, step:30, reward:300, txt:g => "Survis " + g + " secondes"},
+    {id:"combo", min:6,  max:20, step:2,   reward:350, txt:g => "Atteins un combo de " + g},
+    {id:"nohit", min:40, max:110, step:10, reward:450, txt:g => "Survis " + g + " s sans perdre de vie"},
+    {id:"graze", min:10, max:35, step:5,   reward:300, txt:g => "Frôle " + g + " fois un danger"}
+];
+
+
+function todayKey(){
+
+    const d = new Date();
+
+    return d.getFullYear() + "-" + (d.getMonth() + 1) + "-" + d.getDate();
+
+}
+
+
+/* un tirage stable : la meme date donne toujours les memes missions */
+function dayRandom(seed){
+
+    let h = 2166136261;
+
+    for(let i = 0; i < seed.length; i++){
+        h ^= seed.charCodeAt(i);
+        h = Math.imul(h, 16777619);
+    }
+
+    return function(){
+        h ^= h << 13; h >>>= 0;
+        h ^= h >> 17;
+        h ^= h << 5;  h >>>= 0;
+        return h / 4294967296;
+    };
+
+}
+
+
+function buildDaily(){
+
+    const key = todayKey();
+    const rr  = dayRandom(key);
+
+    const pool = MISSIONS.slice();
+    const out  = [];
+
+    for(let i = 0; i < 3 && pool.length; i++){
+
+        const k = Math.floor(rr() * pool.length);
+        const m = pool.splice(k, 1)[0];
+
+        const steps = Math.floor((m.max - m.min) / m.step) + 1;
+        const goal  = m.min + Math.floor(rr() * steps) * m.step;
+
+        out.push({id:m.id, goal:goal, prog:0, done:false});
+
+    }
+
+    daily = {day:key, list:out};
+
+    saveProgress();
+
+}
+
+
+function checkDaily(){
+
+    if(!daily || daily.day !== todayKey() || !Array.isArray(daily.list)){
+        buildDaily();
+    }
+}
+
+
+function missionDef(id){
+    return MISSIONS.find(m => m.id === id);
+}
+
+
+/* la valeur atteinte dans la partie en cours, pour chaque objectif */
+function missionValue(id){
+
+    if(id === "coins"){ return runCoins; }
+    if(id === "score"){ return Math.floor(score); }
+    if(id === "world"){ return runWorld; }
+    if(id === "time") { return Math.floor(gameTime); }
+    if(id === "combo"){ return runCombo; }
+    if(id === "nohit"){ return Math.floor(runNoHit); }
+    if(id === "graze"){ return runGraze; }
+
+    return 0;
+
+}
+
+
+function missionTick(){
+
+    if(!playing || laser.active || !daily){
+        return;
+    }
+
+    let changed = false;
+
+    for(const t of daily.list){
+
+        if(t.done){
+            continue;
+        }
+
+        const v = missionValue(t.id);
+
+        if(v > t.prog){
+            t.prog  = v;
+            changed = true;
+        }
+
+        if(t.prog >= t.goal){
+
+            t.done = true;
+
+            const def = missionDef(t.id);
+
+            totalCoins += def.reward;
+
+            pickupMessage("✅ MISSION   +" + def.reward + " 🪙", "#61ff83");
+
+            coinChime();
+            buzz([25, 50, 25]);
+
+            saveGame();
+
+            changed = true;
+
+        }
+
+    }
+
+    if(changed){
+        saveProgress();
+    }
+
+}
+
+
+function missionsLeft(){
+
+    checkDaily();
+
+    return daily.list.filter(t => !t.done).length;
+
+}
+
+
+function renderMissions(){
+
+    checkDaily();
+
+    const box = document.getElementById("missionList");
+
+    if(!box){
+        return;
+    }
+
+    box.innerHTML = "";
+
+    for(const t of daily.list){
+
+        const def = missionDef(t.id);
+        const k   = Math.max(0, Math.min(1, t.prog / t.goal));
+
+        const row = document.createElement("div");
+
+        row.className = "missionRow" + (t.done ? " done" : "");
+
+        const head = document.createElement("div");
+        head.className = "missionHead";
+
+        const name = document.createElement("b");
+        name.textContent = def.txt(t.goal);
+
+        const rw = document.createElement("span");
+        rw.className = "missionReward";
+        rw.innerHTML = t.done
+            ? "✅"
+            : '<i class="coinDot"></i> ' + def.reward;
+
+        head.appendChild(name);
+        head.appendChild(rw);
+        row.appendChild(head);
+
+        const track = document.createElement("div");
+        track.className = "missionTrack";
+
+        const fill = document.createElement("i");
+        fill.style.width = (k * 100).toFixed(1) + "%";
+
+        track.appendChild(fill);
+        row.appendChild(track);
+
+        const num = document.createElement("small");
+        num.textContent = Math.min(t.prog, t.goal) + " / " + t.goal;
+        row.appendChild(num);
+
+        box.appendChild(row);
+
+    }
+
+    /* le compte a rebours jusqu'a minuit */
+    const left = document.getElementById("missionClock");
+
+    if(left){
+
+        const now = new Date();
+        const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+        const s   = Math.max(0, Math.floor((end - now) / 1000));
+
+        left.textContent =
+            "Nouvelles missions dans " +
+            Math.floor(s / 3600) + " h " +
+            String(Math.floor((s % 3600) / 60)).padStart(2, "0");
+
+    }
+
+}
+
+
+/* =========================================================
+   LES RECORDS
+========================================================= */
+
+function noteWorld(zoneId){
+
+    if(worldsSeen.indexOf(zoneId) < 0){
+        worldsSeen.push(zoneId);
+        saveProgress();
+    }
+
+    const wd = WORLDS.find(w => w.zone === zoneId);
+
+    if(wd){
+        runWorld = Math.max(runWorld, wd.n);
+    }
+
+}
+
+
+function noteRecords(){
+
+    const wd  = currentWorld();
+    const fin = Math.floor(score);
+
+    if(!records.best[wd.zone] || fin > records.best[wd.zone]){
+        records.best[wd.zone] = fin;
+    }
+
+    if(gameTime > (records.bestTime || 0)){
+        records.bestTime = Math.floor(gameTime);
+    }
+
+    saveProgress();
+
+}
+
+
+function renderRecords(){
+
+    const box = document.getElementById("recordList");
+
+    if(!box){
+        return;
+    }
+
+    box.innerHTML = "";
+
+    for(const wd of WORLDS){
+
+        const row = document.createElement("div");
+        row.className = "recRow";
+
+        const seen = worldsSeen.indexOf(wd.zone) >= 0;
+
+        const n = document.createElement("b");
+        n.textContent   = "MONDE " + wd.n + "  " + wd.name;
+        n.style.color   = seen ? wd.col : "#5f6f97";
+
+        const v = document.createElement("span");
+        v.textContent = seen ? (records.best[wd.zone] || 0) : "—";
+
+        row.appendChild(n);
+        row.appendChild(v);
+
+        box.appendChild(row);
+
+    }
+
+    const extra = document.createElement("div");
+    extra.className = "recRow top";
+
+    const et = document.createElement("b");
+    et.textContent = "⏱ PLUS LONGUE SURVIE";
+
+    const ev = document.createElement("span");
+    ev.textContent = (records.bestTime || 0) + " s";
+
+    extra.appendChild(et);
+    extra.appendChild(ev);
+    box.appendChild(extra);
+
+    const bo = document.createElement("div");
+    bo.className = "recRow";
+
+    const bt = document.createElement("b");
+    bt.textContent   = "👁 L'ŒIL DU NÉANT";
+    bt.style.color   = records.boss ? "#c86aff" : "#5f6f97";
+
+    const bv = document.createElement("span");
+    bv.textContent = records.boss ? "VAINCU × " + records.boss : "jamais vaincu";
+
+    bo.appendChild(bt);
+    bo.appendChild(bv);
+    box.appendChild(bo);
+
+}
+
+
+/* =========================================================
+   PARTAGE
+========================================================= */
+
+function shareScore(){
+
+    const txt =
+        "J'ai fait " + bestScore + " points dans MIMIC (niveau " +
+        playerLevel() + ") — " + location.origin + location.pathname;
+
+    const done = function(){
+        pickupMessage("📋 COPIÉ", "#61ff83");
+        sound(880, .09, "sine", .04);
+    };
+
+    if(navigator.share){
+
+        navigator.share({title:"MIMIC", text:txt}).catch(() => {});
+
+        return;
+
+    }
+
+    if(navigator.clipboard){
+        navigator.clipboard.writeText(txt).then(done, () => {});
+        return;
+    }
+
+    done();
+
+}
 
 
 /* =========================================================
@@ -2304,6 +3142,8 @@ function enterVoid(){
     orbs   = [];
     hearts = [];
 
+    noteWorld("neant");
+
     pickupMessage("👁 L'ŒIL DU NÉANT", "#c86aff");
 
     sound(60, 1.4, "sine",     .08);
@@ -2509,6 +3349,11 @@ function updateBoss(dt){
             bossBeams = [];
 
             pickupMessage("👁 L'ŒIL DU NÉANT EST BRISÉ", "#ffffff");
+
+            records.boss = (records.boss || 0) + 1;
+            saveProgress();
+
+            buzz([60, 80, 60, 80, 120]);
 
             unlockExclusive("neant");
 
@@ -3489,6 +4334,8 @@ function enterAbyss(){
     addCoin();
     addOrb();
 
+    noteWorld("abysse");
+
     pickupMessage("🌑 LES ABYSSES", "#2fe0ff");
 
     sound(120, .9, "sine",     .07);
@@ -3600,7 +4447,8 @@ function updateAnguilles(dt){
         }
 
         /* elle vise le joueur, mais ne tourne que lentement */
-        const want = Math.atan2(player.y - e.y, player.x - e.x);
+        const aim  = lureTarget();
+        const want = Math.atan2(aim.y - e.y, aim.x - e.x);
 
         let diff = want - e.ang;
 
@@ -3818,7 +4666,9 @@ function updateLanternes(dt){
             continue;
         }
 
-        const d = Math.hypot(player.x - l.x, player.y - l.y);
+        const aim = lureTarget();
+
+        const d = Math.hypot(aim.x - l.x, aim.y - l.y);
 
         if(l.phase === "idle"){
 
@@ -3844,7 +4694,7 @@ function updateLanternes(dt){
 
             if(l.timer <= 0){
 
-                const a = Math.atan2(player.y - l.y, player.x - l.x);
+                const a = Math.atan2(aim.y - l.y, aim.x - l.x);
 
                 l.vx = Math.cos(a) * rush;
                 l.vy = Math.sin(a) * rush;
@@ -4730,8 +5580,10 @@ function updateGloutons(dt){
             continue;
         }
 
-        const dx = player.x - g.x;
-        const dy = player.y - g.y;
+        const aim = lureTarget();
+
+        const dx = aim.x - g.x;
+        const dy = aim.y - g.y;
 
         const dist = Math.hypot(dx, dy);
 

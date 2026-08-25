@@ -106,7 +106,11 @@ function applyLang(){
 
     /* les ecrans qui se redessinent tout seuls */
     if(typeof lobbySetMode === "function"){
-        lobbySetMode(typeof lobbyMode === "string" ? lobbyMode : "solo");
+        lobbySetMode(
+            typeof lobbyMode === "string" && lobbyModeList().indexOf(lobbyMode) >= 0
+                ? lobbyMode
+                : "solo"
+        );
     }
 
     if(typeof lobbySyncSkin === "function"){

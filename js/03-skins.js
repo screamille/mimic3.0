@@ -5064,6 +5064,18 @@ function updateUI(){
     document.getElementById("finalBest").textContent = bestScore;
     document.getElementById("skinCount").textContent = ownedSkins.length;
 
+    const lv = document.getElementById("lvlNum");
+    const lf = document.getElementById("lvlFill");
+
+    if(lv){ lv.textContent = playerLevel(); }
+    if(lf){ lf.style.width = (playerLevelProgress() * 100).toFixed(1) + "%"; }
+
+    const dot = document.getElementById("missionDot");
+
+    if(dot){
+        dot.classList.toggle("on", missionsLeft() > 0);
+    }
+
     lobbySyncSkin();
 
     document.getElementById("lives").textContent =

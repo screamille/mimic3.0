@@ -135,8 +135,14 @@ function lobbySetMode(mode){
     const txt  = document.getElementById("lobbyPickText");
     const name = document.getElementById("lobbyModeName");
 
+    /* un entrainement : "w:marais", "w:bonbon", ... */
+    const wd = mode.indexOf("w:") === 0
+        ? WORLDS.find(w => w.zone === mode.slice(2))
+        : null;
+
     if(txt){
         txt.textContent =
+            wd               ? "Entraînement" :
             mode === "duel"  ? T("lobby.duel") :
             mode === "laser" ? T("las.pick") :
             T("lobby.solo");
@@ -145,7 +151,9 @@ function lobbySetMode(mode){
     if(name){
 
         name.innerHTML =
-            mode === "duel"
+            wd
+                ? "MONDE " + wd.n + "  " + wd.name + "<br><span>ENTRAÎNEMENT</span>"
+            : mode === "duel"
                 ? T("lobby.modeDuel") + "<br><span>" + T("lobby.modeDuelSub") + "</span>"
             : mode === "laser"
                 ? T("las.modeName") + "<br><span>" + T("las.modeSub") + "</span>"
@@ -817,23 +825,70 @@ function startInMarais(){
 document.getElementById("startButton").onclick = () => {
 
     if(lobbyMode === "duel"){
+
         openDuel();
+
     }else if(lobbyMode === "laser"){
+
         openLaser();
-    }else{
+
+    }else if(lobbyMode.indexOf("w:") === 0){
+
+        const wd = WORLDS.find(w => w.zone === lobbyMode.slice(2));
+
         startGame();
+
+        if(wd){
+
+            level = wd.from;
+
+            if(wd.zone === "marais"){ enterMarais(); }
+            else if(wd.zone === "bonbon"){ enterCandy(); }
+            else if(wd.zone === "abysse"){ enterAbyss(); }
+            else if(wd.zone === "neant"){ enterVoid(); }
+
+        }
+
+    }else{
+
+        startGame();
+
     }
 
 };
 
-/* le selecteur tourne : SOLO -> DUEL -> LASER */
-const LOBBY_MODES = ["solo", "duel", "laser"];
+/*
+Le selecteur tourne : SOLO, DUEL, LASER, puis un
+entrainement par monde deja atteint. Le monde 1 n'y est
+pas : c'est deja la partie normale.
+*/
+function lobbyModeList(){
+
+    const out = ["solo", "duel", "laser"];
+
+    for(const wd of WORLDS){
+
+        if(wd.zone === "cyber"){
+            continue;
+        }
+
+        if(worldsSeen.indexOf(wd.zone) >= 0){
+            out.push("w:" + wd.zone);
+        }
+
+    }
+
+    return out;
+
+}
 
 document.getElementById("lobbyModePick").onclick = () => {
 
-    const i = LOBBY_MODES.indexOf(lobbyMode);
+    const list = lobbyModeList();
 
-    lobbySetMode(LOBBY_MODES[(i + 1) % LOBBY_MODES.length]);
+    const i = list.indexOf(lobbyMode);
+
+    lobbySetMode(list[(i + 1) % list.length]);
 
     sound(620, .07, "sine", .035);
 
@@ -925,6 +980,45 @@ document.addEventListener("click", e => {
         sound(520, .06, "sine", .022);
     }
 }, true);
+
+document.getElementById("missionButton").onclick = () => {
+    renderMissions();
+    document.getElementById("mainMenu").style.display = "none";
+    document.getElementById("missions").style.display = "flex";
+};
+
+document.getElementById("missionsClose").onclick = () => {
+    document.getElementById("missions").style.display = "none";
+    document.getElementById("mainMenu").style.display = "block";
+    updateUI();
+};
+
+document.getElementById("recordsButton").onclick = () => {
+    renderRecords();
+    document.getElementById("settings").style.display = "none";
+    document.getElementById("records").style.display  = "flex";
+};
+
+document.getElementById("recordsClose").onclick = () => {
+    document.getElementById("records").style.display  = "none";
+    document.getElementById("settings").style.display = "flex";
+};
+
+document.getElementById("shareButton").onclick = shareScore;
+
+document.getElementById("vibToggle").onclick = () => {
+
+    vibrateOn = !vibrateOn;
+
+    try{ localStorage.setItem("mimicVibrate", vibrateOn ? "1" : "0"); }catch(e){}
+
+    syncSettings();
+
+    if(vibrateOn){ buzz(40); }
+
+    sound(vibrateOn ? 760 : 460, .08, "sine", .04);
+
+};
 
 document.getElementById("guideButton").onclick = () => {
     document.getElementById("settings").style.display = "none";
@@ -1149,7 +1243,10 @@ function loop(t){
         paintLobby(t / 1000);
 
         if(playing && !paused && !portraitBlock){
-            update(dt);
+
+            /* le frolement etire le temps un court instant */
+            update(slowMo > 0 ? dt * .34 : dt);
+
             lasUpdate(dt);
         }else if(!playing){
             updateAmbient(dt);

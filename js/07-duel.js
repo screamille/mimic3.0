@@ -1528,4 +1528,10 @@ function syncSettings(){
         mu.classList.toggle("on", musicOn);
     }
 
+    const vb = document.getElementById("vibToggle");
+
+    if(vb){
+        vb.classList.toggle("on", vibrateOn);
+    }
+
 }

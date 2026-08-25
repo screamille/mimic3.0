@@ -1705,6 +1705,188 @@ laisser un menu fige sans explication.
     word-break:break-word;
 }
 
+.navDot{
+    display:none;
+
+    width:7px;
+    height:7px;
+
+    margin-left:6px;
+
+    border-radius:50%;
+
+    background:#61ff83;
+    box-shadow:0 0 8px #61ff83;
+
+    vertical-align:middle;
+}
+
+.navDot.on{ display:inline-block; }
+
+.lvlPill{
+    display:flex;
+    flex-direction:column;
+    align-items:stretch;
+
+    gap:4px;
+
+    padding:6px 12px;
+
+    border-radius:999px;
+
+    background:rgba(120,150,255,.12);
+    border:1px solid rgba(140,170,235,.35);
+}
+
+.lvlPill b{
+    font-size:12px;
+    letter-spacing:1.2px;
+    color:#cfe0ff;
+    text-align:center;
+}
+
+.lvlTrack{
+    display:block;
+
+    width:58px;
+    height:4px;
+
+    border-radius:99px;
+
+    background:rgba(255,255,255,.12);
+    overflow:hidden;
+}
+
+.lvlTrack u{
+    display:block;
+
+    width:0%;
+    height:100%;
+
+    border-radius:99px;
+
+    background:linear-gradient(90deg,#55d9ff,#a86cff);
+}
+
+.missionList{
+    display:flex;
+    flex-direction:column;
+
+    gap:10px;
+
+    margin-top:14px;
+}
+
+.missionRow{
+    padding:12px 14px;
+
+    border:1px solid rgba(120,150,220,.22);
+    border-radius:14px;
+
+    background:rgba(12,18,40,.6);
+
+    text-align:left;
+}
+
+.missionRow.done{
+    border-color:rgba(97,255,131,.45);
+    background:rgba(20,50,32,.5);
+}
+
+.missionHead{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+
+    gap:10px;
+
+    margin-bottom:8px;
+}
+
+.missionHead b{
+    font-size:13px;
+    color:#e6eeff;
+}
+
+.missionReward{
+    flex:0 0 auto;
+
+    font-size:12px;
+    font-weight:bold;
+    color:#ffd84d;
+}
+
+.missionTrack{
+    height:7px;
+
+    border-radius:99px;
+
+    background:rgba(255,255,255,.10);
+    overflow:hidden;
+}
+
+.missionTrack i{
+    display:block;
+
+    height:100%;
+
+    border-radius:99px;
+
+    background:linear-gradient(90deg,#55d9ff,#61ff83);
+}
+
+.missionRow small{
+    display:block;
+
+    margin-top:6px;
+
+    font-size:11px;
+    color:#8fa0c8;
+}
+
+.recList{
+    display:flex;
+    flex-direction:column;
+
+    gap:8px;
+
+    margin-top:14px;
+}
+
+.recRow{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+
+    gap:12px;
+
+    padding:11px 14px;
+
+    border:1px solid rgba(120,150,220,.2);
+    border-radius:12px;
+
+    background:rgba(12,18,40,.55);
+
+    text-align:left;
+}
+
+.recRow.top{
+    border-color:rgba(255,216,77,.35);
+}
+
+.recRow b{
+    font-size:12px;
+    letter-spacing:.6px;
+}
+
+.recRow span{
+    flex:0 0 auto;
+
+    font-size:14px;
+    font-weight:bold;
+    color:#ffffff;
+}
+
 .bossBar{
     position:fixed;
 

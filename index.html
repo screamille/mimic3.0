@@ -10,7 +10,7 @@
 
 <title>MIMIC</title>
 
-<link rel="stylesheet" href="css/style.css?v=3.6">
+<link rel="stylesheet" href="css/style.css?v=4.0">
 </head>
 
 <body>
@@ -109,9 +109,15 @@
             <button class="navTab" id="openShopStore" data-i18n="nav.shop">BOUTIQUE</button>
             <button class="navTab" id="openShop" data-i18n="nav.locker">CASIER</button>
             <button class="navTab" id="duelButton" data-i18n="nav.duel">DUEL</button>
+            <button class="navTab" id="missionButton">MISSIONS<i class="navDot" id="missionDot"></i></button>
         </div>
 
         <div class="lobbyRight">
+
+            <div class="lvlPill">
+                <b>NIV <span id="lvlNum">1</span></b>
+                <i class="lvlTrack"><u id="lvlFill"></u></i>
+            </div>
 
             <div class="coinPill">
                 <i class="coinDot"></i> <b id="menuCoins">0</b>
@@ -160,7 +166,7 @@
         <b id="bestScore">0</b>
     </div>
 
-    <div class="version" id="versionTag">V 3.6</div>
+    <div class="version" id="versionTag">V 4.0</div>
 
     <div id="errBanner" class="errBanner" style="display:none"></div>
 
@@ -210,6 +216,36 @@
                 <span class="setSwitch"><i></i></span>
             </button>
 
+            <button class="setRow" id="vibToggle">
+                <span class="setRowText">
+                    <b>Vibration</b>
+                    <small>Coups reçus, combos et capacités</small>
+                </span>
+                <span class="setSwitch"><i></i></span>
+            </button>
+
+        </div>
+
+        <div class="setBlock">
+
+            <div class="setLabel">TES PARTIES</div>
+
+            <button class="setRow" id="recordsButton">
+                <span class="setRowText">
+                    <b>🏆 RECORDS</b>
+                    <small>Ton meilleur score dans chaque monde</small>
+                </span>
+                <span class="setArrow">›</span>
+            </button>
+
+            <button class="setRow" id="shareButton">
+                <span class="setRowText">
+                    <b>📤 PARTAGER MON SCORE</b>
+                    <small>Copie ton record et le lien du jeu</small>
+                </span>
+                <span class="setArrow">›</span>
+            </button>
+
         </div>
 
         <div class="setBlock">
@@ -228,6 +264,50 @@
 
         <div class="menuButtons" style="margin-top:14px">
             <button class="primary" id="settingsClose" data-i18n="ui.back">← RETOUR</button>
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     MISSIONS DU JOUR
+========================= -->
+
+<div id="missions" class="overlay" style="display:none">
+
+    <div class="menu">
+
+        <h1 style="margin:0 0 4px">🎯 MISSIONS DU JOUR</h1>
+
+        <p class="tagline" id="missionClock" style="margin:6px auto 0"></p>
+
+        <div id="missionList" class="missionList"></div>
+
+        <div class="menuButtons" style="margin-top:16px">
+            <button class="primary" id="missionsClose" data-i18n="ui.back">← RETOUR</button>
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- =========================
+     RECORDS
+========================= -->
+
+<div id="records" class="overlay" style="display:none">
+
+    <div class="menu">
+
+        <h1 style="margin:0 0 4px">🏆 RECORDS</h1>
+
+        <div id="recordList" class="recList"></div>
+
+        <div class="menuButtons" style="margin-top:16px">
+            <button class="primary" id="recordsClose" data-i18n="ui.back">← RETOUR</button>
         </div>
 
     </div>
@@ -879,16 +959,16 @@ fonctionne parfaitement même si aucun des deux ne répond.
 })();
 </script>
 
-<script src="js/01-moteur.js?v=3.6"></script>
-<script src="js/02-etat.js?v=3.6"></script>
-<script src="js/03-skins.js?v=3.6"></script>
-<script src="js/04-monde.js?v=3.6"></script>
-<script src="js/05-jeu.js?v=3.6"></script>
-<script src="js/06-boutique.js?v=3.6"></script>
-<script src="js/07-duel.js?v=3.6"></script>
-<script src="js/08-langues.js?v=3.6"></script>
-<script src="js/09-laser.js?v=3.6"></script>
-<script src="js/10-interface.js?v=3.6"></script>
+<script src="js/01-moteur.js?v=4.0"></script>
+<script src="js/02-etat.js?v=4.0"></script>
+<script src="js/03-skins.js?v=4.0"></script>
+<script src="js/04-monde.js?v=4.0"></script>
+<script src="js/05-jeu.js?v=4.0"></script>
+<script src="js/06-boutique.js?v=4.0"></script>
+<script src="js/07-duel.js?v=4.0"></script>
+<script src="js/08-langues.js?v=4.0"></script>
+<script src="js/09-laser.js?v=4.0"></script>
+<script src="js/10-interface.js?v=4.0"></script>
 
 </body>
 </html>
