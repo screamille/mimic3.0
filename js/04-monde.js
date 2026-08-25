@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "3.2";
+const VERSION = "3.3";
 
 (function(){
 
@@ -1322,6 +1322,8 @@ function buildFloor(){
         paintCandy(c);
     }else if(zone === "abysse"){
         paintAbyss(c);
+    }else if(zone === "neant"){
+        paintVoid(c);
     }else{
         paintGalaxy(c);
     }
@@ -1841,6 +1843,10 @@ function portalTarget(){
         return "abysse";
     }
 
+    if(zone === "abysse" && level >= VOID_LEVEL){
+        return "neant";
+    }
+
     return null;
 
 }
@@ -1888,8 +1894,12 @@ function spawnPortal(){
         birth:0,
         pull:0,
         target:target,
-        col:  target === "abysse" ? "#2fe0ff" : target === "bonbon" ? "#ff5fa2" : "#7bd93a",
-        col2: target === "abysse" ? "#c8f6ff" : target === "bonbon" ? "#ffd0e6" : "#bdf58a"
+        col:  target === "neant"  ? "#c86aff" :
+              target === "abysse" ? "#2fe0ff" :
+              target === "bonbon" ? "#ff5fa2" : "#7bd93a",
+        col2: target === "neant"  ? "#f0d8ff" :
+              target === "abysse" ? "#c8f6ff" :
+              target === "bonbon" ? "#ffd0e6" : "#bdf58a"
     };
 
     pickupMessage("🌀 UN PORTAIL S'EST OUVERT", portal.col);
@@ -2080,6 +2090,836 @@ function enterCandy(){
 }
 
 
+
+
+
+
+/* =========================================================
+   MONDE 5 : LE NÉANT
+
+   Un dernier portail, et plus rien autour : une salle vide
+   ou flotte L'OEIL DU NEANT. Il ne se tue pas, il s'use :
+   sa jauge descend tant que tu tiens debout, et remonte a
+   chaque fois qu'il te touche.
+========================================================= */
+
+const BOSS_TIME  = 95;    /* secondes de survie pour le vaincre */
+const BOSS_PUNCH = .10;   /* ce qu'il regagne quand il te touche */
+
+const BOSS_PHASES = [
+    {name:"SALVES", col:"#c86aff"},
+    {name:"FAUX",   col:"#ff5f8f"},
+    {name:"TRAQUE", col:"#ff3a52"}
+];
+
+
+function currentWorld(){
+    return WORLDS.find(w => w.zone === zone) || WORLDS[0];
+}
+
+
+/* 0 a 1 : ou en es-tu dans le monde courant */
+function worldProgress(){
+
+    const wd = currentWorld();
+
+    /* dans le NEANT, la progression c'est l'usure du boss */
+    if(wd.zone === "neant"){
+        return boss ? 1 - boss.hp : 1;
+    }
+
+    if(!wd.to){
+        return 1;
+    }
+
+    return Math.max(0, Math.min(1, (level - wd.from) / (wd.to - wd.from)));
+
+}
+
+
+function paintProgress(text, k, col){
+
+    const nameEl = document.getElementById("worldName");
+    const fillEl = document.getElementById("progFill");
+
+    if(nameEl){
+        nameEl.textContent = text;
+        nameEl.style.color = col;
+    }
+
+    if(fillEl){
+        fillEl.style.width      = (Math.max(0, Math.min(1, k)) * 100).toFixed(1) + "%";
+        fillEl.style.background = "linear-gradient(90deg," + col + ",#ffffff)";
+    }
+
+}
+
+
+/* --- le decor : le vide, et ce qui y tourne --- */
+function paintVoid(c){
+
+    c.fillStyle = "#05030c";
+    c.fillRect(0, 0, W, H);
+
+    /* la nebuleuse violette qui respire au centre */
+    const neb = c.createRadialGradient(
+        W / 2, H * .42, 0,
+        W / 2, H * .42, Math.max(W, H) * .62
+    );
+    neb.addColorStop(0,   "rgba(120,60,220,.22)");
+    neb.addColorStop(.45, "rgba(70,25,140,.12)");
+    neb.addColorStop(1,   "rgba(20,5,40,0)");
+
+    c.fillStyle = neb;
+    c.fillRect(0, 0, W, H);
+
+    /* les anneaux de runes graves dans le fond */
+    c.save();
+    c.translate(W / 2, H * .45);
+
+    for(let i = 0; i < 4; i++){
+
+        const rr = Math.min(W, H) * (.28 + i * .17);
+
+        c.strokeStyle = "rgba(150,100,255,.13)";
+        c.lineWidth   = 1.4 * unit;
+
+        c.beginPath();
+        c.arc(0, 0, rr, 0, Math.PI * 2);
+        c.stroke();
+
+        /* les crans sur l'anneau */
+        c.strokeStyle = "rgba(190,150,255,.20)";
+        c.lineWidth   = 2.2 * unit;
+
+        for(let k = 0; k < 24; k++){
+
+            const a = (k / 24) * Math.PI * 2 + i * .3;
+
+            c.beginPath();
+            c.moveTo(Math.cos(a) * rr, Math.sin(a) * rr);
+            c.lineTo(Math.cos(a) * (rr + 9 * unit), Math.sin(a) * (rr + 9 * unit));
+            c.stroke();
+
+        }
+
+    }
+
+    c.restore();
+
+    /* la poussiere d'etoiles */
+    for(let i = 0; i < Math.round(W * H / 3400); i++){
+
+        const x = Math.random() * W;
+        const y = Math.random() * H;
+        const r = (.5 + Math.random() * 1.5) * unit;
+
+        c.globalAlpha = .3 + Math.random() * .6;
+        c.fillStyle   = Math.random() < .2 ? "#d8b0ff" : "#ffffff";
+
+        c.beginPath();
+        c.arc(x, y, r, 0, Math.PI * 2);
+        c.fill();
+
+    }
+
+    c.globalAlpha = 1;
+
+    /* le vide se referme sur les bords */
+    const vig = c.createRadialGradient(
+        W / 2, H * .45, Math.min(W, H) * .18,
+        W / 2, H / 2, Math.max(W, H) * .72
+    );
+
+    vig.addColorStop(0, "rgba(0,0,0,0)");
+    vig.addColorStop(1, "rgba(0,0,0,.88)");
+
+    c.fillStyle = vig;
+    c.fillRect(0, 0, W, H);
+
+    twinkles = [];
+
+}
+
+
+function enterVoid(){
+
+    zone = "neant";
+
+    portal = null;
+
+    solids  = [];
+    orbs    = [];
+    coins   = [];
+    hearts  = [];
+    balls   = [];
+    slimes  = [];
+    trails  = [];
+    mimics  = [];
+    archers = [];
+    blobs   = [];
+    puddles = [];
+    logs    = [];
+    crawlers = [];
+    drips   = [];
+    candies = [];
+    gloutons = [];
+    guimauves = [];
+    anguilles = [];
+    lanternes = [];
+    bulles    = [];
+
+    trace       = [];
+    traceLength = 0;
+
+    const a = playArea();
+
+    player.x = (a.x0 + a.x1) / 2;
+    player.y = (a.y0 + a.y1) * .72;
+
+    player.invincible = 3;
+
+    bossShots = [];
+    bossBeams = [];
+
+    boss = {
+        x:(a.x0 + a.x1) / 2,
+        y:(a.y0 + a.y1) * .34,
+        r:Math.min(W, H) * .12,
+        hp:1,
+        phase:0,
+        t:0,
+        fire:2.4,
+        spiral:0,
+        charge:0,
+        shake:0,
+        tele:5,
+        dead:0,
+        gaze:0
+    };
+
+    addCoin();
+
+    pickupMessage("👁 L'ŒIL DU NÉANT", "#c86aff");
+
+    sound(60, 1.4, "sine",     .08);
+    sound(92, 1.0, "sawtooth", .04);
+
+}
+
+
+/* =========================================================
+   L'OEIL : ses trois façons d'attaquer
+========================================================= */
+
+function bossPhase(){
+
+    if(!boss){
+        return 0;
+    }
+
+    return boss.hp > .66 ? 0 : boss.hp > .33 ? 1 : 2;
+
+}
+
+
+function bossShot(x, y, ang, speed, r, col){
+
+    bossShots.push({
+        x:x, y:y,
+        vx:Math.cos(ang) * speed,
+        vy:Math.sin(ang) * speed,
+        r:r,
+        col:col,
+        life:9,
+        ph:rnd() * 6.28
+    });
+
+}
+
+
+function bossSalvo(){
+
+    const n   = 15;
+    const gap = Math.floor(rnd() * n);
+    const off = rnd() * 6.28;
+
+    for(let i = 0; i < n; i++){
+
+        /* deux trous dans la couronne : c'est par la qu'on passe */
+        if(i === gap || i === (gap + Math.floor(n / 2)) % n){
+            continue;
+        }
+
+        bossShot(
+            boss.x, boss.y,
+            off + (i / n) * Math.PI * 2,
+            118 * unit,
+            9 * unit,
+            "#c86aff"
+        );
+
+    }
+
+    sound(150, .3, "sawtooth", .045);
+
+}
+
+
+function bossSetBeams(count, spin){
+
+    bossBeams = [];
+
+    for(let i = 0; i < count; i++){
+        bossBeams.push({
+            a:(i / count) * Math.PI * 2,
+            spin:spin * (i % 2 ? -1 : 1),
+            grow:0
+        });
+    }
+
+}
+
+
+function bossTeleport(){
+
+    const a = playArea();
+
+    /* jamais sur le joueur : il doit rester une chance de lire */
+    for(let tries = 0; tries < 24; tries++){
+
+        const x = a.x0 + boss.r + rnd() * Math.max(1, (a.x1 - a.x0) - boss.r * 2);
+        const y = a.y0 + boss.r + rnd() * Math.max(1, (a.y1 - a.y0) - boss.r * 2);
+
+        if(Math.hypot(x - player.x, y - player.y) > boss.r * 2.6){
+
+            burst(boss.x, boss.y, 20, "#c86aff");
+
+            boss.x = x;
+            boss.y = y;
+
+            burst(boss.x, boss.y, 20, "#ff5f8f");
+
+            sound(320, .18, "sine", .04);
+
+            return;
+
+        }
+
+    }
+
+}
+
+
+function updateBoss(dt){
+
+    if(zone !== "neant"){
+
+        if(boss || bossShots.length || bossBeams.length){
+            boss = null;
+            bossShots = [];
+            bossBeams = [];
+        }
+
+        return;
+
+    }
+
+    const area = playArea();
+
+    /* ---- les projectiles vivent meme apres la mort de l'oeil ---- */
+    for(const b of bossShots){
+
+        b.x += b.vx * dt;
+        b.y += b.vy * dt;
+
+        b.life -= dt;
+        b.ph   += dt * 6;
+
+        if(player.invincible <= 0 && Math.hypot(b.x - player.x, b.y - player.y) < b.r + player.r){
+
+            b.life = 0;
+
+            loseLife(null);
+
+            if(boss){
+                boss.hp = Math.min(1, boss.hp + BOSS_PUNCH);
+            }
+
+        }
+
+    }
+
+    bossShots = bossShots.filter(b =>
+        b.life > 0 &&
+        b.x > area.x0 - 60 && b.x < area.x1 + 60 &&
+        b.y > area.y0 - 60 && b.y < area.y1 + 60
+    );
+
+    if(!boss){
+        bossBeams = [];
+        return;
+    }
+
+    boss.t     += dt;
+    boss.gaze  += dt;
+    boss.shake  = Math.max(0, boss.shake - dt * 3);
+    boss.charge = Math.max(0, boss.charge - dt * 2);
+
+    /* ---- l'agonie ---- */
+    if(boss.dead > 0){
+
+        boss.dead -= dt;
+
+        if(rnd() < dt * 14){
+            burst(
+                boss.x + (rnd() - .5) * boss.r * 1.6,
+                boss.y + (rnd() - .5) * boss.r * 1.6,
+                10, rnd() < .5 ? "#c86aff" : "#ffffff"
+            );
+        }
+
+        if(boss.dead <= 0){
+
+            burst(boss.x, boss.y, 60, "#ffffff");
+            burst(boss.x, boss.y, 40, "#c86aff");
+
+            sound(70, 1.6, "sine", .09);
+
+            boss      = null;
+            bossShots = [];
+            bossBeams = [];
+
+            pickupMessage("👁 L'ŒIL DU NÉANT EST BRISÉ", "#ffffff");
+
+            unlockExclusive("neant");
+
+        }
+
+        return;
+
+    }
+
+    /* ---- l'usure ---- */
+    boss.hp -= dt / BOSS_TIME;
+
+    if(boss.hp <= 0){
+        boss.hp   = 0;
+        boss.dead = 2.2;
+        bossBeams = [];
+        return;
+    }
+
+    const ph = bossPhase();
+
+    if(ph !== boss.phase){
+
+        boss.phase = ph;
+        boss.fire  = 1.2;
+        boss.shake = 1;
+
+        bossBeams = [];
+
+        pickupMessage("⚠️ " + BOSS_PHASES[ph].name, BOSS_PHASES[ph].col);
+
+        sound(110, .5, "square", .05);
+
+    }
+
+    /* ---- les attaques ---- */
+    if(ph === 0){
+
+        boss.fire -= dt;
+
+        if(boss.fire < .55 && boss.charge <= 0){
+            boss.charge = 1;
+        }
+
+        if(boss.fire <= 0){
+            bossSalvo();
+            boss.fire = 2.0;
+        }
+
+    }else if(ph === 1){
+
+        if(!bossBeams.length){
+            bossSetBeams(2, .52);
+        }
+
+        boss.fire -= dt;
+
+        if(boss.fire <= 0){
+
+            /* un tir vise, pour empecher de camper */
+            bossShot(
+                boss.x, boss.y,
+                Math.atan2(player.y - boss.y, player.x - boss.x),
+                165 * unit, 8 * unit, "#ff5f8f"
+            );
+
+            boss.fire = 1.5;
+
+        }
+
+    }else{
+
+        if(!bossBeams.length){
+            bossSetBeams(3, .78);
+        }
+
+        boss.tele -= dt;
+
+        if(boss.tele <= 0){
+            bossTeleport();
+            boss.tele = 5.5;
+        }
+
+        /* la spirale, continue */
+        boss.spiral += dt * 4.6;
+        boss.fire   -= dt;
+
+        if(boss.fire <= 0){
+
+            for(let i = 0; i < 2; i++){
+                bossShot(
+                    boss.x, boss.y,
+                    boss.spiral + i * Math.PI,
+                    140 * unit, 8 * unit, "#ff3a52"
+                );
+            }
+
+            boss.fire = .16;
+
+        }
+
+    }
+
+    /* ---- les faux qui balaient ---- */
+    const reach = Math.hypot(W, H);
+
+    for(const bm of bossBeams){
+
+        bm.a    += bm.spin * dt;
+        bm.grow  = Math.min(1, bm.grow + dt * 2);
+
+        if(player.invincible > 0 || bm.grow < .8){
+            continue;
+        }
+
+        /* distance du joueur a la demi-droite */
+        const dx = player.x - boss.x;
+        const dy = player.y - boss.y;
+
+        const proj = dx * Math.cos(bm.a) + dy * Math.sin(bm.a);
+
+        if(proj < boss.r * .6 || proj > reach){
+            continue;
+        }
+
+        const perp = Math.abs(-dx * Math.sin(bm.a) + dy * Math.cos(bm.a));
+
+        if(perp < 10 * unit + player.r * .6){
+
+            loseLife(null);
+
+            boss.hp    = Math.min(1, boss.hp + BOSS_PUNCH);
+            boss.shake = 1;
+
+        }
+
+    }
+
+    /* ---- l'oeil derive lentement ---- */
+    if(ph < 2){
+
+        boss.x += Math.sin(boss.t * .45) * 26 * unit * dt;
+        boss.y += Math.cos(boss.t * .33) * 16 * unit * dt;
+
+        boss.x = Math.max(area.x0 + boss.r, Math.min(area.x1 - boss.r, boss.x));
+        boss.y = Math.max(area.y0 + boss.r, Math.min(area.y1 - boss.r * .4, boss.y));
+
+    }
+
+}
+
+
+function drawBoss(){
+
+    /* ---- les faux ---- */
+    if(boss){
+
+        const reach = Math.hypot(W, H);
+
+        for(const bm of bossBeams){
+
+            const col = BOSS_PHASES[bossPhase()].col;
+
+            ctx.save();
+            ctx.translate(boss.x, boss.y);
+            ctx.rotate(bm.a);
+
+            /* l'annonce : un trait fin avant que ca coupe */
+            const on = bm.grow >= .8;
+
+            const g = ctx.createLinearGradient(0, 0, reach, 0);
+            g.addColorStop(0,  hexA(col, on ? .95 : .35));
+            g.addColorStop(.6, hexA(col, on ? .55 : .18));
+            g.addColorStop(1,  hexA(col, 0));
+
+            ctx.globalAlpha = 1;
+            ctx.fillStyle   = g;
+            ctx.shadowColor = col;
+            ctx.shadowBlur  = on ? 26 : 8;
+
+            const th = (on ? 10 : 2.5) * unit * (.6 + bm.grow * .4);
+
+            ctx.fillRect(boss.r * .55, -th, reach, th * 2);
+
+            if(on){
+                ctx.globalAlpha = .9;
+                ctx.fillStyle   = "#ffffff";
+                ctx.fillRect(boss.r * .55, -th * .28, reach, th * .56);
+            }
+
+            ctx.shadowBlur = 0;
+            ctx.restore();
+
+        }
+
+    }
+
+    /* ---- les projectiles ---- */
+    for(const b of bossShots){
+
+        ctx.save();
+        ctx.translate(b.x, b.y);
+
+        const halo = ctx.createRadialGradient(0, 0, 0, 0, 0, b.r * 2.6);
+        halo.addColorStop(0, hexA(b.col, .55));
+        halo.addColorStop(1, hexA(b.col, 0));
+
+        ctx.fillStyle = halo;
+        ctx.beginPath();
+        ctx.arc(0, 0, b.r * 2.6, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.rotate(b.ph);
+
+        ctx.fillStyle   = b.col;
+        ctx.shadowColor = b.col;
+        ctx.shadowBlur  = 12;
+
+        ctx.beginPath();
+
+        for(let i = 0; i < 6; i++){
+            const a  = i * 1.047;
+            const rr = i % 2 ? b.r * .55 : b.r * 1.15;
+            ctx.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+        }
+
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.fillStyle  = "#ffffff";
+        ctx.beginPath();
+        ctx.arc(0, 0, b.r * .34, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+
+    }
+
+    if(!boss){
+        return;
+    }
+
+    const R   = boss.r;
+    const col = BOSS_PHASES[bossPhase()].col;
+
+    const die = boss.dead > 0 ? boss.dead / 2.2 : 1;
+
+    ctx.save();
+    ctx.translate(
+        boss.x + (rnd() - .5) * boss.shake * 8 * unit,
+        boss.y + (rnd() - .5) * boss.shake * 8 * unit
+    );
+
+    ctx.globalAlpha = die;
+
+    /* le halo qui avale la lumiere autour */
+    const glow = ctx.createRadialGradient(0, 0, R * .8, 0, 0, R * 3.2);
+    glow.addColorStop(0, hexA(col, .30));
+    glow.addColorStop(1, hexA(col, 0));
+
+    ctx.fillStyle = glow;
+    ctx.beginPath();
+    ctx.arc(0, 0, R * 3.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    /* les trois anneaux de runes, chacun sur son axe */
+    for(let i = 0; i < 3; i++){
+
+        const rr   = R * (1.45 + i * .38);
+        const spin = boss.t * (.5 + i * .28) * (i % 2 ? -1 : 1);
+        const tilt = .35 + i * .5;
+
+        ctx.save();
+        ctx.rotate(spin);
+        ctx.scale(1, .35 + Math.abs(Math.sin(tilt + boss.t * .2)) * .55);
+
+        ctx.globalAlpha = die * .55;
+        ctx.strokeStyle = col;
+        ctx.lineWidth   = 2 * unit;
+        ctx.shadowColor = col;
+        ctx.shadowBlur  = 14;
+
+        ctx.beginPath();
+        ctx.arc(0, 0, rr, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.lineWidth = 3.4 * unit;
+
+        for(let k = 0; k < 16; k++){
+
+            const a = (k / 16) * Math.PI * 2;
+
+            ctx.beginPath();
+            ctx.arc(0, 0, rr, a, a + .075);
+            ctx.stroke();
+
+        }
+
+        ctx.shadowBlur = 0;
+        ctx.restore();
+
+    }
+
+    /* le globe */
+    const body = ctx.createRadialGradient(-R * .3, -R * .35, R * .1, 0, 0, R);
+    body.addColorStop(0,  "#3a1a60");
+    body.addColorStop(.6, "#180a2c");
+    body.addColorStop(1,  "#050208");
+
+    ctx.globalAlpha = die;
+    ctx.fillStyle   = body;
+
+    ctx.beginPath();
+    ctx.arc(0, 0, R, 0, Math.PI * 2);
+    ctx.fill();
+
+    /* les fissures : elles s'ouvrent a mesure qu'il s'use */
+    const cracks = 1 - boss.hp;
+
+    if(cracks > .05){
+
+        ctx.globalAlpha = die * Math.min(1, cracks * 1.4);
+        ctx.strokeStyle = "#ffb0ff";
+        ctx.shadowColor = col;
+        ctx.shadowBlur  = 16;
+
+        for(let i = 0; i < 7; i++){
+
+            const a = i * .9 + 1.1;
+
+            ctx.lineWidth = (2.6 - i * .18) * unit;
+
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(a) * R * .12, Math.sin(a) * R * .12);
+
+            for(let k = 1; k <= 4; k++){
+                const kk = k / 4 * Math.min(1, cracks * 1.5);
+                ctx.lineTo(
+                    Math.cos(a + Math.sin(k * 2.1 + i) * .35) * R * kk,
+                    Math.sin(a + Math.sin(k * 2.1 + i) * .35) * R * kk
+                );
+            }
+
+            ctx.stroke();
+
+        }
+
+        ctx.shadowBlur = 0;
+
+    }
+
+    /* l'iris : il te suit */
+    const ga = Math.atan2(player.y - boss.y, player.x - boss.x);
+    const gd = R * .16;
+
+    const ix = Math.cos(ga) * gd;
+    const iy = Math.sin(ga) * gd;
+
+    ctx.globalAlpha = die;
+
+    const iris = ctx.createRadialGradient(ix, iy, R * .05, ix, iy, R * .55);
+    iris.addColorStop(0,   "#fff4c2");
+    iris.addColorStop(.35, "#ffc65a");
+    iris.addColorStop(.75, col);
+    iris.addColorStop(1,   "#1a0630");
+
+    ctx.fillStyle   = iris;
+    ctx.shadowColor = col;
+    ctx.shadowBlur  = 26 + boss.charge * 30;
+
+    ctx.beginPath();
+    ctx.arc(ix, iy, R * .55, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+
+    /* la pupille en fente, qui se resserre avant de tirer */
+    ctx.save();
+    ctx.translate(ix, iy);
+    ctx.rotate(ga + Math.PI / 2);
+
+    ctx.fillStyle = "#08010f";
+    ctx.beginPath();
+    ctx.ellipse(0, 0, R * (.16 - boss.charge * .09), R * .48, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+
+    /* le reflet */
+    ctx.globalAlpha = die * .8;
+    ctx.fillStyle   = "#ffffff";
+    ctx.beginPath();
+    ctx.ellipse(ix - R * .18, iy - R * .22, R * .1, R * .06, -.5, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.globalAlpha = 1;
+    ctx.restore();
+
+}
+
+
+/* la jauge du boss, en haut de l'ecran */
+function bossBar(){
+
+    const el = document.getElementById("bossBar");
+
+    if(!el){
+        return;
+    }
+
+    if(!boss){
+        el.style.display = "none";
+        return;
+    }
+
+    const ph = BOSS_PHASES[bossPhase()];
+
+    el.style.display = "block";
+
+    document.getElementById("bossPhase").textContent = ph.name;
+    document.getElementById("bossPhase").style.color = ph.col;
+
+    const f = document.getElementById("bossFill");
+
+    f.style.width      = (boss.hp * 100).toFixed(1) + "%";
+    f.style.background = "linear-gradient(90deg,#2a0640," + ph.col + ")";
+
+}
 
 
 /* =========================================================
@@ -3301,7 +4141,9 @@ function updateWarp(dt){
 
         if(k >= 1){
 
-            if(warp.target === "abysse"){
+            if(warp.target === "neant"){
+                enterVoid();
+            }else if(warp.target === "abysse"){
                 enterAbyss();
             }else if(warp.target === "bonbon"){
                 enterCandy();

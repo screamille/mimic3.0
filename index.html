@@ -10,7 +10,7 @@
 
 <title>MIMIC</title>
 
-<link rel="stylesheet" href="css/style.css?v=3.2">
+<link rel="stylesheet" href="css/style.css?v=3.3">
 </head>
 
 <body>
@@ -28,9 +28,10 @@
         <b id="score">0</b>
     </div>
 
-    <div class="stat">
-        <span data-i18n="hud.level">NIVEAU</span>
-        <b id="level">1</b>
+    <div class="stat world" id="worldStat">
+        <span id="worldName">MONDE 1 · L'ESPACE</span>
+        <div class="progBar"><i id="progFill"></i></div>
+        <b id="level" style="display:none">1</b>
     </div>
 
     <div class="stat">
@@ -46,6 +47,15 @@
 </div>
 
 <button id="pauseBtn">⏸</button>
+
+<!-- la jauge de L'ŒIL DU NÉANT -->
+<div id="bossBar" class="bossBar" style="display:none">
+    <div class="bossTop">
+        <b>👁 L'ŒIL DU NÉANT</b>
+        <span id="bossPhase">SALVES</span>
+    </div>
+    <div class="bossTrack"><i id="bossFill"></i></div>
+</div>
 
 <!-- mode laser : les vies de chaque joueur -->
 <div id="lasBoard" class="lasBoard" style="display:none"></div>
@@ -150,7 +160,7 @@
         <b id="bestScore">0</b>
     </div>
 
-    <div class="version" id="versionTag">V 3.2</div>
+    <div class="version" id="versionTag">V 3.3</div>
 
     <div id="errBanner" class="errBanner" style="display:none"></div>
 
@@ -368,6 +378,14 @@
             </span>
         </div>
 
+        <div class="foe">
+            <canvas class="foeIcon" data-kind="oeil"></canvas>
+            <span class="txt">
+                <span class="nm" style="color:#c86aff">L'ŒIL DU NÉANT</span>
+                <span class="ds">Le boss, au monde 5. Il ne se tue pas : il s'use tant que tu restes debout, et il regagne du terrain à chaque fois qu'il te touche. Trois façons d'attaquer — SALVES (des couronnes percées de deux trous), FAUX (des rayons qui balaient), TRAQUE (il se téléporte et arrose en spirale). Le vaincre te laisse le NÉANT SLIME.</span>
+            </span>
+        </div>
+
         <div class="guideSection" data-i18n="g.field">SUR LE TERRAIN</div>
 
         <div class="steps">
@@ -409,7 +427,8 @@
             <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 20</span><span class="ds" data-i18n="g.t20">🌀 Un portail t'aspire vers LE MARAIS, le monde des slimes</span></div>
             <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 30</span><span class="ds" data-i18n="g.t30">Le terrain se referme</span></div>
             <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 40</span><span class="ds" data-i18n="g.t40">🍬 Un second portail t'emmène au PAYS DES BONBONS</span></div>
-            <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 60</span><span class="ds">🌑 Un dernier portail t'entraîne dans LES ABYSSES — et te laisse l'ABYSSAL SLIME</span></div>
+            <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 60</span><span class="ds">🌑 Un portail t'entraîne dans LES ABYSSES — et te laisse l'ABYSSAL SLIME</span></div>
+            <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 80</span><span class="ds">👁 Le dernier portail ouvre LE NÉANT, et L'ŒIL t'y attend</span></div>
 
         </div>
 
@@ -860,16 +879,16 @@ fonctionne parfaitement même si aucun des deux ne répond.
 })();
 </script>
 
-<script src="js/01-moteur.js?v=3.2"></script>
-<script src="js/02-etat.js?v=3.2"></script>
-<script src="js/03-skins.js?v=3.2"></script>
-<script src="js/04-monde.js?v=3.2"></script>
-<script src="js/05-jeu.js?v=3.2"></script>
-<script src="js/06-boutique.js?v=3.2"></script>
-<script src="js/07-duel.js?v=3.2"></script>
-<script src="js/08-langues.js?v=3.2"></script>
-<script src="js/09-laser.js?v=3.2"></script>
-<script src="js/10-interface.js?v=3.2"></script>
+<script src="js/01-moteur.js?v=3.3"></script>
+<script src="js/02-etat.js?v=3.3"></script>
+<script src="js/03-skins.js?v=3.3"></script>
+<script src="js/04-monde.js?v=3.3"></script>
+<script src="js/05-jeu.js?v=3.3"></script>
+<script src="js/06-boutique.js?v=3.3"></script>
+<script src="js/07-duel.js?v=3.3"></script>
+<script src="js/08-langues.js?v=3.3"></script>
+<script src="js/09-laser.js?v=3.3"></script>
+<script src="js/10-interface.js?v=3.3"></script>
 
 </body>
 </html>

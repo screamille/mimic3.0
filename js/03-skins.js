@@ -84,7 +84,8 @@ const SKINS = [
     {id:"nova",      name:"NOVA SLIME",      color:"#ffd76a", color2:"#a8241a", price:500,  effect:"nova",      rarity:3},
 
     /* --- recompense : il ne s'achete pas --- */
-    {id:"abyssal",   name:"ABYSSAL SLIME",   color:"#2fe0ff", color2:"#04243a", price:0,    effect:"abyssal",   rarity:4, exclusive:true}
+    {id:"abyssal",   name:"ABYSSAL SLIME",   color:"#2fe0ff", color2:"#04243a", price:0,    effect:"abyssal",   rarity:4, exclusive:true},
+    {id:"neant",     name:"NÉANT SLIME",     color:"#c86aff", color2:"#100322", price:0,    effect:"neant",     rarity:4, exclusive:true}
 ];
 
 
@@ -511,6 +512,10 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
 
         paintVisor(c, skin, w, h, r, t, f);
 
+    }else if(skin.effect === "neant"){
+
+        /* un seul oeil, deja peint au centre du corps : rien ici */
+
     }else if(skin.effect === "squelette"){
 
         /* deux orbites vides */
@@ -612,6 +617,7 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
             arcade: ["#5ffff0", "#5ffff0"],
             nova:   ["#fff6d0", "#ffd76a"],
             abyssal:["#5fe8ff", "#7bffca"],
+            neant:  ["#ffc65a", "#ffc65a"],
             lampe:  ["#ffd0f5", "#ff6ad5"],
             holo:   ["#d8feff", "#5fe8ff"],
             requin: ["#eef4fa", "#eef4fa"],
@@ -662,7 +668,7 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
     });
 
     /* la bouche */
-    if(!robot && !plush){
+    if(!robot && !plush && skin.effect !== "neant"){
 
         c.strokeStyle = "#101828";
         c.lineWidth   = Math.max(1, r * .07);
@@ -2016,6 +2022,47 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
 
         c.shadowBlur  = 0;
         c.globalAlpha = 1;
+
+    }
+
+
+    /* NÉANT : les anneaux de runes qui gravitent autour */
+    if(skin.effect === "neant"){
+
+        for(let i = 0; i < 3; i++){
+
+            const rr   = r * (1.28 + i * .26);
+            const spin = t * (.5 + i * .3) * (i % 2 ? -1 : 1);
+
+            c.save();
+            c.rotate(spin);
+            c.scale(1, .30 + Math.abs(Math.sin(t * .35 + i)) * .6);
+
+            c.globalAlpha = .55;
+            c.strokeStyle = i === 1 ? "#ffc65a" : "#c86aff";
+            c.lineWidth   = r * .045;
+            c.shadowColor = i === 1 ? "#ffb347" : "#c86aff";
+            c.shadowBlur  = 12;
+
+            c.beginPath();
+            c.arc(0, 0, rr, 0, Math.PI * 2);
+            c.stroke();
+
+            c.lineWidth = r * .085;
+
+            for(let k = 0; k < 12; k++){
+                const a = (k / 12) * Math.PI * 2;
+                c.beginPath();
+                c.arc(0, 0, rr, a, a + .1);
+                c.stroke();
+            }
+
+            c.shadowBlur  = 0;
+            c.globalAlpha = 1;
+
+            c.restore();
+
+        }
 
     }
 
@@ -4641,6 +4688,108 @@ function paintSkinInner(c, skin, w, h, r, t, f){
 
     }
 
+
+
+    /* ---------- NÉANT : le vide et son oeil ---------- */
+    if(e === "neant"){
+
+        /* le fond : le vide absolu */
+        c.fillStyle = "#0a0416";
+        c.fillRect(-w * 1.3, -h * 1.4, w * 2.6, h * 2.8);
+
+        /* la nebuleuse au centre */
+        const neb = c.createRadialGradient(0, 0, 0, 0, 0, r * 1.2);
+        neb.addColorStop(0,   "rgba(150,80,255,.55)");
+        neb.addColorStop(.55, "rgba(80,30,150,.22)");
+        neb.addColorStop(1,   "rgba(20,5,40,0)");
+
+        c.fillStyle = neb;
+        c.fillRect(-w * 1.3, -h * 1.4, w * 2.6, h * 2.8);
+
+        /* les etoiles prises dedans */
+        for(let i = 0; i < 22; i++){
+
+            const a  = i * 2.39 + t * .12;
+            const rr = (.2 + (i % 7) * .13) * r * 1.5;
+
+            c.globalAlpha = .35 + .55 * Math.sin(t * 2 + i);
+            c.fillStyle   = i % 4 ? "#ffffff" : "#d8b0ff";
+
+            c.beginPath();
+            c.arc(Math.cos(a) * rr, Math.sin(a * 1.2) * rr * .85, r * .028, 0, Math.PI * 2);
+            c.fill();
+
+        }
+
+        /* les fissures dorees */
+        c.globalAlpha = .85;
+        c.strokeStyle = "#ffc65a";
+        c.lineCap     = "round";
+        c.shadowColor = "#ffb347";
+        c.shadowBlur  = 10;
+
+        for(let i = 0; i < 5; i++){
+
+            const a = i * 1.257 + .4;
+
+            c.lineWidth = r * (.05 - i * .006);
+
+            c.beginPath();
+            c.moveTo(Math.cos(a) * r * .3, Math.sin(a) * r * .3);
+
+            for(let k = 1; k <= 4; k++){
+                const kk = k / 4;
+                c.lineTo(
+                    Math.cos(a + Math.sin(k * 2.3 + i) * .4) * r * (.3 + kk * .9),
+                    Math.sin(a + Math.sin(k * 2.3 + i) * .4) * r * (.3 + kk * .9)
+                );
+            }
+
+            c.stroke();
+
+        }
+
+        c.shadowBlur = 0;
+
+        /* l'oeil, au centre : c'est lui la signature */
+        const gx = Math.sin(t * .7) * w * .12 + (f.eyeX || 0) * w * .10;
+        const gy = -h * .16 + Math.cos(t * .5) * h * .05 + (f.eyeY || 0) * r * .06;
+
+        const iris = c.createRadialGradient(gx, gy, r * .05, gx, gy, r * .52);
+        iris.addColorStop(0,   "#fff4c2");
+        iris.addColorStop(.30, "#ffc65a");
+        iris.addColorStop(.70, "#a24bff");
+        iris.addColorStop(1,   "#180630");
+
+        c.globalAlpha = 1;
+        c.fillStyle   = iris;
+        c.shadowColor = "#c86aff";
+        c.shadowBlur  = 22;
+
+        c.beginPath();
+        c.arc(gx, gy, r * .52, 0, Math.PI * 2);
+        c.fill();
+
+        c.shadowBlur = 0;
+
+        /* la pupille en fente, qui se resserre quand il fonce */
+        c.fillStyle = "#08010f";
+        c.beginPath();
+        c.ellipse(gx, gy, r * (.14 - (f.speed || 0) * .06), r * .45, 0, 0, Math.PI * 2);
+        c.fill();
+
+        /* le reflet */
+        c.globalAlpha = .85;
+        c.fillStyle   = "#ffffff";
+        c.beginPath();
+        c.ellipse(gx - r * .17, gy - r * .22, r * .09, r * .055, -.5, 0, Math.PI * 2);
+        c.fill();
+
+        c.globalAlpha = 1;
+
+        return;
+
+    }
 
     /* ---------- ABYSSAL : la creature des profondeurs ---------- */
     if(e === "abyssal"){

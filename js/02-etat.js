@@ -50,6 +50,10 @@ let abyssTimer = 0;
 let candies   = [];   /* friandises décoratives au sol */
 let guimauves = [];   /* les GUIMAUVES du PAYS DES BONBONS */
 let guimauveTimer = 0;
+let boss      = null; /* L'OEIL DU NÉANT */
+let bossShots = [];
+let bossBeams = [];
+
 let gloutonTimer = 0;
 let portal    = null; /* le portail du niveau 35 */
 let warp      = null; /* animation d'aspiration en cours */
@@ -83,8 +87,18 @@ const CANDY_LEVEL  = 40;    /* portail vers LE PAYS DES BONBONS */
 const MAX_GLOUTONS = 2;     /* gloutons présents en même temps */
 const MAX_GUIMAUVES = 2;    /* guimauves présentes en même temps */
 const ABYSS_LEVEL   = 60;   /* portail vers LES ABYSSES */
+const VOID_LEVEL    = 80;   /* portail vers LE NÉANT */
 const MAX_ANGUILLES = 3;    /* anguilles simultanées */
 const MAX_LANTERNES = 3;    /* lanternes simultanées */
+
+/* la carte des mondes : elle sert au HUD et a la progression */
+const WORLDS = [
+    {zone:"cyber",  n:1, name:"L'ESPACE",            from:1,           to:PORTAL_LEVEL, col:"#55d9ff"},
+    {zone:"marais", n:2, name:"LE MARAIS",           from:PORTAL_LEVEL, to:CANDY_LEVEL, col:"#8fe04a"},
+    {zone:"bonbon", n:3, name:"LE PAYS DES BONBONS", from:CANDY_LEVEL,  to:ABYSS_LEVEL, col:"#ff8fc4"},
+    {zone:"abysse", n:4, name:"LES ABYSSES",         from:ABYSS_LEVEL,  to:VOID_LEVEL,  col:"#2fe0ff"},
+    {zone:"neant",  n:5, name:"LE NÉANT",            from:VOID_LEVEL,   to:null,        col:"#c86aff"}
+];
 const MAX_BLOBS    = 4;     /* slimes du marais présents en même temps */
 const START_SOLIDS = 9;     /* blocs présents dès le début */
 const MAX_SOLIDS   = 18;    /* blocs au maximum sur le terrain */

@@ -1141,6 +1141,60 @@ function paintCreature(c, kind, x, y, r, ang, t){
             c.fill();
         });
 
+    }else if(kind === "oeil"){
+
+        c.fillStyle = "#c86aff";
+        c.globalAlpha = .25;
+        c.beginPath();
+        c.arc(0, 0, r * 1.35, 0, Math.PI * 2);
+        c.fill();
+        c.globalAlpha = 1;
+
+        c.strokeStyle = "#c86aff";
+        c.lineWidth   = r * .09;
+
+        c.save();
+        c.scale(1, .42);
+        c.beginPath();
+        c.arc(0, 0, r * 1.25, 0, Math.PI * 2);
+        c.stroke();
+        c.restore();
+
+        c.save();
+        c.rotate(1.1);
+        c.scale(1, .42);
+        c.strokeStyle = "#ffc65a";
+        c.beginPath();
+        c.arc(0, 0, r * 1.1, 0, Math.PI * 2);
+        c.stroke();
+        c.restore();
+
+        const gl = c.createRadialGradient(-r * .2, -r * .2, r * .05, 0, 0, r * .85);
+        gl.addColorStop(0,  "#3a1a60");
+        gl.addColorStop(.7, "#180a2c");
+        gl.addColorStop(1,  "#050208");
+
+        c.fillStyle = gl;
+        c.beginPath();
+        c.arc(0, 0, r * .85, 0, Math.PI * 2);
+        c.fill();
+
+        const ir = c.createRadialGradient(0, 0, r * .04, 0, 0, r * .46);
+        ir.addColorStop(0,   "#fff4c2");
+        ir.addColorStop(.35, "#ffc65a");
+        ir.addColorStop(.75, "#c86aff");
+        ir.addColorStop(1,   "#180630");
+
+        c.fillStyle = ir;
+        c.beginPath();
+        c.arc(0, 0, r * .46, 0, Math.PI * 2);
+        c.fill();
+
+        c.fillStyle = "#08010f";
+        c.beginPath();
+        c.ellipse(0, 0, r * .12, r * .38, 0, 0, Math.PI * 2);
+        c.fill();
+
     }else if(kind === "guimauve"){
 
         const w = r * .85, h = r * .8;
@@ -1376,7 +1430,8 @@ function renderGuideIcons(){
             size / 2 + (kind === "slime" ? 3 : 0),
             kind === "slime" ? 17 : 15,
             (kind === "slime" || kind === "crawler" || kind === "glouton" ||
-             kind === "guimauve" || kind === "anguille" || kind === "lanterne") ? 0 : -.35,
+             kind === "guimauve" || kind === "anguille" ||
+             kind === "lanterne" || kind === "oeil") ? 0 : -.35,
             1.1
         );
 

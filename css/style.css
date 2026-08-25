@@ -80,6 +80,46 @@ html,body{
     box-shadow:0 0 20px rgba(40,80,180,.08);
 }
 
+.stat.world{
+    min-width:150px;
+}
+
+.stat.world span{
+    display:block;
+    margin-bottom:5px;
+}
+
+.progBar{
+    height:7px;
+
+    border-radius:99px;
+
+    background:rgba(255,255,255,.10);
+    overflow:hidden;
+}
+
+.progBar i{
+    display:block;
+
+    width:0%;
+    height:100%;
+
+    border-radius:99px;
+
+    background:linear-gradient(90deg,#55d9ff,#a86cff);
+
+    transition:width .25s ease;
+}
+
+@media (max-width:560px){
+    .stat.world{ min-width:104px; }
+    .progBar{ height:5px; }
+}
+
+@media (max-height:500px){
+    .stat.world{ min-width:112px; }
+}
+
 .stat span{
     color:#8996bb;
     font-size:11px;
@@ -1663,6 +1703,75 @@ laisser un menu fige sans explication.
     line-height:1.35;
 
     word-break:break-word;
+}
+
+.bossBar{
+    position:fixed;
+
+    left:50%;
+    transform:translateX(-50%);
+
+    bottom:calc(14px + env(safe-area-inset-bottom));
+
+    width:min(420px, 78vw);
+
+    z-index:14;
+
+    padding:8px 12px 10px;
+
+    border:1px solid rgba(200,106,255,.45);
+    border-radius:14px;
+
+    background:rgba(10,4,22,.72);
+    backdrop-filter:blur(8px);
+
+    pointer-events:none;
+}
+
+.bossTop{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+
+    margin-bottom:6px;
+}
+
+.bossTop b{
+    font-size:12px;
+    letter-spacing:1.4px;
+    color:#e8d4ff;
+}
+
+.bossTop span{
+    font-size:10px;
+    letter-spacing:2px;
+    font-weight:800;
+}
+
+.bossTrack{
+    height:9px;
+
+    border-radius:99px;
+
+    background:rgba(255,255,255,.10);
+    overflow:hidden;
+}
+
+.bossTrack i{
+    display:block;
+
+    width:100%;
+    height:100%;
+
+    border-radius:99px;
+
+    transition:width .2s linear;
+}
+
+@media (max-height:500px){
+    .bossBar{ bottom:calc(10px + env(safe-area-inset-bottom)); padding:6px 10px 8px; }
+    .bossTop b{ font-size:11px; }
+    .bossTrack{ height:7px; }
 }
 
 .setArrow{

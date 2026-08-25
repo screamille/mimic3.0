@@ -283,7 +283,8 @@ function createMimic(forcedType){
     poursuivant du monde 1 : ni HUNTER, ni PREDICTOR, ni
     TRAQUEUR, ni TRAQUEUR NOIR. Chaque monde a ses habitants.
     */
-    if(zone === "marais" || zone === "bonbon" || zone === "abysse"){
+    if(zone === "marais" || zone === "bonbon" ||
+       zone === "abysse" || zone === "neant"){
         return;
     }
 
@@ -431,6 +432,9 @@ function reset(){
     lanternes = [];
     bulles    = [];
     guimauves = [];
+    boss      = null;
+    bossShots = [];
+    bossBeams = [];
     abyssTimer = 0;
     guimauveTimer = 0;
     gloutonTimer = 0;
@@ -984,6 +988,7 @@ function update(dt){
 
     updatePortal(dt);
     updateGloutons(dt);
+    updateBoss(dt);
     updateGuimauves(dt);
     updateAnguilles(dt);
     updateLanternes(dt);
@@ -1032,8 +1037,6 @@ function update(dt){
 
             sound(180, .3, "triangle", .06);
 
-            pickupMessage("🟣 " + T("hud.frozen"), "#b66cff");
-
             o.taken = true;
 
             orbTimer = 9;
@@ -1074,8 +1077,6 @@ function update(dt){
 
             burst(c.x, c.y, 15, "#ffd84d");
 
-            pickupMessage("🪙 +1", "#ffd84d");
-
             coinChime();
 
             c.collected = true;
@@ -1107,13 +1108,11 @@ function update(dt){
                 lives++;
                 score += 30;
 
-                pickupMessage("💚 +1 VIE", "#69ff88");
 
             }else{
 
                 score += 50;
 
-                pickupMessage("💚 +50 SCORE", "#69ff88");
 
             }
 
@@ -1159,7 +1158,11 @@ function update(dt){
         }
 
         /* le marais se remplit de flaques, la surface de blocs */
-        if(zone === "abysse"){
+        if(zone === "neant"){
+
+            /* la salle du boss reste vide : rien ne doit gener */
+
+        }else if(zone === "abysse"){
 
             if(level % 3 === 0){
                 addSolid();
@@ -1183,7 +1186,7 @@ function update(dt){
 
         }
 
-        if(zone !== "marais" && zone !== "abysse"){
+        if(zone !== "marais" && zone !== "abysse" && zone !== "neant"){
 
             if(level % 3 === 0){
                 addSolid();
@@ -1196,8 +1199,6 @@ function update(dt){
             }
 
         }
-
-        pickupMessage("⭐ NIVEAU " + level + "   +10 🪙", "#55d9ff");
 
         sound(784, .22, "sine", .038);
 
@@ -1242,16 +1243,28 @@ function update(dt){
 
         const alive = laser.players.filter(p => p.alive).length;
 
-        document.getElementById("level").textContent = alive + "/" + laser.players.length;
+        paintProgress(
+            T("las.alive") + " " + alive + "/" + laser.players.length,
+            laser.players.length ? alive / laser.players.length : 0,
+            "#ff466e"
+        );
 
     }else{
 
         document.getElementById("score").textContent = Math.floor(score);
-        document.getElementById("level").textContent = level;
+
+        const wd = currentWorld();
+
+        paintProgress(
+            "MONDE " + wd.n + "/" + WORLDS.length + " · " + wd.name,
+            worldProgress(),
+            wd.col
+        );
 
     }
 
     paintDashButton();
+    bossBar();
     lasBoard();
 
     if(duel.active){
@@ -1641,10 +1654,30 @@ function drawRaw(){
         ctx.fillStyle = "#28113d";
         ctx.fill();
 
-        ctx.fillStyle = "#fff";
-        ctx.font      = "bold " + Math.round(8 * unit) + "px Arial";
-        ctx.textAlign = "center";
-        ctx.fillText("STOP", o.x, o.y + 3 * unit);
+        /*
+        Plus de mot ecrit : trois barres qui tournent disent
+        la meme chose et restent lisibles en pleine action.
+        */
+        ctx.save();
+        ctx.translate(o.x, o.y);
+        ctx.rotate(o.pulse * .6);
+
+        ctx.strokeStyle = "#e8d0ff";
+        ctx.lineWidth   = Math.max(1.4, o.r * .12);
+        ctx.lineCap     = "round";
+
+        for(let i = 0; i < 3; i++){
+
+            const a = i * 2.094;
+
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(a) * o.r * .14, Math.sin(a) * o.r * .14);
+            ctx.lineTo(Math.cos(a) * o.r * .34, Math.sin(a) * o.r * .34);
+            ctx.stroke();
+
+        }
+
+        ctx.restore();
 
     }
 
@@ -1777,6 +1810,11 @@ function drawRaw(){
     }
 
     ctx.globalAlpha = 1;
+
+
+    /* LE NÉANT */
+
+    drawBoss();
 
 
     /* LES ABYSSES */
