@@ -363,6 +363,8 @@ function renderShop(){
 
     setTab(shopInStore);
 
+    giftCard();
+
     const container = document.getElementById("shopContent");
 
     container.innerHTML = "";
@@ -421,9 +423,15 @@ function renderShop(){
 
     }
 
+    /*
+    En BOUTIQUE on ne voit que la selection du jour ; au
+    CASIER on voit tout ce qu'on possede.
+    */
     let list = shopInStore
-        ? SKINS.slice()
+        ? dailySkins()
         : SKINS.filter(skin => ownedSkins.includes(skin.id));
+
+    const total = shopInStore ? list.length : list.length;
 
     if(shopInStore && shopOnlyMissing){
         list = list.filter(skin => !ownedSkins.includes(skin.id));
@@ -431,7 +439,7 @@ function renderShop(){
 
     list = list.sort(order);
 
-    lasShopCount(list.length, shopInStore ? SKINS.length : list.length);
+    lasShopCount(list.length, total);
 
     if(!list.length){
         container.appendChild(emptyNote(T("shop.allOwned")));
@@ -457,8 +465,8 @@ function lasShopCount(shown, total){
         const owned = SKINS.filter(sk => ownedSkins.includes(sk.id)).length;
 
         el.textContent =
-            shown + " / " + total + "  •  " +
-            owned + " " + T("shop.ownedCount") + " " + SKINS.length;
+            "Sélection du jour — nouvelle dans " + untilMidnight() +
+            "  •  " + owned + " " + T("shop.ownedCount") + " " + SKINS.length;
 
     }else{
         el.textContent = shown + " / " + total;

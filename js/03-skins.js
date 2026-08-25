@@ -5076,6 +5076,12 @@ function updateUI(){
         dot.classList.toggle("on", missionsLeft() > 0);
     }
 
+    const sdot = document.getElementById("shopDot");
+
+    if(sdot){
+        sdot.classList.toggle("on", giftReady());
+    }
+
     lobbySyncSkin();
 
     document.getElementById("lives").textContent =

@@ -1768,6 +1768,85 @@ laisser un menu fige sans explication.
     background:linear-gradient(90deg,#55d9ff,#a86cff);
 }
 
+.shopGift{
+    display:flex;
+    align-items:center;
+
+    gap:12px;
+
+    margin:10px 0 2px;
+    padding:10px 12px;
+
+    border:1px solid rgba(255,205,80,.45);
+    border-radius:14px;
+
+    background:linear-gradient(140deg,rgba(255,196,60,.16),rgba(120,80,10,.14));
+
+    text-align:left;
+}
+
+.shopGift.taken{
+    border-color:rgba(120,150,220,.22);
+    background:rgba(12,18,40,.55);
+}
+
+.giftIcon{
+    flex:0 0 auto;
+    font-size:22px;
+}
+
+.giftTxt{
+    flex:1 1 auto;
+
+    display:flex;
+    flex-direction:column;
+
+    gap:2px;
+
+    min-width:0;
+}
+
+.giftTxt b{
+    font-size:12px;
+    letter-spacing:1.2px;
+    color:#ffd84d;
+}
+
+.shopGift.taken .giftTxt b{ color:#8fa0c8; }
+
+.giftTxt small{
+    font-size:11px;
+    color:#c7d3ee;
+}
+
+.giftBtn{
+    flex:0 0 auto;
+
+    padding:9px 16px;
+
+    border:0;
+    border-radius:12px;
+
+    background:linear-gradient(140deg,#ffd84d,#ffa62b);
+    color:#3a2400;
+
+    font-weight:800;
+    font-size:13px;
+
+    cursor:pointer;
+}
+
+.giftBtn:disabled{
+    background:rgba(255,255,255,.07);
+    color:#7f8ba8;
+    cursor:default;
+}
+
+@media (max-width:560px){
+    .giftTxt b{ font-size:11px; }
+    .giftBtn{ padding:8px 12px; font-size:12px; }
+}
+
 .worldList{
     display:flex;
     flex-direction:column;

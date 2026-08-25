@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "4.3";
+const VERSION = "4.4";
 
 (function(){
 
@@ -2773,6 +2773,149 @@ function renderMissions(){
             Math.floor(s / 3600) + " h " +
             String(Math.floor((s % 3600) / 60)).padStart(2, "0");
 
+    }
+
+}
+
+
+/* =========================================================
+   LA BOUTIQUE DU JOUR
+
+   Trois skins tires au sort parmi tous, et le cadeau
+   quotidien. Comme les missions, le tirage vient de la
+   date : la boutique est la meme pour tout le monde et
+   change a minuit.
+========================================================= */
+
+const SHOP_PICKS = 3;
+const GIFT_COINS = 50;
+
+let shopDay = loadJSON("mimicShopDay", null);
+let giftDay = localStorage.getItem("mimicGift") || "";
+
+
+function buildShopDay(){
+
+    const key = todayKey();
+    const rr  = dayRandom(key + "-boutique");
+
+    /* les skins de recompense ne s'achetent pas : ils restent dehors */
+    const pool = SKINS.filter(sk => !sk.exclusive && sk.price > 0);
+
+    const ids = [];
+
+    for(let i = 0; i < SHOP_PICKS && pool.length; i++){
+        const k = Math.floor(rr() * pool.length);
+        ids.push(pool.splice(k, 1)[0].id);
+    }
+
+    shopDay = {day:key, ids:ids};
+
+    try{ localStorage.setItem("mimicShopDay", JSON.stringify(shopDay)); }catch(e){}
+
+}
+
+
+function checkShopDay(){
+
+    if(!shopDay || shopDay.day !== todayKey() || !Array.isArray(shopDay.ids)){
+        buildShopDay();
+    }
+
+}
+
+
+function dailySkins(){
+
+    checkShopDay();
+
+    return shopDay.ids
+        .map(id => SKINS.find(sk => sk.id === id))
+        .filter(Boolean);
+
+}
+
+
+function giftReady(){
+    return giftDay !== todayKey();
+}
+
+
+function claimGift(){
+
+    if(!giftReady()){
+        return;
+    }
+
+    giftDay = todayKey();
+
+    try{ localStorage.setItem("mimicGift", giftDay); }catch(e){}
+
+    totalCoins += GIFT_COINS;
+
+    saveGame();
+
+    coinChime();
+    buzz([25, 50, 25]);
+
+    pickupMessage("🎁 +" + GIFT_COINS + " 🪙", "#ffd84d");
+
+    renderShop();
+
+}
+
+
+/* le temps qu'il reste avant le prochain renouvellement */
+function untilMidnight(){
+
+    const now = new Date();
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const s   = Math.max(0, Math.floor((end - now) / 1000));
+
+    return Math.floor(s / 3600) + " h " +
+           String(Math.floor((s % 3600) / 60)).padStart(2, "0");
+
+}
+
+
+/* la carte du cadeau, en tete de la boutique */
+function giftCard(){
+
+    const box = document.getElementById("shopGift");
+
+    if(!box){
+        return;
+    }
+
+    if(!shopInStore){
+        box.style.display = "none";
+        return;
+    }
+
+    box.style.display = "flex";
+
+    const ready = giftReady();
+
+    box.classList.toggle("taken", !ready);
+
+    box.innerHTML =
+        '<span class="giftIcon">🎁</span>' +
+        '<span class="giftTxt">' +
+            '<b>CADEAU DU JOUR</b>' +
+            '<small>' +
+                (ready
+                    ? GIFT_COINS + " pièces offertes"
+                    : "Reviens dans " + untilMidnight()) +
+            '</small>' +
+        '</span>' +
+        '<button class="giftBtn"' + (ready ? "" : " disabled") + '>' +
+            (ready ? '<i class="coinDot"></i> +' + GIFT_COINS : "✅") +
+        '</button>';
+
+    const btn = box.querySelector(".giftBtn");
+
+    if(btn && ready){
+        btn.onclick = claimGift;
     }
 
 }

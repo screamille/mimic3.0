@@ -10,7 +10,7 @@
 
 <title>MIMIC</title>
 
-<link rel="stylesheet" href="css/style.css?v=4.3">
+<link rel="stylesheet" href="css/style.css?v=4.4">
 </head>
 
 <body>
@@ -106,7 +106,7 @@
 
         <div class="lobbyNav">
             <button class="navTab active" id="navPlay" data-i18n="nav.play">JOUER</button>
-            <button class="navTab" id="openShopStore" data-i18n="nav.shop">BOUTIQUE</button>
+            <button class="navTab" id="openShopStore" data-i18n="nav.shop">BOUTIQUE<i class="navDot" id="shopDot"></i></button>
             <button class="navTab" id="openShop" data-i18n="nav.locker">CASIER</button>
             <button class="navTab" id="duelButton" data-i18n="nav.duel">DUEL</button>
             <button class="navTab" id="missionButton">MISSIONS<i class="navDot" id="missionDot"></i></button>
@@ -166,7 +166,7 @@
         <b id="bestScore">0</b>
     </div>
 
-    <div class="version" id="versionTag">V 4.3</div>
+    <div class="version" id="versionTag">V 4.4</div>
 
     <div id="errBanner" class="errBanner" style="display:none"></div>
 
@@ -935,6 +935,8 @@
 
         </div>
 
+        <div id="shopGift" class="shopGift" style="display:none"></div>
+
         <div id="shopCount" class="shopCount"></div>
 
         </div><!-- fin du bloc collant -->
@@ -984,16 +986,16 @@ fonctionne parfaitement même si aucun des deux ne répond.
 })();
 </script>
 
-<script src="js/01-moteur.js?v=4.3"></script>
-<script src="js/02-etat.js?v=4.3"></script>
-<script src="js/03-skins.js?v=4.3"></script>
-<script src="js/04-monde.js?v=4.3"></script>
-<script src="js/05-jeu.js?v=4.3"></script>
-<script src="js/06-boutique.js?v=4.3"></script>
-<script src="js/07-duel.js?v=4.3"></script>
-<script src="js/08-langues.js?v=4.3"></script>
-<script src="js/09-laser.js?v=4.3"></script>
-<script src="js/10-interface.js?v=4.3"></script>
+<script src="js/01-moteur.js?v=4.4"></script>
+<script src="js/02-etat.js?v=4.4"></script>
+<script src="js/03-skins.js?v=4.4"></script>
+<script src="js/04-monde.js?v=4.4"></script>
+<script src="js/05-jeu.js?v=4.4"></script>
+<script src="js/06-boutique.js?v=4.4"></script>
+<script src="js/07-duel.js?v=4.4"></script>
+<script src="js/08-langues.js?v=4.4"></script>
+<script src="js/09-laser.js?v=4.4"></script>
+<script src="js/10-interface.js?v=4.4"></script>
 
 </body>
 </html>
