@@ -51,6 +51,7 @@ let candies   = [];   /* friandises décoratives au sol */
 let guimauves = [];   /* les GUIMAUVES du PAYS DES BONBONS */
 let guimauveTimer = 0;
 let boss      = null; /* L'OEIL DU NÉANT */
+let voidCleared = false;  /* l'OEIL a-t-il ete brise cette partie ? */
 let bossShots = [];
 let bossBeams = [];
 

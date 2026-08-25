@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "5.0";
+const VERSION = "5.1";
 
 (function(){
 
@@ -1908,7 +1908,12 @@ function portalTarget(){
         return "neant";
     }
 
-    if(zone === "neant"  && level >= DESERT_LEVEL){ return "desert"; }
+    /*
+    Dans LE NÉANT, le portail ne s'ouvre pas au niveau : il
+    s'ouvre des que L'OEIL est brise. C'est ca, terminer le
+    monde 5.
+    */
+    if(zone === "neant" && (voidCleared || level >= DESERT_LEVEL)){ return "desert"; }
     if(zone === "desert" && level >= FORGE_LEVEL) { return "forge"; }
     if(zone === "forge"  && level >= BIBLIO_LEVEL){ return "biblio"; }
     if(zone === "biblio" && level >= CLOCK_LEVEL) { return "horloge"; }
@@ -3283,8 +3288,9 @@ function enterVoid(){
 
     player.invincible = 3;
 
-    bossShots = [];
-    bossBeams = [];
+    bossShots   = [];
+    bossBeams   = [];
+    voidCleared = false;
 
     boss = {
         x:(a.x0 + a.x1) / 2,
@@ -3525,6 +3531,9 @@ function updateBoss(dt){
 
             records.boss = (records.boss || 0) + 1;
             saveProgress();
+
+            /* le monde 5 est termine : la sortie s'ouvre */
+            voidCleared = true;
 
             buzz([60, 80, 60, 80, 120]);
 
@@ -3970,25 +3979,23 @@ function bossBar(){
    t'attraper.
 ========================================================= */
 
-let scarabees = [];   /* MONDE 6 : sous le sable       */
-let mirages   = [];   /* MONDE 6 : la fausse copie     */
-let marteaux  = [];   /* MONDE 7 : la masse qui tombe  */
-let chaines   = [];   /* MONDE 7 : le fleau qui tourne */
-let grimoires = [];   /* MONDE 8 : le livre volant     */
-let pages     = [];   /* MONDE 8 : ses lames de papier */
-let plumes    = [];   /* MONDE 8 : la plume et l'encre */
-let encres    = [];   /* MONDE 8 : le trait d'encre    */
+let mirages    = [];  /* MONDE 6 : tes fausses copies  */
+let chaines    = [];  /* MONDE 7 : le fleau qui tourne */
+let fournaises = [];  /* MONDE 7 : le cone de feu      */
+let grimoires  = [];  /* MONDE 8 : les livres volants  */
+let pages      = [];  /* MONDE 8 : leurs lames         */
 let engrenages = [];  /* MONDE 9 : la roue qui longe   */
-let pendules  = [];   /* MONDE 9 : le balancier        */
+let pendules   = [];  /* MONDE 9 : le balancier        */
+let coucous    = [];  /* MONDE 9 : l'oiseau de laiton  */
 
 let w69Timer = 0;
 
 
 function clearW69(){
-    scarabees = []; mirages = [];
-    marteaux  = []; chaines = [];
-    grimoires = []; pages   = []; plumes = []; encres = [];
-    engrenages = []; pendules = [];
+    mirages    = [];
+    chaines    = []; fournaises = [];
+    grimoires  = []; pages      = [];
+    engrenages = []; pendules   = []; coucous = [];
     w69Timer = 0;
 }
 
@@ -4107,191 +4114,20 @@ function paintDesert(c){
 }
 
 
+const MAX_MIRAGES = 7;
+
 function enterDesert(){
     w69Enter("desert", "🏜 LE DÉSERT DE VERRE", "#ffd76a");
-    for(let i = 0; i < 2; i++){ spawnScarabee(); }
-    spawnMirage();
-}
-
-
-/* --- LE SCARABEE : il voyage sous le sable --- */
-function spawnScarabee(){
-
-    const r = (26 + rnd() * 8) * unit;
-    const p = findSpot(r, 300) || findSpot(r, 180);
-
-    if(!p){ return; }
-
-    scarabees.push({
-        x:p.x, y:p.y, r:r,
-        phase:"under", timer:1.6 + rnd(),
-        ang:0, dust:0, birth:.5, stunned:0
-    });
-
-}
-
-
-function updateScarabees(dt){
-
-    const base = mimicSpeed({type:MIMIC_TYPES[0]});
-
-    for(const e of scarabees){
-
-        if(e.birth > 0){ e.birth = Math.max(0, e.birth - dt); continue; }
-        if(e.stunned > 0){ e.stunned -= dt; continue; }
-
-        e.dust += dt * 6;
-
-        const aim = lureTarget();
-
-        if(e.phase === "under"){
-
-            /* il glisse vers toi, lentement, en soulevant le sable */
-            const a = Math.atan2(aim.y - e.y, aim.x - e.x);
-
-            e.x += Math.cos(a) * base * .55 * dt;
-            e.y += Math.sin(a) * base * .55 * dt;
-
-            e.timer -= dt;
-
-            if(e.timer <= 0){
-                e.phase = "rise";
-                e.timer = .75;
-                e.ang   = a;
-                sound(140, .2, "sawtooth", .035);
-            }
-
-        }else if(e.phase === "rise"){
-
-            /* il sort : c'est le moment de degager */
-            e.timer -= dt;
-            e.ang    = Math.atan2(aim.y - e.y, aim.x - e.x);
-
-            if(e.timer <= 0){
-                e.phase = "charge";
-                e.timer = 1.1;
-                sound(320, .16, "square", .04);
-            }
-
-        }else{
-
-            e.timer -= dt;
-
-            e.x += Math.cos(e.ang) * base * 2.3 * dt;
-            e.y += Math.sin(e.ang) * base * 2.3 * dt;
-
-            if(e.timer <= 0){
-                e.phase = "under";
-                e.timer = 2 + rnd() * 1.4;
-            }
-
-            if(w69Hit(e)){
-                burst(e.x, e.y, 20, "#e8c07a");
-            }
-
-        }
-
-        w69Clamp(e);
-
-    }
-
-}
-
-
-function drawScarabees(){
-
-    for(const e of scarabees){
-
-        const r = e.r * (e.birth > 0 ? 1 - e.birth / .5 : 1);
-
-        ctx.save();
-        ctx.translate(e.x, e.y);
-
-        if(e.phase === "under"){
-
-            /* seule la bosse de sable te previent */
-            ctx.globalAlpha = .8;
-            ctx.fillStyle   = "#c98f47";
-
-            ctx.beginPath();
-            ctx.ellipse(0, 0, r * 1.25, r * .55, 0, 0, Math.PI * 2);
-            ctx.fill();
-
-            ctx.globalAlpha = .5;
-            ctx.fillStyle   = "#f4d9a8";
-
-            for(let i = 0; i < 5; i++){
-                const a = e.dust + i * 1.25;
-                ctx.beginPath();
-                ctx.arc(Math.cos(a) * r * 1.1, Math.sin(a) * r * .5, r * .09, 0, Math.PI * 2);
-                ctx.fill();
-            }
-
-            ctx.restore();
-            continue;
-
-        }
-
-        const out = e.phase === "rise" ? 1 - e.timer / .75 : 1;
-
-        ctx.rotate(e.ang);
-        ctx.scale(1, Math.max(.25, out));
-
-        /* la carapace */
-        const sh = ctx.createLinearGradient(0, -r, 0, r);
-        sh.addColorStop(0, "#5a3a12");
-        sh.addColorStop(1, "#241505");
-
-        ctx.fillStyle = sh;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, r * 1.15, r * .9, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        /* le reflet de verre sur le dos */
-        ctx.globalAlpha = .55;
-        ctx.fillStyle   = "#9fe2ff";
-        ctx.beginPath();
-        ctx.ellipse(-r * .2, -r * .3, r * .5, r * .22, -.4, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.globalAlpha = 1;
-
-        /* la fente centrale */
-        ctx.strokeStyle = "#160c02";
-        ctx.lineWidth   = r * .1;
-        ctx.beginPath();
-        ctx.moveTo(-r * .9, 0);
-        ctx.lineTo(r * .7, 0);
-        ctx.stroke();
-
-        /* les cornes */
-        ctx.fillStyle = "#e8dcc0";
-
-        [-1, 1].forEach(sg => {
-            ctx.beginPath();
-            ctx.moveTo(r * .9, sg * r * .28);
-            ctx.lineTo(r * 1.6, sg * r * .1);
-            ctx.lineTo(r * .95, sg * r * .05);
-            ctx.closePath();
-            ctx.fill();
-        });
-
-        /* les yeux */
-        ctx.fillStyle = e.phase === "rise" ? "#ffb347" : "#ff5f4d";
-        [-1, 1].forEach(sg => {
-            ctx.beginPath();
-            ctx.arc(r * .55, sg * r * .38, r * .13, 0, Math.PI * 2);
-            ctx.fill();
-        });
-
-        ctx.restore();
-
-    }
-
+    for(let i = 0; i < 3; i++){ spawnMirage(); }
 }
 
 
 /* --- LE MIRAGE : ta propre image, jusqu'a ce qu'elle bouge --- */
 function spawnMirage(){
+
+    if(mirages.length >= MAX_MIRAGES){
+        return;
+    }
 
     const r = player.r * 1.15;
     const p = findSpot(r, 340) || findSpot(r, 200);
@@ -4301,6 +4137,7 @@ function spawnMirage(){
     mirages.push({
         x:p.x, y:p.y, r:r,
         phase:"drift", timer:0, near:0,
+        rest:rnd() * 2.5,
         ang:0, birth:.5, stunned:0, shimmer:rnd() * 6.28
     });
 
@@ -4329,7 +4166,14 @@ function updateMirages(dt){
             m.x += Math.cos(a) * base * .7 * dt;
             m.y += Math.sin(a) * base * .7 * dt;
 
-            m.near = d < 260 * unit ? m.near + dt : 0;
+            /* chacun a son propre temps de repos : ils ne
+               se durcissent jamais tous en meme temps */
+            if(m.rest > 0){
+                m.rest -= dt;
+                m.near  = 0;
+            }else{
+                m.near = d < 260 * unit ? m.near + dt : 0;
+            }
 
             if(m.near > 1.1){
                 m.phase = "solid";
@@ -4365,12 +4209,34 @@ function updateMirages(dt){
 
             if(m.timer <= 0){
                 m.phase = "drift";
+                m.rest  = 2.2 + rnd() * 1.6;
             }
 
         }
 
         w69Clamp(m);
 
+    }
+
+    /* ils gardent leurs distances entre eux */
+    for(let i = 0; i < mirages.length; i++){
+        for(let j = i + 1; j < mirages.length; j++){
+
+            const a = mirages[i], b = mirages[j];
+
+            let dx = b.x - a.x, dy = b.y - a.y;
+            let d  = Math.hypot(dx, dy);
+
+            const min = (a.r + b.r) * 2.1;
+
+            if(d < min){
+                if(d < .001){ dx = 1; dy = 0; d = 1; }
+                const push = (min - d) / 2;
+                a.x -= dx / d * push; a.y -= dy / d * push;
+                b.x += dx / d * push; b.y += dy / d * push;
+            }
+
+        }
     }
 
 }
@@ -4510,201 +4376,8 @@ function paintForge(c){
 
 function enterForge(){
     w69Enter("forge", "🔥 LA FORGE", "#ff7a2a");
-    for(let i = 0; i < 2; i++){ spawnMarteau(); }
-    spawnChaine();
-}
-
-
-/* --- LE MARTEAU : il vise le sol, puis il tombe --- */
-function spawnMarteau(){
-
-    const r = (34 + rnd() * 10) * unit;
-
-    marteaux.push({
-        x:0, y:0, r:r,
-        tx:0, ty:0,
-        phase:"rest", timer:1 + rnd() * 1.5,
-        lift:0, ring:0, birth:.4, stunned:0
-    });
-
-}
-
-
-function updateMarteaux(dt){
-
-    for(const m of marteaux){
-
-        if(m.birth > 0){ m.birth = Math.max(0, m.birth - dt); continue; }
-        if(m.stunned > 0){ m.stunned -= dt; continue; }
-
-        if(m.ring > 0){
-
-            m.ring += dt * 3.4;
-
-            /* l'onde au sol frappe aussi */
-            if(player.invincible <= 0 && m.ring < 1){
-
-                const d  = Math.hypot(player.x - m.tx, player.y - m.ty);
-                const rr = m.ring * m.r * 3.4;
-
-                if(Math.abs(d - rr) < m.r * .5 + player.r){
-                    loseLife(null);
-                }
-
-            }
-
-            if(m.ring > 1.4){ m.ring = 0; }
-
-        }
-
-        m.timer -= dt;
-
-        if(m.phase === "rest"){
-
-            if(m.timer <= 0){
-
-                /* il choisit ta position actuelle */
-                const aim = lureTarget();
-
-                m.tx    = aim.x;
-                m.ty    = aim.y;
-                m.phase = "aim";
-                m.timer = .85;
-                m.lift  = 0;
-
-                sound(90, .25, "sine", .04);
-
-            }
-
-        }else if(m.phase === "aim"){
-
-            m.lift = Math.min(1, m.lift + dt * 1.6);
-
-            if(m.timer <= 0){
-                m.phase = "slam";
-                m.timer = .22;
-            }
-
-        }else{
-
-            m.lift = Math.max(0, m.lift - dt * 7);
-
-            if(m.lift <= 0 && m.timer > -1){
-
-                m.timer = -2;
-                m.ring  = .01;
-
-                burst(m.tx, m.ty, 26, "#ffb347");
-
-                sound(70, .4, "sawtooth", .07);
-                buzz(30);
-
-                if(player.invincible <= 0 &&
-                   Math.hypot(player.x - m.tx, player.y - m.ty) < m.r + player.r){
-                    loseLife(null);
-                }
-
-            }
-
-            if(m.timer < -1.6){
-                m.phase = "rest";
-                m.timer = 1.4 + rnd() * 1.2;
-            }
-
-        }
-
-    }
-
-}
-
-
-function drawMarteaux(){
-
-    for(const m of marteaux){
-
-        if(m.birth > 0){ continue; }
-
-        /* l'onde de choc au sol */
-        if(m.ring > 0){
-
-            const rr = m.ring * m.r * 3.4;
-
-            ctx.save();
-            ctx.globalAlpha = Math.max(0, 1 - m.ring) * .9;
-            ctx.strokeStyle = "#ffb347";
-            ctx.lineWidth   = m.r * .35 * Math.max(.2, 1 - m.ring);
-            ctx.shadowColor = "#ff7a2a";
-            ctx.shadowBlur  = 20;
-
-            ctx.beginPath();
-            ctx.arc(m.tx, m.ty, rr, 0, Math.PI * 2);
-            ctx.stroke();
-
-            ctx.restore();
-
-        }
-
-        if(m.phase === "rest"){ continue; }
-
-        /* la cible au sol */
-        ctx.save();
-        ctx.globalAlpha = .8;
-        ctx.strokeStyle = m.phase === "slam" ? "#ff5f4d" : "#ffb347";
-        ctx.lineWidth   = 2.4 * unit;
-
-        ctx.beginPath();
-        ctx.arc(m.tx, m.ty, m.r * (1 + (1 - m.lift) * .5), 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(m.tx - m.r, m.ty);
-        ctx.lineTo(m.tx + m.r, m.ty);
-        ctx.moveTo(m.tx, m.ty - m.r);
-        ctx.lineTo(m.tx, m.ty + m.r);
-        ctx.stroke();
-
-        /* la masse, suspendue au-dessus */
-        const hy = m.ty - m.lift * m.r * 4.5;
-
-        ctx.globalAlpha = 1;
-        ctx.translate(m.tx, hy);
-
-        /* le manche */
-        ctx.strokeStyle = "#5a3a1c";
-        ctx.lineWidth   = m.r * .3;
-        ctx.beginPath();
-        ctx.moveTo(0, -m.r * 2.4);
-        ctx.lineTo(0, -m.r * .6);
-        ctx.stroke();
-
-        /* la tete */
-        const g = ctx.createLinearGradient(0, -m.r * .8, 0, m.r * .8);
-        g.addColorStop(0, "#8a949f");
-        g.addColorStop(1, "#2c3238");
-
-        ctx.fillStyle = g;
-
-        ctx.beginPath();
-        if(ctx.roundRect){
-            ctx.roundRect(-m.r * 1.1, -m.r * .75, m.r * 2.2, m.r * 1.5, m.r * .2);
-        }else{
-            ctx.rect(-m.r * 1.1, -m.r * .75, m.r * 2.2, m.r * 1.5);
-        }
-        ctx.fill();
-
-        ctx.strokeStyle = "#171b1f";
-        ctx.lineWidth   = m.r * .1;
-        ctx.stroke();
-
-        /* le metal encore chaud */
-        ctx.globalAlpha = .55;
-        ctx.fillStyle   = "#ff7a2a";
-        ctx.fillRect(-m.r * 1.1, m.r * .35, m.r * 2.2, m.r * .4);
-
-        ctx.restore();
-
-    }
-
+    for(let i = 0; i < 2; i++){ spawnChaine(); }
+    for(let i = 0; i < 2; i++){ spawnFournaise(); }
 }
 
 
@@ -4942,15 +4615,20 @@ function paintLibrary(c){
 }
 
 
+const MAX_GRIMOIRES = 5;
+
 function enterLibrary(){
     w69Enter("biblio", "📖 LA BIBLIOTHÈQUE", "#b06cff");
-    for(let i = 0; i < 2; i++){ spawnGrimoire(); }
-    spawnPlume();
+    for(let i = 0; i < MAX_GRIMOIRES; i++){ spawnGrimoire(); }
 }
 
 
 /* --- LE GRIMOIRE : il s'ouvre, puis il tire ses pages --- */
 function spawnGrimoire(){
+
+    if(grimoires.length >= MAX_GRIMOIRES){
+        return;
+    }
 
     const r = (24 + rnd() * 8) * unit;
     const p = findSpot(r, 320) || findSpot(r, 200);
@@ -5143,150 +4821,439 @@ function drawGrimoires(){
 }
 
 
-/* --- LA PLUME : elle ecrit, et son trait blesse --- */
-function spawnPlume(){
 
-    const r = (16 + rnd() * 5) * unit;
+/* --- LA FOURNAISE : elle souffle un cone de feu --- */
+function spawnFournaise(){
+
+    const r = (30 + rnd() * 10) * unit;
     const p = findSpot(r, 320) || findSpot(r, 200);
 
     if(!p){ return; }
 
-    plumes.push({
+    fournaises.push({
         x:p.x, y:p.y, r:r,
         ang:rnd() * 6.28,
-        turn:(rnd() < .5 ? -1 : 1) * .9,
-        drop:0,
+        phase:"aim", timer:1.4 + rnd(),
+        heat:0, flame:0,
         birth:.5, stunned:0
     });
 
 }
 
 
-function updatePlumes(dt){
+const FOURN_CONE  = .42;   /* demi-ouverture du cone, en radians */
+const FOURN_REACH = 330;   /* portee, en unites                  */
 
-    const base = mimicSpeed({type:MIMIC_TYPES[0]}) * 1.1;
-    const area = playArea();
 
-    for(const q of plumes){
+function updateFournaises(dt){
 
-        if(q.birth > 0){ q.birth = Math.max(0, q.birth - dt); continue; }
-        if(q.stunned > 0){ q.stunned -= dt; continue; }
+    for(const f of fournaises){
 
-        /* elle trace de grandes boucles, et se recentre vers toi */
-        const aim  = lureTarget();
-        const want = Math.atan2(aim.y - q.y, aim.x - q.x);
+        if(f.birth > 0){ f.birth = Math.max(0, f.birth - dt); continue; }
+        if(f.stunned > 0){ f.stunned -= dt; f.flame = 0; continue; }
 
-        let diff = want - q.ang;
-        while(diff >  Math.PI){ diff -= Math.PI * 2; }
-        while(diff < -Math.PI){ diff += Math.PI * 2; }
+        const aim = lureTarget();
 
-        q.ang += (q.turn + diff * .5) * dt;
+        /* elle derive a peine : c'est une piece de forge, pas un coureur */
+        const an = Math.atan2(aim.y - f.y, aim.x - f.x);
 
-        q.x += Math.cos(q.ang) * base * dt;
-        q.y += Math.sin(q.ang) * base * dt;
+        f.x += Math.cos(an) * 18 * unit * dt;
+        f.y += Math.sin(an) * 18 * unit * dt;
 
-        if(q.x < area.x0 + q.r || q.x > area.x1 - q.r ||
-           q.y < area.y0 + q.r || q.y > area.y1 - q.r){
-            q.turn = -q.turn;
-            q.ang += Math.PI * .6;
+        w69Clamp(f);
+
+        f.timer -= dt;
+
+        if(f.phase === "aim"){
+
+            /* elle pivote vers toi, la gueule rougit */
+            let diff = an - f.ang;
+            while(diff >  Math.PI){ diff -= Math.PI * 2; }
+            while(diff < -Math.PI){ diff += Math.PI * 2; }
+
+            f.ang += Math.max(-2.2 * dt, Math.min(2.2 * dt, diff));
+
+            f.heat  = Math.max(0, f.heat - dt * 1.5);
+            f.flame = 0;
+
+            if(f.timer <= 0){
+                f.phase = "charge";
+                f.timer = .8;
+                sound(110, .3, "sine", .04);
+            }
+
+        }else if(f.phase === "charge"){
+
+            f.heat = Math.min(1, f.heat + dt * 1.4);
+
+            if(f.timer <= 0){
+                f.phase = "blow";
+                f.timer = 1;
+                sound(220, .5, "sawtooth", .05);
+                buzz(20);
+            }
+
+        }else{
+
+            f.flame = Math.min(1, f.flame + dt * 5);
+            f.heat  = 1;
+
+            /* le cone brule */
+            if(player.invincible <= 0){
+
+                const dx = player.x - f.x;
+                const dy = player.y - f.y;
+                const d  = Math.hypot(dx, dy);
+
+                if(d < FOURN_REACH * unit * f.flame && d > f.r * .5){
+
+                    let diff = Math.atan2(dy, dx) - f.ang;
+                    while(diff >  Math.PI){ diff -= Math.PI * 2; }
+                    while(diff < -Math.PI){ diff += Math.PI * 2; }
+
+                    if(Math.abs(diff) < FOURN_CONE){
+                        loseLife(null);
+                    }
+
+                }
+
+            }
+
+            if(f.timer <= 0){
+                f.phase = "aim";
+                f.timer = 2 + rnd() * 1.2;
+            }
+
         }
 
-        w69Clamp(q);
-
-        /* le trait d'encre qu'elle laisse derriere */
-        q.drop -= dt;
-
-        if(q.drop <= 0){
-            q.drop = .11;
-            encres.push({x:q.x, y:q.y, r:q.r * .75, life:3.6});
-        }
-
-        w69Hit(q);
+        w69Hit(f);
 
     }
-
-    for(const e of encres){
-
-        e.life -= dt;
-
-        /* l'encre fraiche blesse ; en sechant elle s'efface */
-        if(e.life > .6 && player.invincible <= 0 &&
-           Math.hypot(e.x - player.x, e.y - player.y) < e.r + player.r * .7){
-            loseLife(null);
-        }
-
-    }
-
-    encres = encres.filter(e => e.life > 0);
 
 }
 
 
-function drawPlumes(){
+function drawFournaises(){
 
-    /* l'encre d'abord : elle est au sol */
-    ctx.save();
+    for(const f of fournaises){
 
-    for(const e of encres){
+        const r = f.r * (f.birth > 0 ? 1 - f.birth / .5 : 1);
 
-        const k = Math.min(1, e.life / 3.6);
+        ctx.save();
+        ctx.translate(f.x, f.y);
+        ctx.rotate(f.ang);
 
-        ctx.globalAlpha = .25 + k * .6;
-        ctx.fillStyle   = e.life > .6 ? "#1b0e30" : "#3a2a55";
+        /* le souffle */
+        if(f.flame > 0){
 
+            const reach = FOURN_REACH * unit * f.flame;
+
+            const g = ctx.createLinearGradient(0, 0, reach, 0);
+            g.addColorStop(0,   "rgba(255,255,220,.95)");
+            g.addColorStop(.35, "rgba(255,170,50,.7)");
+            g.addColorStop(1,   "rgba(200,40,10,0)");
+
+            ctx.fillStyle   = g;
+            ctx.shadowColor = "#ff7a2a";
+            ctx.shadowBlur  = 26;
+
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.arc(0, 0, reach, -FOURN_CONE, FOURN_CONE);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.shadowBlur = 0;
+
+            /* les braises emportees */
+            ctx.fillStyle = "#ffe9a8";
+
+            for(let i = 0; i < 9; i++){
+                const kk = ((gameTime * 1.6 + i / 9) % 1);
+                const a  = (rnd() - .5) * FOURN_CONE * 1.5;
+                ctx.globalAlpha = (1 - kk) * .8;
+                ctx.beginPath();
+                ctx.arc(kk * reach, Math.sin(a) * kk * reach, r * .07, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.globalAlpha = 1;
+
+        }else if(f.phase === "charge"){
+
+            /* l'avertissement : le cone se dessine en creux */
+            ctx.globalAlpha = .18 + f.heat * .3;
+            ctx.strokeStyle = "#ffb347";
+            ctx.lineWidth   = 2.2 * unit;
+
+            const reach = FOURN_REACH * unit;
+
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(-FOURN_CONE) * reach, Math.sin(-FOURN_CONE) * reach);
+            ctx.moveTo(0, 0);
+            ctx.lineTo(Math.cos(FOURN_CONE) * reach, Math.sin(FOURN_CONE) * reach);
+            ctx.stroke();
+
+            ctx.globalAlpha = 1;
+
+        }
+
+        /* le corps : un four trapu sur trois pieds */
+        ctx.fillStyle = "#2b3138";
+
+        for(let i = 0; i < 3; i++){
+            const a = i * 2.09 + 1.05;
+            ctx.save();
+            ctx.rotate(a);
+            ctx.fillRect(-r * .12, r * .5, r * .24, r * .7);
+            ctx.restore();
+        }
+
+        const body = ctx.createRadialGradient(-r * .2, -r * .3, r * .1, 0, 0, r);
+        body.addColorStop(0, "#7d8892");
+        body.addColorStop(1, "#232a30");
+
+        ctx.fillStyle = body;
         ctx.beginPath();
-        ctx.ellipse(e.x, e.y, e.r * 1.25, e.r, 0, 0, Math.PI * 2);
+        ctx.arc(0, 0, r, 0, Math.PI * 2);
         ctx.fill();
 
-        if(e.life > .6){
-            ctx.globalAlpha = .35 * k;
-            ctx.strokeStyle = "#b06cff";
-            ctx.lineWidth   = 1.4 * unit;
+        ctx.strokeStyle = "#12171c";
+        ctx.lineWidth   = r * .1;
+        ctx.stroke();
+
+        /* les cerclages */
+        ctx.strokeStyle = "#4a545e";
+        ctx.lineWidth   = r * .12;
+
+        for(let i = -1; i <= 1; i += 2){
             ctx.beginPath();
-            ctx.ellipse(e.x, e.y, e.r * 1.25, e.r, 0, 0, Math.PI * 2);
+            ctx.arc(0, 0, r * .72, i * .6, i * .6 + 2.4);
             ctx.stroke();
         }
 
-    }
+        /* la gueule, qui rougit avant de souffler */
+        const mouth = ctx.createRadialGradient(r * .7, 0, r * .05, r * .7, 0, r * .5);
+        mouth.addColorStop(0, f.heat > .1 ? "#fff4c2" : "#3a1a08");
+        mouth.addColorStop(.5, "rgba(255,140,40," + (.2 + f.heat * .8).toFixed(2) + ")");
+        mouth.addColorStop(1, "rgba(90,20,4,0)");
 
-    ctx.restore();
-
-    for(const q of plumes){
-
-        const r = q.r * (q.birth > 0 ? 1 - q.birth / .5 : 1);
-
-        ctx.save();
-        ctx.translate(q.x, q.y);
-        ctx.rotate(q.ang + Math.PI / 2);
-
-        /* le calame */
-        const g = ctx.createLinearGradient(0, -r * 2.2, 0, r * 1.2);
-        g.addColorStop(0, "#f2ecff");
-        g.addColorStop(1, "#8a6cc0");
-
-        ctx.fillStyle = g;
+        ctx.fillStyle   = mouth;
+        ctx.shadowColor = "#ff7a2a";
+        ctx.shadowBlur  = f.heat * 24;
 
         ctx.beginPath();
-        ctx.moveTo(0, r * 1.4);
-        ctx.quadraticCurveTo(r * .9, -r * .4, 0, -r * 2.4);
-        ctx.quadraticCurveTo(-r * .9, -r * .4, 0, r * 1.4);
+        ctx.ellipse(r * .72, 0, r * .38, r * .5, 0, 0, Math.PI * 2);
         ctx.fill();
 
-        /* la nervure */
-        ctx.strokeStyle = "#5a3f8a";
-        ctx.lineWidth   = r * .12;
+        ctx.shadowBlur = 0;
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* --- LE COUCOU : il plane, puis il pique --- */
+function spawnCoucou(){
+
+    const r = (22 + rnd() * 7) * unit;
+    const a = playArea();
+
+    coucous.push({
+        x:a.x0 + rnd() * (a.x1 - a.x0),
+        y:a.y0 + 20 * unit,
+        r:r,
+        phase:"hover", timer:1.6 + rnd(),
+        ang:0, vx:0, vy:0,
+        wing:rnd() * 6.28,
+        birth:.5, stunned:0
+    });
+
+}
+
+
+function updateCoucous(dt){
+
+    const base = mimicSpeed({type:MIMIC_TYPES[0]});
+    const area = playArea();
+
+    for(const c of coucous){
+
+        if(c.birth > 0){ c.birth = Math.max(0, c.birth - dt); continue; }
+        if(c.stunned > 0){ c.stunned -= dt; continue; }
+
+        c.wing += dt * (c.phase === "dive" ? 26 : 13);
+
+        const aim = lureTarget();
+
+        if(c.phase === "hover"){
+
+            /* il tourne au-dessus, en se placant a ta verticale */
+            const tx = aim.x;
+            const ty = area.y0 + (area.y1 - area.y0) * .18;
+
+            c.x += (tx - c.x) * Math.min(1, dt * 1.2);
+            c.y += (ty - c.y) * Math.min(1, dt * 1.6);
+
+            c.ang = Math.sin(gameTime * 2) * .12;
+
+            c.timer -= dt;
+
+            if(c.timer <= 0){
+                c.phase = "call";
+                c.timer = .6;
+                sound(880, .12, "square", .035);
+                sound(660, .12, "square", .03);
+            }
+
+        }else if(c.phase === "call"){
+
+            /* le chant : deux notes, et il se cabre */
+            c.timer -= dt;
+            c.ang    = -.5;
+
+            if(c.timer <= 0){
+
+                const a = Math.atan2(aim.y - c.y, aim.x - c.x);
+
+                c.vx = Math.cos(a) * base * 3;
+                c.vy = Math.sin(a) * base * 3;
+
+                c.ang   = a;
+                c.phase = "dive";
+                c.timer = 1.1;
+
+                sound(320, .2, "sawtooth", .04);
+
+            }
+
+        }else{
+
+            c.timer -= dt;
+
+            c.x += c.vx * dt;
+            c.y += c.vy * dt;
+
+            /* il rebondit sur les bords au lieu de sortir */
+            if(c.x < area.x0 + c.r || c.x > area.x1 - c.r){ c.vx = -c.vx; c.ang = Math.PI - c.ang; }
+            if(c.y < area.y0 + c.r || c.y > area.y1 - c.r){ c.vy = -c.vy; c.ang = -c.ang; }
+
+            if(c.timer <= 0){
+                c.phase = "hover";
+                c.timer = 2 + rnd() * 1.4;
+            }
+
+            if(w69Hit(c)){
+                burst(c.x, c.y, 18, "#ffd76a");
+            }
+
+        }
+
+        w69Clamp(c);
+
+    }
+
+}
+
+
+function drawCoucous(){
+
+    for(const c of coucous){
+
+        const r    = c.r * (c.birth > 0 ? 1 - c.birth / .5 : 1);
+        const dive = c.phase === "dive";
+
+        ctx.save();
+        ctx.translate(c.x, c.y);
+        ctx.rotate(c.ang);
+
+        /* les ailes de laiton, en battement */
+        const beat = Math.sin(c.wing) * .7;
+
+        [-1, 1].forEach(sg => {
+
+            ctx.save();
+            ctx.rotate(sg * (beat + .3));
+
+            const g = ctx.createLinearGradient(0, 0, -r * .4, sg * r * 1.6);
+            g.addColorStop(0, "#ffe6a8");
+            g.addColorStop(1, "#a8762a");
+
+            ctx.fillStyle = g;
+
+            ctx.beginPath();
+            ctx.moveTo(-r * .1, 0);
+            ctx.quadraticCurveTo(-r * .9, sg * r * 1.5, -r * 1.5, sg * r * .5);
+            ctx.quadraticCurveTo(-r * .8, sg * r * .3, -r * .1, 0);
+            ctx.fill();
+
+            ctx.strokeStyle = "#6b4a10";
+            ctx.lineWidth   = r * .07;
+            ctx.stroke();
+
+            ctx.restore();
+
+        });
+
+        /* la queue */
+        ctx.fillStyle = "#8fb6d0";
         ctx.beginPath();
-        ctx.moveTo(0, r * 1.3);
-        ctx.lineTo(0, -r * 2.2);
+        ctx.moveTo(-r * .7, 0);
+        ctx.lineTo(-r * 1.5, -r * .35);
+        ctx.lineTo(-r * 1.3, 0);
+        ctx.lineTo(-r * 1.5, r * .35);
+        ctx.closePath();
+        ctx.fill();
+
+        /* le corps de cuivre */
+        const body = ctx.createRadialGradient(r * .1, -r * .25, r * .1, 0, 0, r);
+        body.addColorStop(0, "#ffe9c0");
+        body.addColorStop(.55, "#d8a53d");
+        body.addColorStop(1, "#7a5210");
+
+        ctx.fillStyle = body;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, r, r * .78, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = "#3a2708";
+        ctx.lineWidth   = r * .09;
         ctx.stroke();
 
-        /* la pointe qui goutte */
-        ctx.fillStyle   = "#1b0e30";
-        ctx.shadowColor = "#b06cff";
+        /* les rivets */
+        ctx.fillStyle = "#5f4210";
+
+        for(let i = 0; i < 5; i++){
+            const a = i * 1.25;
+            ctx.beginPath();
+            ctx.arc(Math.cos(a) * r * .5, Math.sin(a) * r * .35, r * .07, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        /* le bec */
+        ctx.fillStyle = "#e8f2ff";
+        ctx.beginPath();
+        ctx.moveTo(r * .85, -r * .18);
+        ctx.lineTo(r * 1.7, 0);
+        ctx.lineTo(r * .85, r * .18);
+        ctx.closePath();
+        ctx.fill();
+
+        /* l'oeil de verre */
+        ctx.fillStyle = "#1a1206";
+        ctx.beginPath();
+        ctx.arc(r * .45, -r * .22, r * .2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle   = dive ? "#ff5f4d" : "#9fe9ff";
+        ctx.shadowColor = dive ? "#ff5f4d" : "#9fe9ff";
         ctx.shadowBlur  = 10;
 
         ctx.beginPath();
-        ctx.arc(0, r * 1.5, r * .3, 0, Math.PI * 2);
+        ctx.arc(r * .5, -r * .24, r * .1, 0, Math.PI * 2);
         ctx.fill();
 
         ctx.restore();
@@ -5424,6 +5391,7 @@ function enterClock(){
     w69Enter("horloge", "🕰 L'HORLOGE", "#9fe9ff");
     for(let i = 0; i < 2; i++){ spawnEngrenage(); }
     for(let i = 0; i < 2; i++){ spawnPendule(); }
+    for(let i = 0; i < 2; i++){ spawnCoucou(); }
 }
 
 
@@ -5707,15 +5675,13 @@ function updateW69(dt){
 
     if(zone === "desert"){
 
-        updateScarabees(dt);
         updateMirages(dt);
 
         w69Timer -= dt;
 
         if(w69Timer <= 0){
-            w69Timer = 10;
-            if(scarabees.length < 3){ spawnScarabee(); }
-            else if(mirages.length < 2){ spawnMirage(); }
+            w69Timer = 7;
+            spawnMirage();
         }
 
         return;
@@ -5724,15 +5690,15 @@ function updateW69(dt){
 
     if(zone === "forge"){
 
-        updateMarteaux(dt);
         updateChaines(dt);
+        updateFournaises(dt);
 
         w69Timer -= dt;
 
         if(w69Timer <= 0){
             w69Timer = 12;
-            if(marteaux.length < 3){ spawnMarteau(); }
-            else if(chaines.length < 2){ spawnChaine(); }
+            if(chaines.length < 3){ spawnChaine(); }
+            else if(fournaises.length < 3){ spawnFournaise(); }
         }
 
         return;
@@ -5742,14 +5708,12 @@ function updateW69(dt){
     if(zone === "biblio"){
 
         updateGrimoires(dt);
-        updatePlumes(dt);
 
         w69Timer -= dt;
 
         if(w69Timer <= 0){
-            w69Timer = 11;
-            if(grimoires.length < 3){ spawnGrimoire(); }
-            else if(plumes.length < 2){ spawnPlume(); }
+            w69Timer = 8;
+            spawnGrimoire();
         }
 
         return;
@@ -5760,12 +5724,14 @@ function updateW69(dt){
 
         updateEngrenages(dt);
         updatePendules(dt);
+        updateCoucous(dt);
 
         w69Timer -= dt;
 
         if(w69Timer <= 0){
-            w69Timer = 14;
-            if(pendules.length < 3){ spawnPendule(); }
+            w69Timer = 12;
+            if(coucous.length < 3){ spawnCoucou(); }
+            else if(pendules.length < 3){ spawnPendule(); }
         }
 
         return;
@@ -5773,9 +5739,9 @@ function updateW69(dt){
     }
 
     /* on n'est plus dans ces mondes : on range */
-    if(scarabees.length || marteaux.length || grimoires.length || engrenages.length ||
-       mirages.length || chaines.length || plumes.length || pendules.length ||
-       pages.length || encres.length){
+    if(mirages.length || chaines.length || fournaises.length ||
+       grimoires.length || pages.length ||
+       engrenages.length || pendules.length || coucous.length){
         clearW69();
     }
 
@@ -5785,17 +5751,16 @@ function updateW69(dt){
 function drawW69(){
 
     if(zone === "desert"){
-        drawScarabees();
         drawMirages();
     }else if(zone === "forge"){
+        drawFournaises();
         drawChaines();
-        drawMarteaux();
     }else if(zone === "biblio"){
-        drawPlumes();
         drawGrimoires();
     }else if(zone === "horloge"){
         drawEngrenages();
         drawPendules();
+        drawCoucous();
     }
 
 }
@@ -5804,8 +5769,8 @@ function drawW69(){
 /* toutes les creatures de ces mondes qui savent etre sonnees */
 function w69Creatures(){
     return [].concat(
-        scarabees, mirages, marteaux, chaines,
-        grimoires, plumes, engrenages, pendules
+        mirages, chaines, fournaises,
+        grimoires, engrenages, pendules, coucous
     );
 }
 

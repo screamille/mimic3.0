@@ -431,9 +431,10 @@ function reset(){
     lanternes = [];
     bulles    = [];
     guimauves = [];
-    boss      = null;
-    bossShots = [];
-    bossBeams = [];
+    boss        = null;
+    bossShots   = [];
+    bossBeams   = [];
+    voidCleared = false;
     clearW69();
     abyssTimer = 0;
     guimauveTimer = 0;
