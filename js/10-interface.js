@@ -604,6 +604,32 @@ const SECRET_CODES = {
         }
     },
 
+    "4444":{
+        label:"LES ABYSSES",
+        run:function(){
+
+            startGame();
+
+            level = ABYSS_LEVEL;
+
+            enterAbyss();
+
+        }
+    },
+
+    "5555":{
+        label:"LE NÉANT",
+        run:function(){
+
+            startGame();
+
+            level = VOID_LEVEL;
+
+            enterVoid();
+
+        }
+    },
+
     "0000":{
         label:"0 PIÈCE",
         run:function(){
