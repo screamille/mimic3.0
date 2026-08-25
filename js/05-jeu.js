@@ -1256,7 +1256,7 @@ function update(dt){
         const wd = currentWorld();
 
         paintProgress(
-            "MONDE " + wd.n + "/" + WORLDS.length + " · " + wd.name,
+            "MONDE " + wd.n + "  " + wd.name,
             worldProgress(),
             wd.col
         );
