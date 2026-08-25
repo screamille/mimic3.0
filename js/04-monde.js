@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "5.1";
+const VERSION = "5.2";
 
 (function(){
 
@@ -2103,7 +2103,7 @@ function enterMarais(){
 
     noteWorld("marais");
 
-    pickupMessage("🐸 LE MARAIS", "#8fe04a");
+    worldBanner("marais", "🐸");
 
     sound(300, .5, "triangle", .06);
 
@@ -2166,7 +2166,7 @@ function enterCandy(){
 
     noteWorld("bonbon");
 
-    pickupMessage("🍬 LE PAYS DES BONBONS", "#ff8fc4");
+    worldBanner("bonbon", "🍬");
 
     sound(520, .5, "triangle", .06);
 
@@ -2967,6 +2967,19 @@ function worldUnlocked(zoneId){
 
 function noteWorld(zoneId){
 
+    /*
+    Chaque monde couvre exactement sa tranche de niveaux. En
+    arrivant, on cale le niveau sur son debut : la barre de
+    progression repart bien de zero, et le portail suivant
+    est toujours a la meme distance — meme si on a fini le
+    monde precedent en avance (le boss, par exemple).
+    */
+    const w = WORLDS.find(x => x.zone === zoneId);
+
+    if(w){
+        level = w.from;
+    }
+
     if(byPortal && worldsSeen.indexOf(zoneId) < 0){
 
         worldsSeen.push(zoneId);
@@ -3314,7 +3327,7 @@ function enterVoid(){
 
     noteWorld("neant");
 
-    pickupMessage("👁 L'ŒIL DU NÉANT", "#c86aff");
+    worldBanner("neant", "👁");
 
     sound(60, 1.4, "sine",     .08);
     sound(92, 1.0, "sawtooth", .04);
@@ -4117,7 +4130,7 @@ function paintDesert(c){
 const MAX_MIRAGES = 7;
 
 function enterDesert(){
-    w69Enter("desert", "🏜 LE DÉSERT DE VERRE", "#ffd76a");
+    w69Enter("desert", "🏜", "#ffd76a");
     for(let i = 0; i < 3; i++){ spawnMirage(); }
 }
 
@@ -4375,7 +4388,7 @@ function paintForge(c){
 
 
 function enterForge(){
-    w69Enter("forge", "🔥 LA FORGE", "#ff7a2a");
+    w69Enter("forge", "🔥", "#ff7a2a");
     for(let i = 0; i < 2; i++){ spawnChaine(); }
     for(let i = 0; i < 2; i++){ spawnFournaise(); }
 }
@@ -4618,7 +4631,7 @@ function paintLibrary(c){
 const MAX_GRIMOIRES = 5;
 
 function enterLibrary(){
-    w69Enter("biblio", "📖 LA BIBLIOTHÈQUE", "#b06cff");
+    w69Enter("biblio", "📖", "#b06cff");
     for(let i = 0; i < MAX_GRIMOIRES; i++){ spawnGrimoire(); }
 }
 
@@ -5388,7 +5401,7 @@ function paintClock(c){
 
 
 function enterClock(){
-    w69Enter("horloge", "🕰 L'HORLOGE", "#9fe9ff");
+    w69Enter("horloge", "🕰", "#9fe9ff");
     for(let i = 0; i < 2; i++){ spawnEngrenage(); }
     for(let i = 0; i < 2; i++){ spawnPendule(); }
     for(let i = 0; i < 2; i++){ spawnCoucou(); }
@@ -5633,6 +5646,20 @@ function drawPendules(){
    L'ARRIVEE DANS CES QUATRE MONDES
 ========================================================= */
 
+/* le meme bandeau pour tous : MONDE n, puis son nom */
+function worldBanner(zoneId, icon){
+
+    const w = WORLDS.find(x => x.zone === zoneId);
+
+    if(!w){
+        return;
+    }
+
+    pickupMessage(icon + " MONDE " + w.n + "  " + w.name, w.col);
+
+}
+
+
 function w69Enter(zoneId, label, col){
 
     zone = zoneId;
@@ -5664,7 +5691,7 @@ function w69Enter(zoneId, label, col){
 
     noteWorld(zoneId);
 
-    pickupMessage(label, col);
+    worldBanner(zoneId, label);
 
     sound(200, .7, "triangle", .05);
 
@@ -6326,7 +6353,7 @@ function enterAbyss(){
 
     noteWorld("abysse");
 
-    pickupMessage("🌑 LES ABYSSES", "#2fe0ff");
+    worldBanner("abysse", "🌑");
 
     sound(120, .9, "sine",     .07);
     sound(180, .6, "triangle", .04);

@@ -825,8 +825,6 @@ function startInMarais(){
 
     enterMarais();
 
-    pickupMessage("🐸 LE MARAIS", "#8fe04a");
-
 }
 
 
