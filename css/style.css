@@ -1665,6 +1665,18 @@ laisser un menu fige sans explication.
     word-break:break-word;
 }
 
+.setArrow{
+    flex:0 0 auto;
+
+    padding:0 4px;
+
+    color:#7f8fb5;
+    font-size:20px;
+    line-height:1;
+}
+
+.setRow:hover .setArrow{ color:#dce6ff; }
+
 .shopFloatX{
     position:fixed;
     top:max(12px, env(safe-area-inset-top));

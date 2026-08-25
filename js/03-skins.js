@@ -171,9 +171,19 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
 
     }
 
-    c.beginPath();
+    /*
+    La silhouette est gardee de cote : elle sert au remplissage,
+    au decoupage des details, puis a la lumiere de bord. Sans
+    ca il faudrait la redessiner trois fois.
+    */
+    const shape = (typeof Path2D !== "undefined") ? new Path2D() : null;
+    const path  = shape || c;
 
-    c.moveTo(
+    if(!shape){
+        c.beginPath();
+    }
+
+    path.moveTo(
         (pts[0].x + pts[N - 1].x) / 2,
         (pts[0].y + pts[N - 1].y) / 2
     );
@@ -183,7 +193,7 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
         const cur  = pts[i];
         const next = pts[(i + 1) % N];
 
-        c.quadraticCurveTo(
+        path.quadraticCurveTo(
             cur.x, cur.y,
             (cur.x + next.x) / 2,
             (cur.y + next.y) / 2
@@ -191,7 +201,22 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
 
     }
 
-    c.closePath();
+    path.closePath();
+
+    /*
+    L'ombre portee au sol : c'est elle qui pose la masse sur
+    le terrain au lieu de la laisser flotter.
+    */
+    const drop = c.createRadialGradient(0, h * 1.02, r * .06, 0, h * 1.02, r * 1.05);
+    drop.addColorStop(0,  "rgba(0,0,0,.34)");
+    drop.addColorStop(.6, "rgba(0,0,0,.13)");
+    drop.addColorStop(1,  "rgba(0,0,0,0)");
+
+    c.globalAlpha = 1;
+    c.fillStyle   = drop;
+    c.beginPath();
+    c.ellipse(0, h * 1.02, w * 1.02, h * .26, 0, 0, Math.PI * 2);
+    c.fill();
 
     const body = c.createLinearGradient(0, -h * 1.1, 0, h);
 
@@ -226,14 +251,17 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
 
     c.shadowBlur  = r * .5;
     c.shadowColor = skin.color;
-    c.fill();
+
+    if(shape){ c.fill(shape); }else{ c.fill(); }
+
     c.shadowBlur  = 0;
 
     c.globalAlpha = 1;
 
     /* on enferme les détails dans le corps */
     c.save();
-    c.clip();
+
+    if(shape){ c.clip(shape); }else{ c.clip(); }
 
     /* diffusion interne : la lumière traverse la gelée */
     const sss = c.createRadialGradient(
@@ -315,8 +343,74 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
     /* motifs propres à chaque skin, à l'intérieur du corps */
     paintSkinInner(c, skin, w, h, r, t, f);
 
+    /* =====================================================
+       PASSE DE VOLUME
+
+       Elle s'applique a TOUS les skins, par-dessus leur
+       motif : un fond d'ombre sur les bords, une lumiere
+       froide qui vient de derriere, et un liset clair sur
+       l'arete. C'est ce trio qui fait passer la masse de
+       la pastille plate au volume.
+    ===================================================== */
+
+    c.globalAlpha = 1;
+
+    /* occlusion : la matiere s'assombrit la ou elle s'epaissit */
+    const ao = c.createRadialGradient(
+        -w * .18, -h * .30, r * .12,
+        -w * .05,  h * .05, r * 1.32
+    );
+    ao.addColorStop(0,   "rgba(0,0,0,0)");
+    ao.addColorStop(.62, "rgba(0,0,0,0)");
+    ao.addColorStop(.86, "rgba(0,0,0,.22)");
+    ao.addColorStop(1,   "rgba(0,0,0,.46)");
+
+    c.fillStyle = ao;
+    c.fillRect(-w * 1.4, -h * 1.5, w * 2.8, h * 3);
+
+    /* lumiere de contre-jour, en bas a droite */
+    const rim = c.createLinearGradient(w * .1, h * .1, w, h);
+    rim.addColorStop(0,   "rgba(255,255,255,0)");
+    rim.addColorStop(.55, hexA(skin.color, .28));
+    rim.addColorStop(1,   "rgba(255,255,255,.55)");
+
+    if(shape){
+
+        c.globalAlpha = .85;
+        c.strokeStyle = rim;
+        c.lineWidth   = r * .22;
+        c.lineJoin    = "round";
+        c.stroke(shape);
+
+        /* liset froid sur le haut, pour decoller du fond */
+        const cold = c.createLinearGradient(0, -h * 1.1, 0, -h * .2);
+        cold.addColorStop(0, "rgba(190,225,255,.55)");
+        cold.addColorStop(1, "rgba(190,225,255,0)");
+
+        c.globalAlpha = .7;
+        c.strokeStyle = cold;
+        c.lineWidth   = r * .13;
+        c.stroke(shape);
+
+    }
+
+    c.globalAlpha = 1;
+
     c.restore();
     c.globalAlpha = 1;
+
+    /* le fin trait de lumiere qui detoure toute la masse */
+    if(shape){
+
+        c.globalAlpha = .30;
+        c.strokeStyle = "#ffffff";
+        c.lineWidth   = Math.max(.8, r * .035);
+        c.lineJoin    = "round";
+        c.stroke(shape);
+
+        c.globalAlpha = 1;
+
+    }
 
     /* --- le cratère, pour le slime rouge --- */
 

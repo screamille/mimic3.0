@@ -901,14 +901,15 @@ document.addEventListener("click", e => {
 }, true);
 
 document.getElementById("guideButton").onclick = () => {
-    document.getElementById("mainMenu").style.display = "none";
+    document.getElementById("settings").style.display = "none";
     document.getElementById("guide").style.display    = "flex";
     renderGuideIcons();
 };
 
+/* on referme sur les parametres : c'est de la qu'on vient */
 document.getElementById("guideClose").onclick = () => {
     document.getElementById("guide").style.display     = "none";
-    document.getElementById("mainMenu").style.display  = "block";
+    document.getElementById("settings").style.display  = "flex";
 };
 document.getElementById("joiningCancel").onclick   = closeDuel;
 
