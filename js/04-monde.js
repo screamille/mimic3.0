@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "4.5";
+const VERSION = "5.0";
 
 (function(){
 
@@ -196,7 +196,10 @@ function skillTick(dt){
 
 /* toutes les creatures qui savent etre sonnees */
 function stunnableCreatures(){
-    return [].concat(mimics, blobs, gloutons, guimauves, anguilles, lanternes);
+    return [].concat(
+        mimics, blobs, gloutons, guimauves, anguilles, lanternes,
+        w69Creatures()
+    );
 }
 
 
@@ -1374,6 +1377,14 @@ function buildFloor(){
         paintAbyss(c);
     }else if(zone === "neant"){
         paintVoid(c);
+    }else if(zone === "desert"){
+        paintDesert(c);
+    }else if(zone === "forge"){
+        paintForge(c);
+    }else if(zone === "biblio"){
+        paintLibrary(c);
+    }else if(zone === "horloge"){
+        paintClock(c);
     }else{
         paintGalaxy(c);
     }
@@ -1897,6 +1908,11 @@ function portalTarget(){
         return "neant";
     }
 
+    if(zone === "neant"  && level >= DESERT_LEVEL){ return "desert"; }
+    if(zone === "desert" && level >= FORGE_LEVEL) { return "forge"; }
+    if(zone === "forge"  && level >= BIBLIO_LEVEL){ return "biblio"; }
+    if(zone === "biblio" && level >= CLOCK_LEVEL) { return "horloge"; }
+
     return null;
 
 }
@@ -1944,10 +1960,18 @@ function spawnPortal(){
         birth:0,
         pull:0,
         target:target,
-        col:  target === "neant"  ? "#c86aff" :
+        col:  target === "horloge" ? "#9fe9ff" :
+              target === "biblio"  ? "#b06cff" :
+              target === "forge"   ? "#ff7a2a" :
+              target === "desert"  ? "#ffd76a" :
+              target === "neant"  ? "#c86aff" :
               target === "abysse" ? "#2fe0ff" :
               target === "bonbon" ? "#ff5fa2" : "#7bd93a",
-        col2: target === "neant"  ? "#f0d8ff" :
+        col2: target === "horloge" ? "#e8fbff" :
+              target === "biblio"  ? "#efe6ff" :
+              target === "forge"   ? "#ffe0b0" :
+              target === "desert"  ? "#fff2c8" :
+              target === "neant"  ? "#f0d8ff" :
               target === "abysse" ? "#c8f6ff" :
               target === "bonbon" ? "#ffd0e6" : "#bdf58a"
     };
@@ -3083,8 +3107,8 @@ function shareScore(){
    chaque fois qu'il te touche.
 ========================================================= */
 
-const BOSS_TIME  = 95;    /* secondes de survie pour le vaincre */
-const BOSS_PUNCH = .07;   /* ce qu'il regagne quand il te touche */
+const BOSS_TIME  = 78;    /* secondes de survie pour le vaincre */
+const BOSS_PUNCH = .05;   /* ce qu'il regagne quand il te touche */
 
 const BOSS_PHASES = [
     {name:"SALVES", col:"#c86aff"},
@@ -3549,7 +3573,7 @@ function updateBoss(dt){
 
         if(boss.fire <= 0){
             bossSalvo();
-            boss.fire = 2.0;
+            boss.fire = 2.4;
         }
 
     }else if(ph === 1){
@@ -3588,7 +3612,7 @@ function updateBoss(dt){
         }
 
         /* la spirale, continue */
-        boss.spiral += dt * 3.4;
+        boss.spiral += dt * 3.0;
         boss.fire   -= dt;
 
         if(boss.fire <= 0){
@@ -3601,7 +3625,7 @@ function updateBoss(dt){
                 );
             }
 
-            boss.fire = .23;
+            boss.fire = .30;
 
         }
 
@@ -3933,6 +3957,1856 @@ function bossBar(){
     f.style.width      = (boss.hp * 100).toFixed(1) + "%";
     f.style.background = "linear-gradient(90deg,#2a0640," + ph.col + ")";
 
+}
+
+
+
+
+/* =========================================================
+   MONDES 6 A 9
+
+   Quatre mondes de plus, et pas un seul ennemi en commun :
+   chacun a ses deux habitants, avec sa propre facon de
+   t'attraper.
+========================================================= */
+
+let scarabees = [];   /* MONDE 6 : sous le sable       */
+let mirages   = [];   /* MONDE 6 : la fausse copie     */
+let marteaux  = [];   /* MONDE 7 : la masse qui tombe  */
+let chaines   = [];   /* MONDE 7 : le fleau qui tourne */
+let grimoires = [];   /* MONDE 8 : le livre volant     */
+let pages     = [];   /* MONDE 8 : ses lames de papier */
+let plumes    = [];   /* MONDE 8 : la plume et l'encre */
+let encres    = [];   /* MONDE 8 : le trait d'encre    */
+let engrenages = [];  /* MONDE 9 : la roue qui longe   */
+let pendules  = [];   /* MONDE 9 : le balancier        */
+
+let w69Timer = 0;
+
+
+function clearW69(){
+    scarabees = []; mirages = [];
+    marteaux  = []; chaines = [];
+    grimoires = []; pages   = []; plumes = []; encres = [];
+    engrenages = []; pendules = [];
+    w69Timer = 0;
+}
+
+
+/* petit utilitaire commun a ces mondes */
+function w69Clamp(e){
+
+    const a = playArea();
+
+    e.x = Math.max(a.x0 + e.r, Math.min(a.x1 - e.r, e.x));
+    e.y = Math.max(a.y0 + e.r, Math.min(a.y1 - e.r, e.y));
+
+}
+
+
+function w69Hit(e){
+
+    if(player.invincible <= 0 && collide(player, e)){
+        loseLife(null);
+        return true;
+    }
+
+    return false;
+
+}
+
+
+/* =========================================================
+   MONDE 6 : LE DESERT DE VERRE
+========================================================= */
+
+function paintDesert(c){
+
+    /* le sable, chaud en haut, sombre au sol */
+    const base = c.createLinearGradient(0, 0, W * .2, H);
+    base.addColorStop(0,   "#ffd89b");
+    base.addColorStop(.42, "#e8a95e");
+    base.addColorStop(1,   "#8a5426");
+
+    c.fillStyle = base;
+    c.fillRect(0, 0, W, H);
+
+    /* les dunes en bandes molles */
+    for(let i = 0; i < 7; i++){
+
+        const y = H * (.15 + i * .13);
+
+        c.fillStyle = i % 2
+            ? "rgba(255,225,170,.20)"
+            : "rgba(150,90,40,.16)";
+
+        c.beginPath();
+        c.moveTo(-10, y + 60 * unit);
+
+        for(let k = 0; k <= 10; k++){
+            const kk = k / 10;
+            c.lineTo(kk * W, y + Math.sin(kk * 5 + i) * 26 * unit);
+        }
+
+        c.lineTo(W + 10, y + 60 * unit);
+        c.closePath();
+        c.fill();
+
+    }
+
+    /* les eclats de verre plantes dans le sable */
+    for(let i = 0; i < 18; i++){
+
+        const x  = Math.random() * W;
+        const y  = H * (.25 + Math.random() * .7);
+        const hh = (40 + Math.random() * 130) * unit;
+        const ww = (10 + Math.random() * 26) * unit;
+
+        const g = c.createLinearGradient(x, y - hh, x, y);
+        g.addColorStop(0,  "rgba(210,245,255,.75)");
+        g.addColorStop(1,  "rgba(120,190,220,.20)");
+
+        c.fillStyle = g;
+
+        c.beginPath();
+        c.moveTo(x, y - hh);
+        c.lineTo(x + ww * .5, y);
+        c.lineTo(x - ww * .5, y);
+        c.closePath();
+        c.fill();
+
+        c.strokeStyle = "rgba(255,255,255,.5)";
+        c.lineWidth   = 1.2 * unit;
+        c.stroke();
+
+    }
+
+    /* la poussiere qui vole */
+    for(let i = 0; i < Math.round(W * H / 4200); i++){
+
+        const x = Math.random() * W;
+        const y = Math.random() * H;
+
+        c.fillStyle = "rgba(255,240,210,.5)";
+        c.fillRect(x, y, unit * 1.5, unit * 1.1);
+
+    }
+
+    const vig = c.createRadialGradient(
+        W / 2, H * .4, Math.min(W, H) * .25,
+        W / 2, H / 2, Math.max(W, H) * .8
+    );
+    vig.addColorStop(0, "rgba(255,255,255,.06)");
+    vig.addColorStop(1, "rgba(90,45,10,.45)");
+
+    c.fillStyle = vig;
+    c.fillRect(0, 0, W, H);
+
+    twinkles = [];
+
+}
+
+
+function enterDesert(){
+    w69Enter("desert", "🏜 LE DÉSERT DE VERRE", "#ffd76a");
+    for(let i = 0; i < 2; i++){ spawnScarabee(); }
+    spawnMirage();
+}
+
+
+/* --- LE SCARABEE : il voyage sous le sable --- */
+function spawnScarabee(){
+
+    const r = (26 + rnd() * 8) * unit;
+    const p = findSpot(r, 300) || findSpot(r, 180);
+
+    if(!p){ return; }
+
+    scarabees.push({
+        x:p.x, y:p.y, r:r,
+        phase:"under", timer:1.6 + rnd(),
+        ang:0, dust:0, birth:.5, stunned:0
+    });
+
+}
+
+
+function updateScarabees(dt){
+
+    const base = mimicSpeed({type:MIMIC_TYPES[0]});
+
+    for(const e of scarabees){
+
+        if(e.birth > 0){ e.birth = Math.max(0, e.birth - dt); continue; }
+        if(e.stunned > 0){ e.stunned -= dt; continue; }
+
+        e.dust += dt * 6;
+
+        const aim = lureTarget();
+
+        if(e.phase === "under"){
+
+            /* il glisse vers toi, lentement, en soulevant le sable */
+            const a = Math.atan2(aim.y - e.y, aim.x - e.x);
+
+            e.x += Math.cos(a) * base * .55 * dt;
+            e.y += Math.sin(a) * base * .55 * dt;
+
+            e.timer -= dt;
+
+            if(e.timer <= 0){
+                e.phase = "rise";
+                e.timer = .75;
+                e.ang   = a;
+                sound(140, .2, "sawtooth", .035);
+            }
+
+        }else if(e.phase === "rise"){
+
+            /* il sort : c'est le moment de degager */
+            e.timer -= dt;
+            e.ang    = Math.atan2(aim.y - e.y, aim.x - e.x);
+
+            if(e.timer <= 0){
+                e.phase = "charge";
+                e.timer = 1.1;
+                sound(320, .16, "square", .04);
+            }
+
+        }else{
+
+            e.timer -= dt;
+
+            e.x += Math.cos(e.ang) * base * 2.3 * dt;
+            e.y += Math.sin(e.ang) * base * 2.3 * dt;
+
+            if(e.timer <= 0){
+                e.phase = "under";
+                e.timer = 2 + rnd() * 1.4;
+            }
+
+            if(w69Hit(e)){
+                burst(e.x, e.y, 20, "#e8c07a");
+            }
+
+        }
+
+        w69Clamp(e);
+
+    }
+
+}
+
+
+function drawScarabees(){
+
+    for(const e of scarabees){
+
+        const r = e.r * (e.birth > 0 ? 1 - e.birth / .5 : 1);
+
+        ctx.save();
+        ctx.translate(e.x, e.y);
+
+        if(e.phase === "under"){
+
+            /* seule la bosse de sable te previent */
+            ctx.globalAlpha = .8;
+            ctx.fillStyle   = "#c98f47";
+
+            ctx.beginPath();
+            ctx.ellipse(0, 0, r * 1.25, r * .55, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.globalAlpha = .5;
+            ctx.fillStyle   = "#f4d9a8";
+
+            for(let i = 0; i < 5; i++){
+                const a = e.dust + i * 1.25;
+                ctx.beginPath();
+                ctx.arc(Math.cos(a) * r * 1.1, Math.sin(a) * r * .5, r * .09, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            ctx.restore();
+            continue;
+
+        }
+
+        const out = e.phase === "rise" ? 1 - e.timer / .75 : 1;
+
+        ctx.rotate(e.ang);
+        ctx.scale(1, Math.max(.25, out));
+
+        /* la carapace */
+        const sh = ctx.createLinearGradient(0, -r, 0, r);
+        sh.addColorStop(0, "#5a3a12");
+        sh.addColorStop(1, "#241505");
+
+        ctx.fillStyle = sh;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, r * 1.15, r * .9, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        /* le reflet de verre sur le dos */
+        ctx.globalAlpha = .55;
+        ctx.fillStyle   = "#9fe2ff";
+        ctx.beginPath();
+        ctx.ellipse(-r * .2, -r * .3, r * .5, r * .22, -.4, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.globalAlpha = 1;
+
+        /* la fente centrale */
+        ctx.strokeStyle = "#160c02";
+        ctx.lineWidth   = r * .1;
+        ctx.beginPath();
+        ctx.moveTo(-r * .9, 0);
+        ctx.lineTo(r * .7, 0);
+        ctx.stroke();
+
+        /* les cornes */
+        ctx.fillStyle = "#e8dcc0";
+
+        [-1, 1].forEach(sg => {
+            ctx.beginPath();
+            ctx.moveTo(r * .9, sg * r * .28);
+            ctx.lineTo(r * 1.6, sg * r * .1);
+            ctx.lineTo(r * .95, sg * r * .05);
+            ctx.closePath();
+            ctx.fill();
+        });
+
+        /* les yeux */
+        ctx.fillStyle = e.phase === "rise" ? "#ffb347" : "#ff5f4d";
+        [-1, 1].forEach(sg => {
+            ctx.beginPath();
+            ctx.arc(r * .55, sg * r * .38, r * .13, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* --- LE MIRAGE : ta propre image, jusqu'a ce qu'elle bouge --- */
+function spawnMirage(){
+
+    const r = player.r * 1.15;
+    const p = findSpot(r, 340) || findSpot(r, 200);
+
+    if(!p){ return; }
+
+    mirages.push({
+        x:p.x, y:p.y, r:r,
+        phase:"drift", timer:0, near:0,
+        ang:0, birth:.5, stunned:0, shimmer:rnd() * 6.28
+    });
+
+}
+
+
+function updateMirages(dt){
+
+    const base = mimicSpeed({type:MIMIC_TYPES[0]});
+
+    for(const m of mirages){
+
+        if(m.birth > 0){ m.birth = Math.max(0, m.birth - dt); continue; }
+        if(m.stunned > 0){ m.stunned -= dt; continue; }
+
+        m.shimmer += dt * 3;
+
+        const aim = lureTarget();
+        const d   = Math.hypot(aim.x - m.x, aim.y - m.y);
+
+        if(m.phase === "drift"){
+
+            /* il te suit de loin, transparent et inoffensif */
+            const a = Math.atan2(aim.y - m.y, aim.x - m.x);
+
+            m.x += Math.cos(a) * base * .7 * dt;
+            m.y += Math.sin(a) * base * .7 * dt;
+
+            m.near = d < 260 * unit ? m.near + dt : 0;
+
+            if(m.near > 1.1){
+                m.phase = "solid";
+                m.timer = .55;
+                m.near  = 0;
+                sound(520, .2, "sine", .04);
+            }
+
+        }else if(m.phase === "solid"){
+
+            /* il se durcit : la silhouette devient nette */
+            m.timer -= dt;
+            m.ang    = Math.atan2(aim.y - m.y, aim.x - m.x);
+
+            if(m.timer <= 0){
+                m.phase = "lunge";
+                m.timer = .75;
+                sound(760, .12, "triangle", .04);
+            }
+
+            w69Hit(m);
+
+        }else{
+
+            m.timer -= dt;
+
+            m.x += Math.cos(m.ang) * base * 2.8 * dt;
+            m.y += Math.sin(m.ang) * base * 2.8 * dt;
+
+            if(w69Hit(m)){
+                burst(m.x, m.y, 18, "#bfe8ff");
+            }
+
+            if(m.timer <= 0){
+                m.phase = "drift";
+            }
+
+        }
+
+        w69Clamp(m);
+
+    }
+
+}
+
+
+function drawMirages(){
+
+    const skin = SKINS.find(sk => sk.id === currentSkin) || SKINS[0];
+
+    for(const m of mirages){
+
+        const solid = m.phase !== "drift";
+        const grow  = m.birth > 0 ? 1 - m.birth / .5 : 1;
+
+        ctx.save();
+        ctx.translate(m.x, m.y);
+
+        /* la chaleur qui tremble autour */
+        ctx.globalAlpha = solid ? .35 : .18;
+        ctx.strokeStyle = "#ffe0a8";
+        ctx.lineWidth   = 1.6 * unit;
+
+        for(let i = 0; i < 3; i++){
+            ctx.beginPath();
+            ctx.ellipse(
+                0, 0,
+                m.r * (1.5 + i * .35),
+                m.r * (1.1 + i * .3) + Math.sin(m.shimmer + i) * m.r * .12,
+                0, 0, Math.PI * 2
+            );
+            ctx.stroke();
+        }
+
+        ctx.globalAlpha = solid ? 1 : .32;
+
+        paintSkinSlime(
+            ctx, skin, m.r * Math.max(.15, grow), gameTime,
+            false, {blink:1}
+        );
+
+        /* en solide il vire au cuivre : on voit que ce n'est plus toi */
+        if(solid){
+
+            ctx.globalAlpha = .5;
+            ctx.fillStyle   = "#ff9a3d";
+
+            ctx.beginPath();
+            ctx.arc(0, 0, m.r * 1.15, 0, Math.PI * 2);
+            ctx.fill();
+
+        }
+
+        ctx.restore();
+        ctx.globalAlpha = 1;
+
+    }
+
+}
+
+
+/* =========================================================
+   MONDE 7 : LA FORGE
+========================================================= */
+
+function paintForge(c){
+
+    const base = c.createLinearGradient(0, 0, 0, H);
+    base.addColorStop(0,   "#2a1208");
+    base.addColorStop(.55, "#140803");
+    base.addColorStop(1,   "#3a1004");
+
+    c.fillStyle = base;
+    c.fillRect(0, 0, W, H);
+
+    /* les coulees de metal en fusion */
+    for(let i = 0; i < 5; i++){
+
+        const x  = (i + .5) / 5 * W + (Math.random() - .5) * W * .1;
+        const ww = (30 + Math.random() * 60) * unit;
+
+        const g = c.createLinearGradient(x, 0, x, H);
+        g.addColorStop(0,   "rgba(255,180,60,.05)");
+        g.addColorStop(.6,  "rgba(255,120,30,.30)");
+        g.addColorStop(1,   "rgba(255,220,140,.55)");
+
+        c.fillStyle = g;
+        c.fillRect(x - ww / 2, 0, ww, H);
+
+    }
+
+    /* les enclumes et les poutres, en ombre */
+    c.fillStyle = "rgba(6,3,2,.8)";
+
+    for(let i = 0; i < 8; i++){
+
+        const x = Math.random() * W;
+        const y = H * (.2 + Math.random() * .75);
+        const w2 = (50 + Math.random() * 130) * unit;
+        const h2 = (16 + Math.random() * 40) * unit;
+
+        c.fillRect(x - w2 / 2, y, w2, h2);
+
+    }
+
+    /* les etincelles */
+    for(let i = 0; i < Math.round(W * H / 3000); i++){
+
+        const x = Math.random() * W;
+        const y = Math.random() * H;
+        const r = (.8 + Math.random() * 2) * unit;
+
+        const g = c.createRadialGradient(x, y, 0, x, y, r * 4);
+        g.addColorStop(0, "rgba(255,220,140,.9)");
+        g.addColorStop(1, "rgba(255,120,30,0)");
+
+        c.fillStyle = g;
+        c.beginPath();
+        c.arc(x, y, r * 4, 0, Math.PI * 2);
+        c.fill();
+
+    }
+
+    const vig = c.createRadialGradient(
+        W / 2, H * .45, Math.min(W, H) * .2,
+        W / 2, H / 2, Math.max(W, H) * .78
+    );
+    vig.addColorStop(0, "rgba(0,0,0,0)");
+    vig.addColorStop(1, "rgba(0,0,0,.82)");
+
+    c.fillStyle = vig;
+    c.fillRect(0, 0, W, H);
+
+    twinkles = [];
+
+}
+
+
+function enterForge(){
+    w69Enter("forge", "🔥 LA FORGE", "#ff7a2a");
+    for(let i = 0; i < 2; i++){ spawnMarteau(); }
+    spawnChaine();
+}
+
+
+/* --- LE MARTEAU : il vise le sol, puis il tombe --- */
+function spawnMarteau(){
+
+    const r = (34 + rnd() * 10) * unit;
+
+    marteaux.push({
+        x:0, y:0, r:r,
+        tx:0, ty:0,
+        phase:"rest", timer:1 + rnd() * 1.5,
+        lift:0, ring:0, birth:.4, stunned:0
+    });
+
+}
+
+
+function updateMarteaux(dt){
+
+    for(const m of marteaux){
+
+        if(m.birth > 0){ m.birth = Math.max(0, m.birth - dt); continue; }
+        if(m.stunned > 0){ m.stunned -= dt; continue; }
+
+        if(m.ring > 0){
+
+            m.ring += dt * 3.4;
+
+            /* l'onde au sol frappe aussi */
+            if(player.invincible <= 0 && m.ring < 1){
+
+                const d  = Math.hypot(player.x - m.tx, player.y - m.ty);
+                const rr = m.ring * m.r * 3.4;
+
+                if(Math.abs(d - rr) < m.r * .5 + player.r){
+                    loseLife(null);
+                }
+
+            }
+
+            if(m.ring > 1.4){ m.ring = 0; }
+
+        }
+
+        m.timer -= dt;
+
+        if(m.phase === "rest"){
+
+            if(m.timer <= 0){
+
+                /* il choisit ta position actuelle */
+                const aim = lureTarget();
+
+                m.tx    = aim.x;
+                m.ty    = aim.y;
+                m.phase = "aim";
+                m.timer = .85;
+                m.lift  = 0;
+
+                sound(90, .25, "sine", .04);
+
+            }
+
+        }else if(m.phase === "aim"){
+
+            m.lift = Math.min(1, m.lift + dt * 1.6);
+
+            if(m.timer <= 0){
+                m.phase = "slam";
+                m.timer = .22;
+            }
+
+        }else{
+
+            m.lift = Math.max(0, m.lift - dt * 7);
+
+            if(m.lift <= 0 && m.timer > -1){
+
+                m.timer = -2;
+                m.ring  = .01;
+
+                burst(m.tx, m.ty, 26, "#ffb347");
+
+                sound(70, .4, "sawtooth", .07);
+                buzz(30);
+
+                if(player.invincible <= 0 &&
+                   Math.hypot(player.x - m.tx, player.y - m.ty) < m.r + player.r){
+                    loseLife(null);
+                }
+
+            }
+
+            if(m.timer < -1.6){
+                m.phase = "rest";
+                m.timer = 1.4 + rnd() * 1.2;
+            }
+
+        }
+
+    }
+
+}
+
+
+function drawMarteaux(){
+
+    for(const m of marteaux){
+
+        if(m.birth > 0){ continue; }
+
+        /* l'onde de choc au sol */
+        if(m.ring > 0){
+
+            const rr = m.ring * m.r * 3.4;
+
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, 1 - m.ring) * .9;
+            ctx.strokeStyle = "#ffb347";
+            ctx.lineWidth   = m.r * .35 * Math.max(.2, 1 - m.ring);
+            ctx.shadowColor = "#ff7a2a";
+            ctx.shadowBlur  = 20;
+
+            ctx.beginPath();
+            ctx.arc(m.tx, m.ty, rr, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.restore();
+
+        }
+
+        if(m.phase === "rest"){ continue; }
+
+        /* la cible au sol */
+        ctx.save();
+        ctx.globalAlpha = .8;
+        ctx.strokeStyle = m.phase === "slam" ? "#ff5f4d" : "#ffb347";
+        ctx.lineWidth   = 2.4 * unit;
+
+        ctx.beginPath();
+        ctx.arc(m.tx, m.ty, m.r * (1 + (1 - m.lift) * .5), 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.beginPath();
+        ctx.moveTo(m.tx - m.r, m.ty);
+        ctx.lineTo(m.tx + m.r, m.ty);
+        ctx.moveTo(m.tx, m.ty - m.r);
+        ctx.lineTo(m.tx, m.ty + m.r);
+        ctx.stroke();
+
+        /* la masse, suspendue au-dessus */
+        const hy = m.ty - m.lift * m.r * 4.5;
+
+        ctx.globalAlpha = 1;
+        ctx.translate(m.tx, hy);
+
+        /* le manche */
+        ctx.strokeStyle = "#5a3a1c";
+        ctx.lineWidth   = m.r * .3;
+        ctx.beginPath();
+        ctx.moveTo(0, -m.r * 2.4);
+        ctx.lineTo(0, -m.r * .6);
+        ctx.stroke();
+
+        /* la tete */
+        const g = ctx.createLinearGradient(0, -m.r * .8, 0, m.r * .8);
+        g.addColorStop(0, "#8a949f");
+        g.addColorStop(1, "#2c3238");
+
+        ctx.fillStyle = g;
+
+        ctx.beginPath();
+        if(ctx.roundRect){
+            ctx.roundRect(-m.r * 1.1, -m.r * .75, m.r * 2.2, m.r * 1.5, m.r * .2);
+        }else{
+            ctx.rect(-m.r * 1.1, -m.r * .75, m.r * 2.2, m.r * 1.5);
+        }
+        ctx.fill();
+
+        ctx.strokeStyle = "#171b1f";
+        ctx.lineWidth   = m.r * .1;
+        ctx.stroke();
+
+        /* le metal encore chaud */
+        ctx.globalAlpha = .55;
+        ctx.fillStyle   = "#ff7a2a";
+        ctx.fillRect(-m.r * 1.1, m.r * .35, m.r * 2.2, m.r * .4);
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* --- LA CHAINE : un fleau qui tourne autour de son ancre --- */
+function spawnChaine(){
+
+    const r = (18 + rnd() * 6) * unit;
+    const p = findSpot(r * 4, 320) || findSpot(r * 4, 200);
+
+    if(!p){ return; }
+
+    chaines.push({
+        x:p.x, y:p.y, r:r,
+        len:(120 + rnd() * 70) * unit,
+        a:rnd() * 6.28,
+        spin:(rnd() < .5 ? -1 : 1) * (1 + rnd() * .5),
+        drift:rnd() * 6.28,
+        birth:.5, stunned:0
+    });
+
+}
+
+
+function updateChaines(dt){
+
+    for(const c of chaines){
+
+        if(c.birth > 0){ c.birth = Math.max(0, c.birth - dt); continue; }
+        if(c.stunned > 0){ c.stunned -= dt; continue; }
+
+        c.a     += c.spin * dt;
+        c.drift += dt * .5;
+
+        /* l'ancre derive lentement vers toi */
+        const aim = lureTarget();
+        const an  = Math.atan2(aim.y - c.y, aim.x - c.x);
+
+        c.x += Math.cos(an) * 26 * unit * dt;
+        c.y += Math.sin(an) * 26 * unit * dt;
+
+        const a = playArea();
+
+        c.x = Math.max(a.x0 + c.len, Math.min(a.x1 - c.len, c.x));
+        c.y = Math.max(a.y0 + c.len, Math.min(a.y1 - c.len, c.y));
+
+        /* le boulet */
+        const bx = c.x + Math.cos(c.a) * c.len;
+        const by = c.y + Math.sin(c.a) * c.len;
+
+        if(player.invincible <= 0 &&
+           Math.hypot(player.x - bx, player.y - by) < c.r + player.r){
+            loseLife(null);
+            burst(bx, by, 20, "#ffb347");
+        }
+
+    }
+
+}
+
+
+function drawChaines(){
+
+    for(const c of chaines){
+
+        if(c.birth > 0){ continue; }
+
+        const bx = c.x + Math.cos(c.a) * c.len;
+        const by = c.y + Math.sin(c.a) * c.len;
+
+        ctx.save();
+
+        /* l'ancre : un anneau plante dans le sol */
+        ctx.strokeStyle = "#6b757f";
+        ctx.lineWidth   = c.r * .35;
+        ctx.beginPath();
+        ctx.arc(c.x, c.y, c.r * .55, 0, Math.PI * 2);
+        ctx.stroke();
+
+        /* les maillons */
+        const links = 8;
+
+        for(let i = 1; i <= links; i++){
+
+            const kk = i / (links + 1);
+
+            ctx.globalAlpha = .9;
+            ctx.strokeStyle = "#9aa5b1";
+            ctx.lineWidth   = c.r * .22;
+
+            ctx.beginPath();
+            ctx.arc(
+                c.x + Math.cos(c.a) * c.len * kk,
+                c.y + Math.sin(c.a) * c.len * kk,
+                c.r * .2, 0, Math.PI * 2
+            );
+            ctx.stroke();
+
+        }
+
+        /* le boulet, chauffe a blanc */
+        const g = ctx.createRadialGradient(bx - c.r * .3, by - c.r * .3, c.r * .1, bx, by, c.r);
+        g.addColorStop(0, "#fff0c0");
+        g.addColorStop(.5, "#ff8a2a");
+        g.addColorStop(1, "#6b2404");
+
+        ctx.globalAlpha = 1;
+        ctx.fillStyle   = g;
+        ctx.shadowColor = "#ff7a2a";
+        ctx.shadowBlur  = 22;
+
+        ctx.beginPath();
+        ctx.arc(bx, by, c.r, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+
+        /* les pointes */
+        ctx.fillStyle = "#3a2008";
+
+        for(let i = 0; i < 8; i++){
+            const a = i * .785 + c.a;
+            ctx.beginPath();
+            ctx.moveTo(bx + Math.cos(a) * c.r * .8, by + Math.sin(a) * c.r * .8);
+            ctx.lineTo(bx + Math.cos(a) * c.r * 1.35, by + Math.sin(a) * c.r * 1.35);
+            ctx.lineTo(bx + Math.cos(a + .3) * c.r * .8, by + Math.sin(a + .3) * c.r * .8);
+            ctx.closePath();
+            ctx.fill();
+        }
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* =========================================================
+   MONDE 8 : LA BIBLIOTHEQUE SUSPENDUE
+========================================================= */
+
+function paintLibrary(c){
+
+    const base = c.createLinearGradient(0, 0, W * .3, H);
+    base.addColorStop(0,   "#241a3e");
+    base.addColorStop(.5,  "#150e28");
+    base.addColorStop(1,   "#0a0616");
+
+    c.fillStyle = base;
+    c.fillRect(0, 0, W, H);
+
+    /* les rayonnages qui montent dans le noir */
+    for(let i = 0; i < 6; i++){
+
+        const x  = (i / 6) * W + W * .04;
+        const ww = W * .1;
+
+        c.fillStyle = "rgba(40,26,64,.7)";
+        c.fillRect(x, 0, ww, H);
+
+        /* les livres sur chaque etagere */
+        for(let y = H * .08; y < H; y += H * .13){
+
+            c.fillStyle = "rgba(15,9,26,.9)";
+            c.fillRect(x, y, ww, 5 * unit);
+
+            let bx = x + 3 * unit;
+
+            while(bx < x + ww - 6 * unit){
+
+                const bw = (5 + Math.random() * 9) * unit;
+                const bh = (26 + Math.random() * 26) * unit;
+
+                const hue = 250 + Math.random() * 80;
+
+                c.fillStyle = "hsla(" + hue + ",45%,42%,.65)";
+                c.fillRect(bx, y - bh, bw, bh);
+
+                bx += bw + 1.6 * unit;
+
+            }
+
+        }
+
+    }
+
+    /* les pages qui flottent */
+    for(let i = 0; i < 26; i++){
+
+        const x = Math.random() * W;
+        const y = Math.random() * H;
+        const a = Math.random() * Math.PI;
+        const s = (7 + Math.random() * 12) * unit;
+
+        c.save();
+        c.translate(x, y);
+        c.rotate(a);
+
+        c.globalAlpha = .18 + Math.random() * .22;
+        c.fillStyle   = "#e8e0ff";
+        c.fillRect(-s / 2, -s * .35, s, s * .7);
+
+        c.restore();
+
+    }
+
+    /* les lucioles d'encre */
+    for(let i = 0; i < Math.round(W * H / 5000); i++){
+
+        const x = Math.random() * W;
+        const y = Math.random() * H;
+
+        const g = c.createRadialGradient(x, y, 0, x, y, 5 * unit);
+        g.addColorStop(0, "rgba(200,160,255,.8)");
+        g.addColorStop(1, "rgba(200,160,255,0)");
+
+        c.fillStyle = g;
+        c.beginPath();
+        c.arc(x, y, 5 * unit, 0, Math.PI * 2);
+        c.fill();
+
+    }
+
+    const vig = c.createRadialGradient(
+        W / 2, H * .45, Math.min(W, H) * .2,
+        W / 2, H / 2, Math.max(W, H) * .8
+    );
+    vig.addColorStop(0, "rgba(0,0,0,0)");
+    vig.addColorStop(1, "rgba(4,2,10,.85)");
+
+    c.fillStyle = vig;
+    c.fillRect(0, 0, W, H);
+
+    twinkles = [];
+
+}
+
+
+function enterLibrary(){
+    w69Enter("biblio", "📖 LA BIBLIOTHÈQUE", "#b06cff");
+    for(let i = 0; i < 2; i++){ spawnGrimoire(); }
+    spawnPlume();
+}
+
+
+/* --- LE GRIMOIRE : il s'ouvre, puis il tire ses pages --- */
+function spawnGrimoire(){
+
+    const r = (24 + rnd() * 8) * unit;
+    const p = findSpot(r, 320) || findSpot(r, 200);
+
+    if(!p){ return; }
+
+    grimoires.push({
+        x:p.x, y:p.y, r:r,
+        phase:"fly", timer:1.6 + rnd(),
+        open:0, ang:0, flap:rnd() * 6.28,
+        birth:.5, stunned:0
+    });
+
+}
+
+
+function updateGrimoires(dt){
+
+    const base = mimicSpeed({type:MIMIC_TYPES[0]});
+
+    for(const g of grimoires){
+
+        if(g.birth > 0){ g.birth = Math.max(0, g.birth - dt); continue; }
+        if(g.stunned > 0){ g.stunned -= dt; continue; }
+
+        g.flap += dt * 5;
+
+        const aim = lureTarget();
+
+        if(g.phase === "fly"){
+
+            g.open = Math.max(0, g.open - dt * 2);
+
+            const a = Math.atan2(aim.y - g.y, aim.x - g.x);
+
+            g.x += Math.cos(a) * base * .8 * dt;
+            g.y += Math.sin(a) * base * .8 * dt;
+
+            g.timer -= dt;
+
+            if(g.timer <= 0){
+                g.phase = "open";
+                g.timer = .8;
+                sound(300, .18, "sine", .035);
+            }
+
+        }else{
+
+            g.open  = Math.min(1, g.open + dt * 2);
+            g.timer -= dt;
+            g.ang    = Math.atan2(aim.y - g.y, aim.x - g.x);
+
+            if(g.timer <= 0){
+
+                /* trois lames de papier en eventail */
+                for(let i = -1; i <= 1; i++){
+                    pages.push({
+                        x:g.x, y:g.y,
+                        vx:Math.cos(g.ang + i * .33) * 190 * unit,
+                        vy:Math.sin(g.ang + i * .33) * 190 * unit,
+                        r:8 * unit,
+                        spin:rnd() * 6.28,
+                        life:5
+                    });
+                }
+
+                sound(620, .12, "triangle", .04);
+
+                g.phase = "fly";
+                g.timer = 2.4 + rnd();
+
+            }
+
+        }
+
+        w69Clamp(g);
+        w69Hit(g);
+
+    }
+
+    /* les pages en vol */
+    const a = playArea();
+
+    for(const pg of pages){
+
+        pg.x    += pg.vx * dt;
+        pg.y    += pg.vy * dt;
+        pg.spin += dt * 9;
+        pg.life -= dt;
+
+        if(player.invincible <= 0 &&
+           Math.hypot(pg.x - player.x, pg.y - player.y) < pg.r + player.r){
+            pg.life = 0;
+            loseLife(null);
+        }
+
+    }
+
+    pages = pages.filter(pg =>
+        pg.life > 0 &&
+        pg.x > a.x0 - 40 && pg.x < a.x1 + 40 &&
+        pg.y > a.y0 - 40 && pg.y < a.y1 + 40
+    );
+
+}
+
+
+function drawGrimoires(){
+
+    for(const pg of pages){
+
+        ctx.save();
+        ctx.translate(pg.x, pg.y);
+        ctx.rotate(pg.spin);
+
+        ctx.fillStyle   = "#f0e8ff";
+        ctx.shadowColor = "#b06cff";
+        ctx.shadowBlur  = 12;
+
+        ctx.beginPath();
+        ctx.moveTo(pg.r * 1.5, 0);
+        ctx.lineTo(-pg.r, -pg.r * .8);
+        ctx.lineTo(-pg.r * .4, 0);
+        ctx.lineTo(-pg.r, pg.r * .8);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
+
+    }
+
+    for(const g of grimoires){
+
+        const r = g.r * (g.birth > 0 ? 1 - g.birth / .5 : 1);
+
+        ctx.save();
+        ctx.translate(g.x, g.y + Math.sin(g.flap) * r * .12);
+
+        if(g.phase === "open"){
+            ctx.rotate(g.ang);
+        }
+
+        /* les deux couvertures qui battent */
+        const sp = .35 + g.open * .8 + Math.sin(g.flap) * .1;
+
+        [-1, 1].forEach(sg => {
+
+            ctx.save();
+            ctx.rotate(sg * sp);
+
+            const gr = ctx.createLinearGradient(0, -r, 0, r);
+            gr.addColorStop(0, "#6a3cb0");
+            gr.addColorStop(1, "#2a1350");
+
+            ctx.fillStyle = gr;
+            ctx.fillRect(-r * .12, -r * .9, r * 1.15, r * 1.8);
+
+            /* les pages */
+            ctx.fillStyle = "#efe6ff";
+            ctx.fillRect(-r * .05, -r * .78, r * .95, r * 1.56);
+
+            /* le fil d'or sur la tranche */
+            ctx.fillStyle = "#ffd76a";
+            ctx.fillRect(-r * .12, -r * .9, r * .12, r * 1.8);
+
+            ctx.restore();
+
+        });
+
+        /* l'oeil au milieu du livre */
+        ctx.fillStyle   = g.phase === "open" ? "#ff8a5a" : "#c8a6ff";
+        ctx.shadowColor = "#b06cff";
+        ctx.shadowBlur  = 14;
+
+        ctx.beginPath();
+        ctx.ellipse(0, 0, r * .3, r * .18 + g.open * r * .14, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.fillStyle  = "#1a0a2e";
+
+        ctx.beginPath();
+        ctx.arc(0, 0, r * .1, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* --- LA PLUME : elle ecrit, et son trait blesse --- */
+function spawnPlume(){
+
+    const r = (16 + rnd() * 5) * unit;
+    const p = findSpot(r, 320) || findSpot(r, 200);
+
+    if(!p){ return; }
+
+    plumes.push({
+        x:p.x, y:p.y, r:r,
+        ang:rnd() * 6.28,
+        turn:(rnd() < .5 ? -1 : 1) * .9,
+        drop:0,
+        birth:.5, stunned:0
+    });
+
+}
+
+
+function updatePlumes(dt){
+
+    const base = mimicSpeed({type:MIMIC_TYPES[0]}) * 1.1;
+    const area = playArea();
+
+    for(const q of plumes){
+
+        if(q.birth > 0){ q.birth = Math.max(0, q.birth - dt); continue; }
+        if(q.stunned > 0){ q.stunned -= dt; continue; }
+
+        /* elle trace de grandes boucles, et se recentre vers toi */
+        const aim  = lureTarget();
+        const want = Math.atan2(aim.y - q.y, aim.x - q.x);
+
+        let diff = want - q.ang;
+        while(diff >  Math.PI){ diff -= Math.PI * 2; }
+        while(diff < -Math.PI){ diff += Math.PI * 2; }
+
+        q.ang += (q.turn + diff * .5) * dt;
+
+        q.x += Math.cos(q.ang) * base * dt;
+        q.y += Math.sin(q.ang) * base * dt;
+
+        if(q.x < area.x0 + q.r || q.x > area.x1 - q.r ||
+           q.y < area.y0 + q.r || q.y > area.y1 - q.r){
+            q.turn = -q.turn;
+            q.ang += Math.PI * .6;
+        }
+
+        w69Clamp(q);
+
+        /* le trait d'encre qu'elle laisse derriere */
+        q.drop -= dt;
+
+        if(q.drop <= 0){
+            q.drop = .11;
+            encres.push({x:q.x, y:q.y, r:q.r * .75, life:3.6});
+        }
+
+        w69Hit(q);
+
+    }
+
+    for(const e of encres){
+
+        e.life -= dt;
+
+        /* l'encre fraiche blesse ; en sechant elle s'efface */
+        if(e.life > .6 && player.invincible <= 0 &&
+           Math.hypot(e.x - player.x, e.y - player.y) < e.r + player.r * .7){
+            loseLife(null);
+        }
+
+    }
+
+    encres = encres.filter(e => e.life > 0);
+
+}
+
+
+function drawPlumes(){
+
+    /* l'encre d'abord : elle est au sol */
+    ctx.save();
+
+    for(const e of encres){
+
+        const k = Math.min(1, e.life / 3.6);
+
+        ctx.globalAlpha = .25 + k * .6;
+        ctx.fillStyle   = e.life > .6 ? "#1b0e30" : "#3a2a55";
+
+        ctx.beginPath();
+        ctx.ellipse(e.x, e.y, e.r * 1.25, e.r, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        if(e.life > .6){
+            ctx.globalAlpha = .35 * k;
+            ctx.strokeStyle = "#b06cff";
+            ctx.lineWidth   = 1.4 * unit;
+            ctx.beginPath();
+            ctx.ellipse(e.x, e.y, e.r * 1.25, e.r, 0, 0, Math.PI * 2);
+            ctx.stroke();
+        }
+
+    }
+
+    ctx.restore();
+
+    for(const q of plumes){
+
+        const r = q.r * (q.birth > 0 ? 1 - q.birth / .5 : 1);
+
+        ctx.save();
+        ctx.translate(q.x, q.y);
+        ctx.rotate(q.ang + Math.PI / 2);
+
+        /* le calame */
+        const g = ctx.createLinearGradient(0, -r * 2.2, 0, r * 1.2);
+        g.addColorStop(0, "#f2ecff");
+        g.addColorStop(1, "#8a6cc0");
+
+        ctx.fillStyle = g;
+
+        ctx.beginPath();
+        ctx.moveTo(0, r * 1.4);
+        ctx.quadraticCurveTo(r * .9, -r * .4, 0, -r * 2.4);
+        ctx.quadraticCurveTo(-r * .9, -r * .4, 0, r * 1.4);
+        ctx.fill();
+
+        /* la nervure */
+        ctx.strokeStyle = "#5a3f8a";
+        ctx.lineWidth   = r * .12;
+        ctx.beginPath();
+        ctx.moveTo(0, r * 1.3);
+        ctx.lineTo(0, -r * 2.2);
+        ctx.stroke();
+
+        /* la pointe qui goutte */
+        ctx.fillStyle   = "#1b0e30";
+        ctx.shadowColor = "#b06cff";
+        ctx.shadowBlur  = 10;
+
+        ctx.beginPath();
+        ctx.arc(0, r * 1.5, r * .3, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* =========================================================
+   MONDE 9 : L'HORLOGE
+========================================================= */
+
+function paintClock(c){
+
+    const base = c.createRadialGradient(
+        W / 2, H * .45, 0,
+        W / 2, H * .45, Math.max(W, H) * .8
+    );
+    base.addColorStop(0,   "#1a2a3c");
+    base.addColorStop(.55, "#0d1826");
+    base.addColorStop(1,   "#050a12");
+
+    c.fillStyle = base;
+    c.fillRect(0, 0, W, H);
+
+    /* le grand cadran grave au fond */
+    c.save();
+    c.translate(W / 2, H * .45);
+
+    const R = Math.min(W, H) * .62;
+
+    c.strokeStyle = "rgba(150,200,235,.14)";
+    c.lineWidth   = 3 * unit;
+
+    c.beginPath();
+    c.arc(0, 0, R, 0, Math.PI * 2);
+    c.stroke();
+
+    c.beginPath();
+    c.arc(0, 0, R * .82, 0, Math.PI * 2);
+    c.stroke();
+
+    /* les heures */
+    for(let i = 0; i < 12; i++){
+
+        const a = (i / 12) * Math.PI * 2 - Math.PI / 2;
+
+        c.strokeStyle = "rgba(180,225,255,.28)";
+        c.lineWidth   = (i % 3 === 0 ? 6 : 3) * unit;
+
+        c.beginPath();
+        c.moveTo(Math.cos(a) * R * .82, Math.sin(a) * R * .82);
+        c.lineTo(Math.cos(a) * R, Math.sin(a) * R);
+        c.stroke();
+
+    }
+
+    /* les minutes */
+    for(let i = 0; i < 60; i++){
+
+        const a = (i / 60) * Math.PI * 2;
+
+        c.strokeStyle = "rgba(150,200,235,.12)";
+        c.lineWidth   = 1.4 * unit;
+
+        c.beginPath();
+        c.moveTo(Math.cos(a) * R * .9, Math.sin(a) * R * .9);
+        c.lineTo(Math.cos(a) * R * .95, Math.sin(a) * R * .95);
+        c.stroke();
+
+    }
+
+    c.restore();
+
+    /* les rouages en arriere-plan */
+    for(let i = 0; i < 7; i++){
+
+        const x  = Math.random() * W;
+        const y  = Math.random() * H;
+        const rr = (40 + Math.random() * 110) * unit;
+
+        c.save();
+        c.translate(x, y);
+        c.rotate(Math.random() * 6.28);
+
+        c.strokeStyle = "rgba(120,170,210,.10)";
+        c.lineWidth   = rr * .16;
+
+        c.beginPath();
+        c.arc(0, 0, rr * .72, 0, Math.PI * 2);
+        c.stroke();
+
+        c.lineWidth = rr * .1;
+
+        for(let k = 0; k < 12; k++){
+            const a = (k / 12) * Math.PI * 2;
+            c.beginPath();
+            c.moveTo(Math.cos(a) * rr * .78, Math.sin(a) * rr * .78);
+            c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr);
+            c.stroke();
+        }
+
+        c.restore();
+
+    }
+
+    /* la poussiere de laiton */
+    for(let i = 0; i < Math.round(W * H / 6000); i++){
+
+        const x = Math.random() * W;
+        const y = Math.random() * H;
+
+        c.fillStyle = "rgba(210,235,255,.4)";
+        c.fillRect(x, y, unit * 1.3, unit * 1.3);
+
+    }
+
+    const vig = c.createRadialGradient(
+        W / 2, H * .45, Math.min(W, H) * .25,
+        W / 2, H / 2, Math.max(W, H) * .8
+    );
+    vig.addColorStop(0, "rgba(0,0,0,0)");
+    vig.addColorStop(1, "rgba(0,4,10,.8)");
+
+    c.fillStyle = vig;
+    c.fillRect(0, 0, W, H);
+
+    twinkles = [];
+
+}
+
+
+function enterClock(){
+    w69Enter("horloge", "🕰 L'HORLOGE", "#9fe9ff");
+    for(let i = 0; i < 2; i++){ spawnEngrenage(); }
+    for(let i = 0; i < 2; i++){ spawnPendule(); }
+}
+
+
+/* --- L'ENGRENAGE : il longe le bord, sans jamais s'arreter --- */
+function spawnEngrenage(){
+
+    const r = (32 + rnd() * 12) * unit;
+
+    engrenages.push({
+        x:0, y:0, r:r,
+        s:rnd(),                       /* position sur le tour, 0 a 1 */
+        way:engrenages.length % 2 ? -1 : 1,
+        spin:0,
+        birth:.5, stunned:0
+    });
+
+}
+
+
+/* le point du perimetre a la distance k (0 a 1) */
+function ringPoint(k, inset){
+
+    const a = playArea();
+
+    const x0 = a.x0 + inset, x1 = a.x1 - inset;
+    const y0 = a.y0 + inset, y1 = a.y1 - inset;
+
+    const w = Math.max(1, x1 - x0);
+    const h = Math.max(1, y1 - y0);
+
+    const per = 2 * (w + h);
+    let   d   = ((k % 1) + 1) % 1 * per;
+
+    if(d < w)          { return {x:x0 + d,         y:y0}; }
+    d -= w;
+    if(d < h)          { return {x:x1,             y:y0 + d}; }
+    d -= h;
+    if(d < w)          { return {x:x1 - d,         y:y1}; }
+    d -= w;
+                         return {x:x0,             y:y1 - d};
+
+}
+
+
+function ringLength(inset){
+
+    const a = playArea();
+
+    return 2 * ((a.x1 - a.x0 - inset * 2) + (a.y1 - a.y0 - inset * 2));
+
+}
+
+
+function updateEngrenages(dt){
+
+    const speed = mimicSpeed({type:MIMIC_TYPES[0]}) * 1.25;
+
+    for(const g of engrenages){
+
+        if(g.birth > 0){ g.birth = Math.max(0, g.birth - dt); continue; }
+        if(g.stunned > 0){ g.stunned -= dt; continue; }
+
+        const per = Math.max(1, ringLength(g.r));
+
+        g.s    += g.way * speed * dt / per;
+        g.spin += g.way * dt * 3;
+
+        const p = ringPoint(g.s, g.r);
+
+        g.x = p.x;
+        g.y = p.y;
+
+        w69Hit(g);
+
+    }
+
+}
+
+
+function drawEngrenages(){
+
+    for(const g of engrenages){
+
+        const r = g.r * (g.birth > 0 ? 1 - g.birth / .5 : 1);
+
+        ctx.save();
+        ctx.translate(g.x, g.y);
+        ctx.rotate(g.spin);
+
+        /* les dents */
+        ctx.fillStyle = "#8fb6d0";
+
+        for(let i = 0; i < 14; i++){
+
+            const a = (i / 14) * Math.PI * 2;
+
+            ctx.beginPath();
+            ctx.moveTo(Math.cos(a - .1) * r * .82, Math.sin(a - .1) * r * .82);
+            ctx.lineTo(Math.cos(a - .07) * r * 1.15, Math.sin(a - .07) * r * 1.15);
+            ctx.lineTo(Math.cos(a + .07) * r * 1.15, Math.sin(a + .07) * r * 1.15);
+            ctx.lineTo(Math.cos(a + .1) * r * .82, Math.sin(a + .1) * r * .82);
+            ctx.closePath();
+            ctx.fill();
+
+        }
+
+        /* le corps */
+        const gr = ctx.createRadialGradient(-r * .3, -r * .3, r * .1, 0, 0, r);
+        gr.addColorStop(0, "#cfe6f5");
+        gr.addColorStop(1, "#3d5f78");
+
+        ctx.fillStyle = gr;
+        ctx.beginPath();
+        ctx.arc(0, 0, r * .85, 0, Math.PI * 2);
+        ctx.fill();
+
+        /* les evidements */
+        ctx.fillStyle = "#122232";
+
+        for(let i = 0; i < 5; i++){
+            const a = (i / 5) * Math.PI * 2;
+            ctx.beginPath();
+            ctx.arc(Math.cos(a) * r * .5, Math.sin(a) * r * .5, r * .16, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.beginPath();
+        ctx.arc(0, 0, r * .2, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* --- LE PENDULE : il balaie toujours le meme arc --- */
+function spawnPendule(){
+
+    const a = playArea();
+
+    const px = a.x0 + (a.x1 - a.x0) * (.28 + rnd() * .44);
+
+    pendules.push({
+        px:px, py:a.y0 + 6 * unit,
+        len:(a.y1 - a.y0) * (.55 + rnd() * .3),
+        amp:.85 + rnd() * .3,
+        t:rnd() * 6.28,
+        speed:1 + rnd() * .35,
+        r:(26 + rnd() * 10) * unit,
+        x:0, y:0,
+        birth:.5, stunned:0
+    });
+
+}
+
+
+function updatePendules(dt){
+
+    for(const q of pendules){
+
+        if(q.birth > 0){ q.birth = Math.max(0, q.birth - dt); continue; }
+        if(q.stunned > 0){ q.stunned -= dt; continue; }
+
+        q.t += dt * q.speed;
+
+        const a = Math.sin(q.t) * q.amp;
+
+        q.x = q.px + Math.sin(a) * q.len;
+        q.y = q.py + Math.cos(a) * q.len;
+
+        w69Hit(q);
+
+    }
+
+}
+
+
+function drawPendules(){
+
+    for(const q of pendules){
+
+        if(q.birth > 0){ continue; }
+
+        const r = q.r;
+
+        ctx.save();
+
+        /* la tige */
+        ctx.strokeStyle = "#7fa6c0";
+        ctx.lineWidth   = r * .16;
+        ctx.lineCap     = "round";
+
+        ctx.beginPath();
+        ctx.moveTo(q.px, q.py);
+        ctx.lineTo(q.x, q.y);
+        ctx.stroke();
+
+        /* le point d'accroche */
+        ctx.fillStyle = "#3d5f78";
+        ctx.beginPath();
+        ctx.arc(q.px, q.py, r * .3, 0, Math.PI * 2);
+        ctx.fill();
+
+        /* le lest : un disque de laiton */
+        const g = ctx.createRadialGradient(q.x - r * .3, q.y - r * .3, r * .1, q.x, q.y, r);
+        g.addColorStop(0, "#ffeab0");
+        g.addColorStop(.6, "#d8a53d");
+        g.addColorStop(1, "#6b4a10");
+
+        ctx.fillStyle   = g;
+        ctx.shadowColor = "#ffd76a";
+        ctx.shadowBlur  = 16;
+
+        ctx.beginPath();
+        ctx.arc(q.x, q.y, r, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.shadowBlur  = 0;
+        ctx.strokeStyle = "#3a2708";
+        ctx.lineWidth   = r * .1;
+        ctx.stroke();
+
+        /* le chiffre grave */
+        ctx.fillStyle = "#4a3410";
+        ctx.beginPath();
+        ctx.arc(q.x, q.y, r * .42, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* =========================================================
+   L'ARRIVEE DANS CES QUATRE MONDES
+========================================================= */
+
+function w69Enter(zoneId, label, col){
+
+    zone = zoneId;
+
+    portal = null;
+
+    solids = []; orbs = []; coins = []; hearts = [];
+    balls  = []; slimes = []; trails = []; mimics = [];
+    archers = []; blobs = []; puddles = []; logs = [];
+    crawlers = []; drips = []; candies = []; gloutons = [];
+    guimauves = []; anguilles = []; lanternes = []; bulles = [];
+
+    boss = null; bossShots = []; bossBeams = [];
+
+    clearW69();
+
+    trace       = [];
+    traceLength = 0;
+
+    const a = playArea();
+
+    player.x = (a.x0 + a.x1) / 2;
+    player.y = (a.y0 + a.y1) / 2;
+
+    player.invincible = 2.4;
+
+    addCoin();
+    addOrb();
+
+    noteWorld(zoneId);
+
+    pickupMessage(label, col);
+
+    sound(200, .7, "triangle", .05);
+
+}
+
+
+function updateW69(dt){
+
+    if(zone === "desert"){
+
+        updateScarabees(dt);
+        updateMirages(dt);
+
+        w69Timer -= dt;
+
+        if(w69Timer <= 0){
+            w69Timer = 10;
+            if(scarabees.length < 3){ spawnScarabee(); }
+            else if(mirages.length < 2){ spawnMirage(); }
+        }
+
+        return;
+
+    }
+
+    if(zone === "forge"){
+
+        updateMarteaux(dt);
+        updateChaines(dt);
+
+        w69Timer -= dt;
+
+        if(w69Timer <= 0){
+            w69Timer = 12;
+            if(marteaux.length < 3){ spawnMarteau(); }
+            else if(chaines.length < 2){ spawnChaine(); }
+        }
+
+        return;
+
+    }
+
+    if(zone === "biblio"){
+
+        updateGrimoires(dt);
+        updatePlumes(dt);
+
+        w69Timer -= dt;
+
+        if(w69Timer <= 0){
+            w69Timer = 11;
+            if(grimoires.length < 3){ spawnGrimoire(); }
+            else if(plumes.length < 2){ spawnPlume(); }
+        }
+
+        return;
+
+    }
+
+    if(zone === "horloge"){
+
+        updateEngrenages(dt);
+        updatePendules(dt);
+
+        w69Timer -= dt;
+
+        if(w69Timer <= 0){
+            w69Timer = 14;
+            if(pendules.length < 3){ spawnPendule(); }
+        }
+
+        return;
+
+    }
+
+    /* on n'est plus dans ces mondes : on range */
+    if(scarabees.length || marteaux.length || grimoires.length || engrenages.length ||
+       mirages.length || chaines.length || plumes.length || pendules.length ||
+       pages.length || encres.length){
+        clearW69();
+    }
+
+}
+
+
+function drawW69(){
+
+    if(zone === "desert"){
+        drawScarabees();
+        drawMirages();
+    }else if(zone === "forge"){
+        drawChaines();
+        drawMarteaux();
+    }else if(zone === "biblio"){
+        drawPlumes();
+        drawGrimoires();
+    }else if(zone === "horloge"){
+        drawEngrenages();
+        drawPendules();
+    }
+
+}
+
+
+/* toutes les creatures de ces mondes qui savent etre sonnees */
+function w69Creatures(){
+    return [].concat(
+        scarabees, mirages, marteaux, chaines,
+        grimoires, plumes, engrenages, pendules
+    );
 }
 
 
@@ -5163,7 +7037,15 @@ function updateWarp(dt){
             /* on arrive par le portail : c'est ce qui debloque */
             byPortal = true;
 
-            if(warp.target === "neant"){
+            if(warp.target === "horloge"){
+                enterClock();
+            }else if(warp.target === "biblio"){
+                enterLibrary();
+            }else if(warp.target === "forge"){
+                enterForge();
+            }else if(warp.target === "desert"){
+                enterDesert();
+            }else if(warp.target === "neant"){
                 enterVoid();
             }else if(warp.target === "abysse"){
                 enterAbyss();

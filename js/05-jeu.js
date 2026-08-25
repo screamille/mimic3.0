@@ -283,8 +283,7 @@ function createMimic(forcedType){
     poursuivant du monde 1 : ni HUNTER, ni PREDICTOR, ni
     TRAQUEUR, ni TRAQUEUR NOIR. Chaque monde a ses habitants.
     */
-    if(zone === "marais" || zone === "bonbon" ||
-       zone === "abysse" || zone === "neant"){
+    if(zone !== "cyber"){
         return;
     }
 
@@ -435,6 +434,7 @@ function reset(){
     boss      = null;
     bossShots = [];
     bossBeams = [];
+    clearW69();
     abyssTimer = 0;
     guimauveTimer = 0;
     gloutonTimer = 0;
@@ -1008,6 +1008,7 @@ function update(dt){
     updatePortal(dt);
     updateGloutons(dt);
     updateBoss(dt);
+    updateW69(dt);
     updateGuimauves(dt);
     updateAnguilles(dt);
     updateLanternes(dt);
@@ -1048,6 +1049,10 @@ function update(dt){
 
             for(const l of lanternes){
                 l.stunned = 3.2;
+            }
+
+            for(const e of w69Creatures()){
+                e.stunned = 3.2;
             }
 
             burst(o.x, o.y, 28, "#a855ff");
@@ -1182,9 +1187,10 @@ function update(dt){
         }
 
         /* le marais se remplit de flaques, la surface de blocs */
-        if(zone === "neant"){
+        if(zone === "neant" || zone === "desert" || zone === "forge" ||
+           zone === "biblio" || zone === "horloge"){
 
-            /* la salle du boss reste vide : rien ne doit gener */
+            /* ces arenes restent degagees : les ennemis y suffisent */
 
         }else if(zone === "abysse"){
 
@@ -1210,7 +1216,7 @@ function update(dt){
 
         }
 
-        if(zone !== "marais" && zone !== "abysse" && zone !== "neant"){
+        if(zone === "cyber" || zone === "bonbon"){
 
             if(level % 3 === 0){
                 addSolid();
@@ -1840,6 +1846,11 @@ function drawRaw(){
     }
 
     ctx.globalAlpha = 1;
+
+
+    /* LES MONDES 6 A 9 */
+
+    drawW69();
 
 
     /* LE NÉANT */

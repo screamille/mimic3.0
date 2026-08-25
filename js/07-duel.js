@@ -16,8 +16,7 @@ Si le premier ne répond pas, on bascule sur le suivant.
 */
 const DUEL_SERVERS = [
     null,                                                   /* serveur PeerJS par défaut */
-    {host:"peerjs.92k.de",  port:443, secure:true, path:"/"},
-    {host:"0.peerjs.com",   port:443, secure:true, path:"/"}
+    {host:"peerjs.92k.de", port:443, secure:true, path:"/"}
 ];
 
 /*
@@ -26,7 +25,14 @@ main PeerJS depasse souvent ce delai, et le jeu abandonnait
 un serveur qui allait repondre. Le mode laser, lui, n'avait
 aucun delai — c'est pour ca qu'il marchait et pas le duel.
 */
-const DUEL_TIMEOUT = 18000;  /* ms avant de considérer un serveur muet */
+/*
+Le delai ne CHANGE plus de serveur : il ne fait que prevenir.
+C'etait la cause du duel qui ne marchait pas — le mode laser,
+lui, n'a aucun delai et attend simplement, et c'est pour ca
+qu'il fonctionnait. On ne bascule desormais que sur une vraie
+erreur reseau annoncee par PeerJS.
+*/
+const DUEL_TIMEOUT = 12000;  /* ms avant de simplement prevenir */
 
 let duelServer  = 0;
 let duelTimer   = null;
@@ -305,6 +311,22 @@ function duelLostPeer(){
 }
 
 
+/* le serveur tarde : on rassure, on n'abandonne pas */
+function duelSlow(){
+
+    clearDuelTimer();
+
+    if(duel.peer && duel.peer.open){
+        return;
+    }
+
+    duelStatus("⏳ Le serveur met du temps à répondre… on continue d'attendre.");
+
+    duelTimer = setTimeout(() => duelSlow(), DUEL_TIMEOUT);
+
+}
+
+
 function clearDuelTimer(){
 
     if(duelTimer){
@@ -404,7 +426,7 @@ function hostDuel(retry){
 
     clearDuelTimer();
 
-    duelTimer = setTimeout(() => duelServerFailed("délai dépassé"), DUEL_TIMEOUT);
+    duelTimer = setTimeout(() => duelSlow(), DUEL_TIMEOUT);
 
     duel.peer.on("open", () => {
 
@@ -451,6 +473,8 @@ function hostDuel(retry){
 
         duelStatus("❌ Erreur de connexion : " + type);
 
+        mimicReport(err || type, "duel");
+
     });
 
 }
@@ -496,7 +520,7 @@ function joinDuel(retry){
 
     clearDuelTimer();
 
-    duelTimer = setTimeout(() => duelServerFailed("délai dépassé"), DUEL_TIMEOUT);
+    duelTimer = setTimeout(() => duelSlow(), DUEL_TIMEOUT);
 
     duel.peer.on("open", () => {
 

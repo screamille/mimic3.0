@@ -630,6 +630,26 @@ const SECRET_CODES = {
         }
     },
 
+    "6666":{
+        label:"LE DÉSERT DE VERRE",
+        run:function(){ startGame(); level = DESERT_LEVEL; enterDesert(); }
+    },
+
+    "7777":{
+        label:"LA FORGE",
+        run:function(){ startGame(); level = FORGE_LEVEL; enterForge(); }
+    },
+
+    "8888":{
+        label:"LA BIBLIOTHÈQUE",
+        run:function(){ startGame(); level = BIBLIO_LEVEL; enterLibrary(); }
+    },
+
+    "9999":{
+        label:"L'HORLOGE",
+        run:function(){ startGame(); level = CLOCK_LEVEL; enterClock(); }
+    },
+
     "0000":{
         label:"0 PIÈCE",
         run:function(){
@@ -868,6 +888,10 @@ function playWorld(zoneId){
     else if(zoneId === "bonbon"){ enterCandy(); }
     else if(zoneId === "abysse"){ enterAbyss(); }
     else if(zoneId === "neant"){ enterVoid(); }
+    else if(zoneId === "desert"){ enterDesert(); }
+    else if(zoneId === "forge"){ enterForge(); }
+    else if(zoneId === "biblio"){ enterLibrary(); }
+    else if(zoneId === "horloge"){ enterClock(); }
 
 }
 

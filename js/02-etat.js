@@ -88,6 +88,10 @@ const MAX_GLOUTONS = 2;     /* gloutons présents en même temps */
 const MAX_GUIMAUVES = 2;    /* guimauves présentes en même temps */
 const ABYSS_LEVEL   = 60;   /* portail vers LES ABYSSES */
 const VOID_LEVEL    = 80;   /* portail vers LE NÉANT */
+const DESERT_LEVEL  = 100;  /* portail vers LE DÉSERT DE VERRE */
+const FORGE_LEVEL   = 120;  /* portail vers LA FORGE */
+const BIBLIO_LEVEL  = 140;  /* portail vers LA BIBLIOTHÈQUE */
+const CLOCK_LEVEL   = 160;  /* portail vers L'HORLOGE */
 const MAX_ANGUILLES = 3;    /* anguilles simultanées */
 const MAX_LANTERNES = 3;    /* lanternes simultanées */
 
@@ -97,7 +101,11 @@ const WORLDS = [
     {zone:"marais", n:2, name:"LE MARAIS",           from:PORTAL_LEVEL, to:CANDY_LEVEL, col:"#8fe04a"},
     {zone:"bonbon", n:3, name:"LE PAYS DES BONBONS", from:CANDY_LEVEL,  to:ABYSS_LEVEL, col:"#ff8fc4"},
     {zone:"abysse", n:4, name:"LES ABYSSES",         from:ABYSS_LEVEL,  to:VOID_LEVEL,  col:"#2fe0ff"},
-    {zone:"neant",  n:5, name:"LE NÉANT",            from:VOID_LEVEL,   to:null,        col:"#c86aff"}
+    {zone:"neant",   n:5, name:"LE NÉANT",             from:VOID_LEVEL,   to:DESERT_LEVEL, col:"#c86aff"},
+    {zone:"desert",  n:6, name:"LE DÉSERT DE VERRE",   from:DESERT_LEVEL, to:FORGE_LEVEL,  col:"#ffd76a"},
+    {zone:"forge",   n:7, name:"LA FORGE",             from:FORGE_LEVEL,  to:BIBLIO_LEVEL, col:"#ff7a2a"},
+    {zone:"biblio",  n:8, name:"LA BIBLIOTHÈQUE",      from:BIBLIO_LEVEL, to:CLOCK_LEVEL,  col:"#b06cff"},
+    {zone:"horloge", n:9, name:"L'HORLOGE",            from:CLOCK_LEVEL,  to:null,         col:"#9fe9ff"}
 ];
 const MAX_BLOBS    = 4;     /* slimes du marais présents en même temps */
 const START_SOLIDS = 9;     /* blocs présents dès le début */
