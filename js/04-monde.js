@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "4.4";
+const VERSION = "4.5";
 
 (function(){
 
@@ -3398,6 +3398,15 @@ function bossTeleport(){
 
             burst(boss.x, boss.y, 20, "#ff5f8f");
 
+            /*
+            Les lames repartent de leur trait fin : sinon une
+            faux pouvait reapparaitre pile sur toi apres un
+            saut, sans le moindre avertissement.
+            */
+            for(const bm of bossBeams){
+                bm.grow = 0;
+            }
+
             sound(320, .18, "sine", .04);
 
             return;
@@ -3567,7 +3576,8 @@ function updateBoss(dt){
     }else{
 
         if(!bossBeams.length){
-            bossSetBeams(3, .58);
+            /* trois lames : elles tournent bien plus lentement que deux */
+            bossSetBeams(3, .34);
         }
 
         boss.tele -= dt;
@@ -3603,7 +3613,8 @@ function updateBoss(dt){
     for(const bm of bossBeams){
 
         bm.a    += bm.spin * dt;
-        bm.grow  = Math.min(1, bm.grow + dt * 2);
+        /* le trait fin dure plus longtemps : on a le temps de lire */
+        bm.grow  = Math.min(1, bm.grow + dt * 1.35);
 
         if(player.invincible > 0 || bm.grow < .8){
             continue;
