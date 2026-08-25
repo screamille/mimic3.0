@@ -826,7 +826,8 @@ document.getElementById("startButton").onclick = () => {
 
     }else{
 
-        startGame();
+        /* en solo, on choisit d'abord son monde */
+        openWorlds();
 
     }
 
@@ -1034,11 +1035,11 @@ document.addEventListener("click", e => {
     }
 }, true);
 
-document.getElementById("worldButton").onclick = () => {
+function openWorlds(){
     renderWorlds();
     document.getElementById("mainMenu").style.display = "none";
     document.getElementById("worlds").style.display   = "flex";
-};
+}
 
 document.getElementById("worldsClose").onclick = () => {
     document.getElementById("worlds").style.display   = "none";
@@ -1308,9 +1309,7 @@ function loop(t){
 
         if(playing && !paused && !portraitBlock){
 
-            /* le frolement etire le temps un court instant */
-            update(slowMo > 0 ? dt * .34 : dt);
-
+            update(dt);
             lasUpdate(dt);
         }else if(!playing){
             updateAmbient(dt);

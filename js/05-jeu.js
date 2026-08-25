@@ -2182,7 +2182,6 @@ function drawRaw(){
 
     drawSkillFx();
 
-    drawGrazeFlash();
     drawCombo();
 
     /* LES RAYONS PASSENT PAR-DESSUS TOUT */

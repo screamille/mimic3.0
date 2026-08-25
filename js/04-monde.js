@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "4.1";
+const VERSION = "4.3";
 
 (function(){
 
@@ -2478,7 +2478,7 @@ function drawCombo(){
 ========================================================= */
 
 const GRAZE_MARGIN = 26;   /* en unites, au-dela du contact */
-const GRAZE_SLOW   = .16;  /* duree du ralenti, en secondes */
+const GRAZE_COOL   = .5;   /* delai entre deux frolements comptes */
 
 function grazeCheck(){
 
@@ -2515,16 +2515,18 @@ function grazeCheck(){
         return;
     }
 
-    slowMo     = GRAZE_SLOW;
-    grazeFlash = 1;
+    /*
+    Le temps ne ralentit plus : le frolement rapporte des
+    points, rien de plus. Le ralenti rendait le jeu bien
+    trop facile des qu'un ennemi approchait.
+    */
+    slowMo = GRAZE_COOL;
 
     runGraze++;
 
     score += 5 * comboMult();
 
     sound(1500, .05, "sine", .02);
-
-    buzz(12);
 
 }
 
@@ -2535,36 +2537,10 @@ function slowTick(dt){
         slowMo = Math.max(0, slowMo - dt);
     }
 
-    if(grazeFlash > 0){
-        grazeFlash = Math.max(0, grazeFlash - dt * 4);
-    }
-
 }
 
 
-function drawGrazeFlash(){
-
-    if(grazeFlash <= 0){
-        return;
-    }
-
-    ctx.save();
-
-    ctx.globalAlpha = grazeFlash * .18;
-
-    const g = ctx.createRadialGradient(
-        player.x, player.y, player.r * 2,
-        player.x, player.y, Math.max(W, H) * .5
-    );
-    g.addColorStop(0, "rgba(255,255,255,0)");
-    g.addColorStop(1, "rgba(160,220,255,.9)");
-
-    ctx.fillStyle = g;
-    ctx.fillRect(0, 0, W, H);
-
-    ctx.restore();
-
-}
+/* le frolement ne se voit plus a l'ecran : il compte, c'est tout */
 
 
 /* =========================================================
