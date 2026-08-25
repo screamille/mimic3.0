@@ -1768,6 +1768,107 @@ laisser un menu fige sans explication.
     background:linear-gradient(90deg,#55d9ff,#a86cff);
 }
 
+.worldList{
+    display:flex;
+    flex-direction:column;
+
+    gap:10px;
+
+    margin-top:14px;
+}
+
+.worldCard{
+    --wc:#55d9ff;
+
+    display:flex;
+    align-items:center;
+
+    gap:14px;
+
+    width:100%;
+
+    padding:12px 14px;
+
+    border:1px solid color-mix(in srgb, var(--wc) 40%, transparent);
+    border-radius:14px;
+
+    background:rgba(12,18,40,.6);
+
+    text-align:left;
+
+    cursor:pointer;
+}
+
+.worldCard:hover{
+    background:rgba(20,30,60,.75);
+}
+
+.worldCard.locked{
+    border-color:rgba(120,150,220,.16);
+    background:rgba(10,14,28,.5);
+    cursor:default;
+}
+
+.worldNum{
+    flex:0 0 auto;
+
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    width:36px;
+    height:36px;
+
+    border-radius:12px;
+
+    background:color-mix(in srgb, var(--wc) 22%, transparent);
+    border:1px solid color-mix(in srgb, var(--wc) 50%, transparent);
+
+    color:var(--wc);
+
+    font-style:normal;
+    font-weight:800;
+    font-size:16px;
+}
+
+.worldCard.locked .worldNum{
+    background:rgba(255,255,255,.05);
+    border-color:rgba(120,150,220,.2);
+    color:#5f6f97;
+}
+
+.worldTxt{
+    flex:1 1 auto;
+
+    display:flex;
+    flex-direction:column;
+
+    gap:3px;
+
+    min-width:0;
+}
+
+.worldTxt b{
+    font-size:14px;
+    letter-spacing:.6px;
+}
+
+.worldTxt small{
+    font-size:11px;
+    color:#8fa0c8;
+}
+
+.worldCard em{
+    flex:0 0 auto;
+
+    font-style:normal;
+    font-size:15px;
+
+    color:var(--wc);
+}
+
+.worldCard.locked em{ color:#5f6f97; }
+
 .missionList{
     display:flex;
     flex-direction:column;

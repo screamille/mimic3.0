@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "4.0";
+const VERSION = "4.1";
 
 (function(){
 
@@ -2806,11 +2806,32 @@ function renderMissions(){
    LES RECORDS
 ========================================================= */
 
+/*
+Un monde ne se debloque qu'en y arrivant PAR LE PORTAIL,
+c'est-a-dire en ayant fini le precedent. Un entrainement ou
+un code secret te laisse jouer, mais n'ouvre rien de plus.
+*/
+let byPortal = false;
+
+function worldUnlocked(zoneId){
+    return zoneId === "cyber" || worldsSeen.indexOf(zoneId) >= 0;
+}
+
 function noteWorld(zoneId){
 
-    if(worldsSeen.indexOf(zoneId) < 0){
+    if(byPortal && worldsSeen.indexOf(zoneId) < 0){
+
         worldsSeen.push(zoneId);
         saveProgress();
+
+        const wd = WORLDS.find(w => w.zone === zoneId);
+
+        if(wd){
+            setTimeout(function(){
+                pickupMessage("🔓 MONDE " + wd.n + " DÉBLOQUÉ", wd.col);
+            }, 2200);
+        }
+
     }
 
     const wd = WORLDS.find(w => w.zone === zoneId);
@@ -5009,6 +5030,9 @@ function updateWarp(dt){
 
         if(k >= 1){
 
+            /* on arrive par le portail : c'est ce qui debloque */
+            byPortal = true;
+
             if(warp.target === "neant"){
                 enterVoid();
             }else if(warp.target === "abysse"){
@@ -5018,6 +5042,8 @@ function updateWarp(dt){
             }else{
                 enterMarais();
             }
+
+            byPortal = false;
 
             warp.phase = "out";
             warp.t     = 0;

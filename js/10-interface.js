@@ -135,14 +135,8 @@ function lobbySetMode(mode){
     const txt  = document.getElementById("lobbyPickText");
     const name = document.getElementById("lobbyModeName");
 
-    /* un entrainement : "w:marais", "w:bonbon", ... */
-    const wd = mode.indexOf("w:") === 0
-        ? WORLDS.find(w => w.zone === mode.slice(2))
-        : null;
-
     if(txt){
         txt.textContent =
-            wd               ? "Entraînement" :
             mode === "duel"  ? T("lobby.duel") :
             mode === "laser" ? T("las.pick") :
             T("lobby.solo");
@@ -151,9 +145,7 @@ function lobbySetMode(mode){
     if(name){
 
         name.innerHTML =
-            wd
-                ? "MONDE " + wd.n + "  " + wd.name + "<br><span>ENTRAÎNEMENT</span>"
-            : mode === "duel"
+            mode === "duel"
                 ? T("lobby.modeDuel") + "<br><span>" + T("lobby.modeDuelSub") + "</span>"
             : mode === "laser"
                 ? T("las.modeName") + "<br><span>" + T("las.modeSub") + "</span>"
@@ -832,23 +824,6 @@ document.getElementById("startButton").onclick = () => {
 
         openLaser();
 
-    }else if(lobbyMode.indexOf("w:") === 0){
-
-        const wd = WORLDS.find(w => w.zone === lobbyMode.slice(2));
-
-        startGame();
-
-        if(wd){
-
-            level = wd.from;
-
-            if(wd.zone === "marais"){ enterMarais(); }
-            else if(wd.zone === "bonbon"){ enterCandy(); }
-            else if(wd.zone === "abysse"){ enterAbyss(); }
-            else if(wd.zone === "neant"){ enterVoid(); }
-
-        }
-
     }else{
 
         startGame();
@@ -863,22 +838,100 @@ entrainement par monde deja atteint. Le monde 1 n'y est
 pas : c'est deja la partie normale.
 */
 function lobbyModeList(){
+    return ["solo", "duel", "laser"];
+}
 
-    const out = ["solo", "duel", "laser"];
 
-    for(const wd of WORLDS){
+/* lance une partie directement dans un monde donne */
+function playWorld(zoneId){
 
-        if(wd.zone === "cyber"){
-            continue;
-        }
+    const wd = WORLDS.find(w => w.zone === zoneId);
 
-        if(worldsSeen.indexOf(wd.zone) >= 0){
-            out.push("w:" + wd.zone);
-        }
-
+    if(!wd || !worldUnlocked(zoneId)){
+        return;
     }
 
-    return out;
+    document.getElementById("worlds").style.display = "none";
+
+    lobbySetMode("solo");
+
+    startGame();
+
+    if(zoneId === "cyber"){
+        return;
+    }
+
+    level = wd.from;
+
+    if(zoneId === "marais"){ enterMarais(); }
+    else if(zoneId === "bonbon"){ enterCandy(); }
+    else if(zoneId === "abysse"){ enterAbyss(); }
+    else if(zoneId === "neant"){ enterVoid(); }
+
+}
+
+
+function renderWorlds(){
+
+    const box = document.getElementById("worldList");
+
+    if(!box){
+        return;
+    }
+
+    box.innerHTML = "";
+
+    WORLDS.forEach((wd, i) => {
+
+        const open = worldUnlocked(wd.zone);
+        const prev = i > 0 ? WORLDS[i - 1] : null;
+
+        const card = document.createElement("button");
+
+        card.className = "worldCard" + (open ? "" : " locked");
+        card.style.setProperty("--wc", wd.col);
+
+        const num = document.createElement("i");
+        num.className   = "worldNum";
+        num.textContent = wd.n;
+
+        const txt = document.createElement("span");
+        txt.className = "worldTxt";
+
+        const nm = document.createElement("b");
+        nm.textContent = wd.name;
+        nm.style.color = open ? wd.col : "#5f6f97";
+
+        const sub = document.createElement("small");
+
+        sub.textContent = open
+            ? "Meilleur score : " + (records.best[wd.zone] || 0)
+            : "Termine le monde " + (prev ? prev.n : 1) + " pour l'ouvrir";
+
+        txt.appendChild(nm);
+        txt.appendChild(sub);
+
+        const mark = document.createElement("em");
+        mark.textContent = open ? "▶" : "🔒";
+
+        card.appendChild(num);
+        card.appendChild(txt);
+        card.appendChild(mark);
+
+        if(open){
+            card.onclick = function(){
+                sound(700, .08, "sine", .04);
+                playWorld(wd.zone);
+            };
+        }else{
+            card.onclick = function(){
+                sound(140, .16, "sawtooth", .04);
+            };
+        }
+
+        box.appendChild(card);
+
+    });
 
 }
 
@@ -980,6 +1033,17 @@ document.addEventListener("click", e => {
         sound(520, .06, "sine", .022);
     }
 }, true);
+
+document.getElementById("worldButton").onclick = () => {
+    renderWorlds();
+    document.getElementById("mainMenu").style.display = "none";
+    document.getElementById("worlds").style.display   = "flex";
+};
+
+document.getElementById("worldsClose").onclick = () => {
+    document.getElementById("worlds").style.display   = "none";
+    document.getElementById("mainMenu").style.display = "block";
+};
 
 document.getElementById("missionButton").onclick = () => {
     renderMissions();
