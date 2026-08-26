@@ -220,8 +220,9 @@ function animateShopIcons(){
 
 function abilityCard(ab, inShop){
 
-    const owned = hasAbility(ab.id);
-    const broke = !owned && totalCoins < ab.price;
+    const left  = abilityCount(ab.id);
+    const owned = left > 0;
+    const broke = totalCoins < ab.price;
 
     const rar = RARITIES[ab.rarity || 0];
 
@@ -229,7 +230,7 @@ function abilityCard(ab, inShop){
 
     card.className =
         "skinCard" +
-        (owned ? " equipped" : " locked") +
+        (owned ? " equipped" : "") +
         (broke ? " broke" : "");
 
     card.style.setProperty("--tint", ab.color + "33");
@@ -269,16 +270,19 @@ function abilityCard(ab, inShop){
 
     const state = document.createElement("div");
 
-    if(owned){
-        state.className   = "skinState own";
-        state.textContent = "✅ " + T("shop.owned");
-    }else{
-        state.className = "skinPrice";
-        state.innerHTML =
-            '<i class="coinDot"></i> ' + ab.price.toLocaleString("fr-FR");
-    }
+    state.className = "skinPrice";
+    state.innerHTML =
+        '<i class="coinDot"></i> ' + ab.price.toLocaleString("fr-FR");
 
     card.appendChild(state);
+
+    /* le stock : c'est ce qu'il te reste de charges */
+    const stock = document.createElement("div");
+
+    stock.className   = "abilityStock" + (left > 0 ? " has" : "");
+    stock.textContent = left > 0 ? "EN RÉSERVE  ×" + left : "AUCUNE CHARGE";
+
+    card.appendChild(stock);
 
     const desc = document.createElement("div");
 
@@ -289,19 +293,10 @@ function abilityCard(ab, inShop){
 
     const btn = document.createElement("button");
 
-    btn.className = "cardButton " + (owned ? "done" : "buy");
-
-    btn.textContent = owned ? T("shop.active") : T("shop.buy");
-
-    if(owned){
-        btn.disabled = true;
-    }
+    btn.className   = "cardButton buy";
+    btn.textContent = "+1 CHARGE";
 
     btn.onclick = () => {
-
-        if(owned){
-            return;
-        }
 
         if(totalCoins < ab.price){
 
@@ -312,22 +307,17 @@ function abilityCard(ab, inShop){
         }
 
         /*
-        Une carte, une competence : on n'ajoute que celle-ci,
-        et seulement si on ne l'a pas deja. Rien n'empeche
-        d'en acheter d'autres ensuite, une par une.
+        Une carte, une charge. On peut en racheter autant de
+        fois qu'on veut : c'est le principe des munitions.
         */
-        if(hasAbility(ab.id)){
-            return;
-        }
-
         totalCoins -= ab.price;
 
-        ownedAbilities.push(ab.id);
+        abilityStock[ab.id] = abilityCount(ab.id) + 1;
 
         saveGame();
         coinChime();
 
-        pickupMessage("✅ " + ab.name, ab.color);
+        pickupMessage("✅ " + ab.name + "  ×" + abilityCount(ab.id), ab.color);
 
         buildSkillBar();
 
@@ -413,10 +403,10 @@ function renderShop(){
 
         let list = shopInStore
             ? ABILITIES.slice()
-            : ABILITIES.filter(ab => hasAbility(ab.id));
+            : ABILITIES.filter(ab => abilityCount(ab.id) > 0);
 
         if(shopInStore && shopOnlyMissing){
-            list = list.filter(ab => !hasAbility(ab.id));
+            list = list.filter(ab => abilityCount(ab.id) <= 0);
         }
 
         list = list.sort(order);

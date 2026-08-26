@@ -5032,11 +5032,31 @@ if(!SKINS.some(sk => sk.id === currentSkin)){
 }
 
 
-/* capacites achetees (le dash s'achete a la boutique) */
-let ownedAbilities = loadJSON("mimicOwnedAbilities", []);
+/*
+Les capacites marchent comme des munitions : on en achete
+une charge a la fois, et chaque utilisation en consomme une.
+Le stock est garde par identifiant : {dash:3, onde:1, ...}
+*/
+let abilityStock = loadJSON("mimicAbilityStock", null);
 
-if(!Array.isArray(ownedAbilities)){
-    ownedAbilities = [];
+if(!abilityStock || typeof abilityStock !== "object" || Array.isArray(abilityStock)){
+
+    abilityStock = {};
+
+    /* reprise des anciennes sauvegardes : une capacite = une charge */
+    const old = loadJSON("mimicOwnedAbilities", []);
+
+    if(Array.isArray(old)){
+        for(const id of old){
+            abilityStock[id] = 1;
+        }
+    }
+
+}
+
+
+function abilityCount(id){
+    return Math.max(0, abilityStock[id] | 0);
 }
 
 
@@ -5044,7 +5064,7 @@ function saveGame(){
 
     try{
         localStorage.setItem("mimicOwnedSkins", JSON.stringify(ownedSkins));
-        localStorage.setItem("mimicOwnedAbilities", JSON.stringify(ownedAbilities));
+        localStorage.setItem("mimicAbilityStock", JSON.stringify(abilityStock));
         localStorage.setItem("mimicCurrentSkin", currentSkin);
         localStorage.setItem("mimicCoins", totalCoins);
         localStorage.setItem("mimicBestScore", bestScore);

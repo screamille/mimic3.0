@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "5.5";
+const VERSION = "5.6";
 
 (function(){
 
@@ -147,7 +147,7 @@ const ABILITIES = [
 
 
 function hasAbility(id){
-    return ownedAbilities.includes(id);
+    return abilityCount(id) > 0;
 }
 
 
@@ -203,6 +203,24 @@ function stunnableCreatures(){
 }
 
 
+/* une charge en moins : c'est ce qui pousse a revenir en acheter */
+function spendCharge(id){
+
+    abilityStock[id] = abilityCount(id) - 1;
+
+    saveGame();
+
+    if(abilityCount(id) <= 0){
+
+        pickupMessage("⌛ PLUS DE " + (ABILITIES.find(a => a.id === id) || {name:""}).name, "#8fa0c8");
+
+        sound(180, .2, "sine", .035);
+
+    }
+
+}
+
+
 function useSkill(id){
 
     if(id === "dash"){
@@ -213,6 +231,8 @@ function useSkill(id){
     if(!skillReady(id)){
         return;
     }
+
+    spendCharge(id);
 
     if(id === "bouclier"){
 
@@ -347,6 +367,8 @@ function tryDash(){
 
     skillCd.dash = DASH_CD;
 
+    spendCharge("dash");
+
     /* quelques instants d'invincibilite */
     player.invincible = Math.max(player.invincible, DASH_TIME + .1);
 
@@ -391,7 +413,7 @@ function buildSkillBar(){
 
     bar.innerHTML = "";
 
-    ABILITIES.filter(ab => hasAbility(ab.id)).forEach(ab => {
+    ABILITIES.filter(ab => abilityCount(ab.id) > 0).forEach(ab => {
 
         const btn = document.createElement("button");
 
@@ -404,7 +426,8 @@ function buildSkillBar(){
             '<span class="skillFace">' +
             '<span class="skillIcon"></span>' +
             '<span class="skillName"></span>' +
-            '</span>';
+            '</span>' +
+            '<span class="skillCount"></span>';
 
         btn.querySelector(".skillIcon").textContent = ab.icon;
         btn.querySelector(".skillName").textContent = ab.name;
@@ -445,13 +468,22 @@ function paintSkillBar(){
             continue;
         }
 
+        const left  = abilityCount(ab.id);
         const cd    = skillCd[ab.id] || 0;
-        const ready = cd <= 0;
+        const ready = cd <= 0 && left > 0;
+
+        const cnt = btn.querySelector(".skillCount");
+
+        if(cnt){
+            cnt.textContent = "×" + left;
+        }
+
+        btn.classList.toggle("empty", left <= 0);
 
         const ring = btn.querySelector(".skillRing");
 
         if(ring){
-            const k = ready ? 1 : 1 - cd / ab.cd;
+            const k = left <= 0 ? 0 : (cd <= 0 ? 1 : 1 - cd / ab.cd);
             ring.style.background =
                 "conic-gradient(" + ab.color + " " + (k * 360).toFixed(0) +
                 "deg, rgba(255,255,255,.07) 0deg)";

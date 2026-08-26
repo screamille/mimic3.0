@@ -1567,7 +1567,7 @@ button:active{
     right:0;
     width:calc(var(--bandR) + env(safe-area-inset-right));
 
-    bottom:calc(78px + env(safe-area-inset-bottom));
+    bottom:calc(82px + env(safe-area-inset-bottom));
 
     display:none;
 
@@ -1643,8 +1643,8 @@ button:active{
 }
 
 .skillName{
-    font-size:7.5px;
-    letter-spacing:0;
+    font-size:7px;
+    letter-spacing:-.2px;
 
     color:#5f6f97;
 
@@ -2406,6 +2406,48 @@ laisser un menu fige sans explication.
 }
 
 /* carte de capacite : meme boite que les skins, autre scene */
+/* le compteur de charges, sur le bouton en jeu */
+.skillCount{
+    position:absolute;
+    left:50%;
+    bottom:-9px;
+    transform:translateX(-50%);
+
+    min-width:20px;
+    padding:1px 5px;
+
+    border-radius:99px;
+
+    background:#0b1126;
+    border:1px solid var(--sk);
+
+    color:var(--sk);
+
+    font-size:10px;
+    font-weight:800;
+    line-height:1.4;
+    text-align:center;
+}
+
+.skillBtn.empty{ opacity:.4; }
+
+.skillBtn.empty .skillCount{
+    border-color:rgba(120,150,220,.5);
+    color:#8fa0c8;
+}
+
+.abilityStock{
+    margin-top:2px;
+
+    font-size:11px;
+    font-weight:800;
+    letter-spacing:1px;
+
+    color:#7f8ba8;
+}
+
+.abilityStock.has{ color:#61ff83; }
+
 .abilityGlyph{
     display:flex;
     align-items:center;
@@ -2784,11 +2826,11 @@ competences.
     }
 
     #skillBar{
-        gap:6px;
+        gap:10px;
     }
 
     #skillBar{
-        bottom:calc(14px + env(safe-area-inset-bottom));
+        bottom:calc(18px + env(safe-area-inset-bottom));
     }
 
     #gameUI{
