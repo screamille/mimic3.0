@@ -2623,6 +2623,16 @@ function startGame(seed){
 
     keys.up = keys.down = keys.left = keys.right = false;
 
+    /*
+    Les bandes sont mises en place AVANT le placement des
+    objets : sinon le terrain est encore calcule sans elles
+    et des pieces ou des ennemis se retrouvent dessous.
+    */
+    document.getElementById("bandL").style.display = "block";
+    document.getElementById("bandR").style.display = "block";
+
+    resize();
+
     runCoins = 0;
     runGraze = 0;
     runCombo = 0;

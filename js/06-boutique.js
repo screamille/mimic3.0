@@ -311,10 +311,23 @@ function abilityCard(ab, inShop){
 
         }
 
+        /*
+        Une carte, une competence : on n'ajoute que celle-ci,
+        et seulement si on ne l'a pas deja. Rien n'empeche
+        d'en acheter d'autres ensuite, une par une.
+        */
+        if(hasAbility(ab.id)){
+            return;
+        }
+
         totalCoins -= ab.price;
+
         ownedAbilities.push(ab.id);
+
         saveGame();
         coinChime();
+
+        pickupMessage("✅ " + ab.name, ab.color);
 
         buildSkillBar();
 

@@ -582,109 +582,12 @@ function drawAmbient(){
    il suffit d'y ajouter une ligne pour créer un nouveau code.
 ========================================================= */
 
+/*
+La table est vide pour l'instant : on remettra des codes plus
+tard. Tout le mecanisme reste en place, il suffit d'ajouter
+une ligne ici pour en recreer un.
+*/
 const SECRET_CODES = {
-
-    "1111":{
-        label:"LE MARAIS",
-        run:function(){
-            startInMarais();
-        }
-    },
-
-    "3333":{
-        label:"LE PAYS DES BONBONS",
-        run:function(){
-
-            startGame();
-
-            level = CANDY_LEVEL;
-
-            enterCandy();
-
-        }
-    },
-
-    "4444":{
-        label:"LES ABYSSES",
-        run:function(){
-
-            startGame();
-
-            level = ABYSS_LEVEL;
-
-            enterAbyss();
-
-        }
-    },
-
-    "5555":{
-        label:"LE NÉANT",
-        run:function(){
-
-            startGame();
-
-            level = VOID_LEVEL;
-
-            enterVoid();
-
-        }
-    },
-
-    "6666":{
-        label:"LE DÉSERT DE VERRE",
-        run:function(){ startGame(); level = DESERT_LEVEL; enterDesert(); }
-    },
-
-    "7777":{
-        label:"LA FORGE",
-        run:function(){ startGame(); level = FORGE_LEVEL; enterForge(); }
-    },
-
-    "8888":{
-        label:"LA BIBLIOTHÈQUE",
-        run:function(){ startGame(); level = BIBLIO_LEVEL; enterLibrary(); }
-    },
-
-    "9999":{
-        label:"L'HORLOGE",
-        run:function(){ startGame(); level = CLOCK_LEVEL; enterClock(); }
-    },
-
-    "0000":{
-        label:"0 PIÈCE",
-        run:function(){
-
-            totalCoins = 0;
-
-            saveGame();
-
-            closeCode();
-
-            pickupMessage("0 " + T("hud.coins"), "#8fa0c8");
-
-            /* deux notes qui descendent : on a tout remis a zero */
-            sound(520, .10, "sine", .04);
-            setTimeout(function(){ sound(330, .16, "sine", .04); }, 110);
-
-        }
-    },
-
-    "2222":{
-        label:"9 999 999 PIÈCES",
-        run:function(){
-
-            totalCoins = 9999999;
-
-            saveGame();
-
-            closeCode();
-
-            pickupMessage("9 999 999 " + T("hud.coins"), "#ffd84d");
-
-            coinChime();
-
-        }
-    }
 
 };
 
@@ -1024,7 +927,12 @@ document.getElementById("hostButton").onclick      = hostDuel;
 document.getElementById("joinButton").onclick      = joinDuel;
 document.getElementById("duelBack").onclick        = closeDuel;
 
-document.getElementById("codeButton").onclick = openCode;
+/* le bouton cle reviendra avec les prochains codes */
+const codeBtn = document.getElementById("codeButton");
+
+if(codeBtn){
+    codeBtn.onclick = openCode;
+}
 document.getElementById("codeBack").onclick   = closeCode;
 
 document.querySelectorAll(".keypad button").forEach(btn => {

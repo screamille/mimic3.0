@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "5.4";
+const VERSION = "5.5";
 
 (function(){
 
@@ -103,7 +103,7 @@ const ABILITIES = [
         id:"dash",
         name:"DASH",
         icon:"»",
-        price:600,
+        price:150,
         rarity:2,
         cd:DASH_CD,
         color:"#4fd8ff",
@@ -114,7 +114,7 @@ const ABILITIES = [
         id:"bouclier",
         name:"BOUCLIER",
         icon:"◎",
-        price:900,
+        price:150,
         rarity:2,
         cd:SHIELD_CD,
         color:"#7bffca",
@@ -125,7 +125,7 @@ const ABILITIES = [
         id:"onde",
         name:"ONDE",
         icon:"◉",
-        price:1200,
+        price:150,
         rarity:3,
         cd:WAVE_CD,
         color:"#ffb347",
@@ -136,7 +136,7 @@ const ABILITIES = [
         id:"leurre",
         name:"LEURRE",
         icon:"◆",
-        price:1800,
+        price:150,
         rarity:3,
         cd:LURE_CD,
         color:"#7bffca",
@@ -2580,14 +2580,15 @@ function slowTick(dt){
    minuit.
 ========================================================= */
 
+/* chaque mission rapporte entre 100 et 150 pieces */
 const MISSIONS = [
-    {id:"coins", min:20, max:55, step:5,   reward:250, txt:g => "Ramasse " + g + " pièces en une partie"},
-    {id:"score", min:600, max:2400, step:200, reward:300, txt:g => "Fais " + g + " points en une partie"},
-    {id:"world", min:2,  max:4,  step:1,   reward:400, txt:g => "Atteins le monde " + g},
-    {id:"time",  min:60, max:180, step:30, reward:300, txt:g => "Survis " + g + " secondes"},
-    {id:"combo", min:6,  max:20, step:2,   reward:350, txt:g => "Atteins un combo de " + g},
-    {id:"nohit", min:40, max:110, step:10, reward:450, txt:g => "Survis " + g + " s sans perdre de vie"},
-    {id:"graze", min:10, max:35, step:5,   reward:300, txt:g => "Frôle " + g + " fois un danger"}
+    {id:"coins", min:20, max:55, step:5,   reward:110, txt:g => "Ramasse " + g + " pièces en une partie"},
+    {id:"score", min:600, max:2400, step:200, reward:120, txt:g => "Fais " + g + " points en une partie"},
+    {id:"world", min:2,  max:9,  step:1,   reward:150, txt:g => "Atteins le monde " + g},
+    {id:"time",  min:60, max:180, step:30, reward:120, txt:g => "Survis " + g + " secondes"},
+    {id:"combo", min:6,  max:20, step:2,   reward:130, txt:g => "Atteins un combo de " + g},
+    {id:"nohit", min:40, max:110, step:10, reward:150, txt:g => "Survis " + g + " s sans perdre de vie"},
+    {id:"graze", min:10, max:35, step:5,   reward:100, txt:g => "Frôle " + g + " fois un danger"}
 ];
 
 
