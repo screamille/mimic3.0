@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "5.2";
+const VERSION = "5.3";
 
 (function(){
 
@@ -490,9 +490,9 @@ function paintDashButton(){
 function playArea(){
 
     return {
-        x0:16 * unit,
+        x0:bandL + 14 * unit,
         y0:topBound,
-        x1:W - 16 * unit,
+        x1:W - bandR - 14 * unit,
         y1:H - BOTTOM_UI * unit
     };
 
@@ -3161,11 +3161,20 @@ function worldProgress(){
 
 function paintProgress(text, k, col){
 
+    const numEl  = document.getElementById("worldNum");
     const nameEl = document.getElementById("worldName");
     const fillEl = document.getElementById("progFill");
 
+    /* "MONDE 6" au-dessus de la barre, "LE DÉSERT DE VERRE" en dessous */
+    const cut = text.indexOf("  ");
+
+    if(numEl){
+        numEl.textContent = cut > 0 ? text.slice(0, cut) : text;
+        numEl.style.color = col;
+    }
+
     if(nameEl){
-        nameEl.textContent = text;
+        nameEl.textContent = cut > 0 ? text.slice(cut + 2) : "";
         nameEl.style.color = col;
     }
 

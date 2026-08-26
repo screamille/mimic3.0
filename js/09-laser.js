@@ -883,6 +883,8 @@ function lasFinish(winner){
     document.getElementById("pauseBtn").style.display = "none";
     document.getElementById("skillBar").style.display = "none";
     document.getElementById("gameUI").style.display   = "none";
+    document.getElementById("bandL").style.display    = "none";
+    document.getElementById("bandR").style.display    = "none";
 
     const won = winner === laser.me;
 

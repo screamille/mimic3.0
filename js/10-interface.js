@@ -1313,8 +1313,14 @@ function loop(t){
 
         hudShown = playing;
 
-        document.getElementById("gameUI").style.display =
-            playing ? "flex" : "none";
+        const show = playing ? "flex" : "none";
+
+        document.getElementById("gameUI").style.display = show;
+        document.getElementById("bandL").style.display  = playing ? "block" : "none";
+        document.getElementById("bandR").style.display  = playing ? "block" : "none";
+
+        /* les bandes changent la largeur du terrain */
+        resize();
 
     }
 

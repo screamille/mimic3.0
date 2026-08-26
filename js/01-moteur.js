@@ -75,6 +75,9 @@ const ctx    = canvas.getContext("2d");
 
 let W = 0, H = 0, dpr = 1, unit = 1, topBound = 100;
 
+/* largeur des deux bandes noires, mesuree a chaque resize */
+let bandL = 0, bandR = 0;
+
 /* Zones réservées à l'interface */
 const TOP_UI    = 78;
 const BOTTOM_UI = 8;
@@ -106,20 +109,17 @@ function resize(){
     unit = Math.max(.65, Math.min(1.45, Math.min(W, H) / 720));
 
     /*
-    On mesure la barre d'infos plutôt que de deviner :
-    ça gère l'encoche des iPhone toute seule.
+    On mesure les deux bandes plutot que de deviner : ca gere
+    l'encoche des iPhone toute seule. Le haut et le bas du
+    terrain sont desormais entierement libres.
     */
-    const ui = document.getElementById("gameUI");
+    const bl = document.getElementById("bandL");
+    const br = document.getElementById("bandR");
 
-    /*
-    On s'arrête au HAUT de la barre d'infos, pas en dessous :
-    sinon sur téléphone toute la bande du haut est perdue.
-    Le bandeau ne bloque pas les clics (pointer-events:none)
-    et il est semi-transparent, donc on voit le slime dessous.
-    */
-    topBound = ui
-        ? ui.getBoundingClientRect().top
-        : 12;
+    bandL = bl ? bl.getBoundingClientRect().width : 0;
+    bandR = br ? br.getBoundingClientRect().width : 0;
+
+    topBound = 10 * unit;
 }
 
 var ambient    = [];

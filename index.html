@@ -10,7 +10,7 @@
 
 <title>MIMIC</title>
 
-<link rel="stylesheet" href="css/style.css?v=5.2">
+<link rel="stylesheet" href="css/style.css?v=5.3">
 </head>
 
 <body>
@@ -21,6 +21,10 @@
      UI
 ========================= -->
 
+<!-- les deux bandes noires : tout ce qui n'est pas le terrain -->
+<div id="bandL" class="sideBand l"></div>
+<div id="bandR" class="sideBand r"></div>
+
 <div id="gameUI">
 
     <div class="stat">
@@ -29,8 +33,9 @@
     </div>
 
     <div class="stat world" id="worldStat">
-        <span id="worldName">MONDE 1 · L'ESPACE</span>
+        <span id="worldNum">MONDE 1</span>
         <div class="progBar"><i id="progFill"></i></div>
+        <small id="worldName">L'ESPACE</small>
         <b id="level" style="display:none">1</b>
     </div>
 
@@ -44,18 +49,16 @@
         <b id="lives">♥♥♥</b>
     </div>
 
+    <!-- la jauge de L'ŒIL DU NÉANT, dans la bande elle aussi -->
+    <div id="bossBar" class="stat bossBar" style="display:none">
+        <span>👁 L'ŒIL</span>
+        <div class="bossTrack"><i id="bossFill"></i></div>
+        <small id="bossPhase">SALVES</small>
+    </div>
+
 </div>
 
 <button id="pauseBtn">⏸</button>
-
-<!-- la jauge de L'ŒIL DU NÉANT -->
-<div id="bossBar" class="bossBar" style="display:none">
-    <div class="bossTop">
-        <b>👁 L'ŒIL DU NÉANT</b>
-        <span id="bossPhase">SALVES</span>
-    </div>
-    <div class="bossTrack"><i id="bossFill"></i></div>
-</div>
 
 <!-- mode laser : les vies de chaque joueur -->
 <div id="lasBoard" class="lasBoard" style="display:none"></div>
@@ -166,7 +169,7 @@
         <b id="bestScore">0</b>
     </div>
 
-    <div class="version" id="versionTag">V 5.2</div>
+    <div class="version" id="versionTag">V 5.3</div>
 
     <div id="errBanner" class="errBanner" style="display:none"></div>
 
@@ -1004,16 +1007,16 @@ fonctionne parfaitement même si aucun des deux ne répond.
 })();
 </script>
 
-<script src="js/01-moteur.js?v=5.2"></script>
-<script src="js/02-etat.js?v=5.2"></script>
-<script src="js/03-skins.js?v=5.2"></script>
-<script src="js/04-monde.js?v=5.2"></script>
-<script src="js/05-jeu.js?v=5.2"></script>
-<script src="js/06-boutique.js?v=5.2"></script>
-<script src="js/07-duel.js?v=5.2"></script>
-<script src="js/08-langues.js?v=5.2"></script>
-<script src="js/09-laser.js?v=5.2"></script>
-<script src="js/10-interface.js?v=5.2"></script>
+<script src="js/01-moteur.js?v=5.3"></script>
+<script src="js/02-etat.js?v=5.3"></script>
+<script src="js/03-skins.js?v=5.3"></script>
+<script src="js/04-monde.js?v=5.3"></script>
+<script src="js/05-jeu.js?v=5.3"></script>
+<script src="js/06-boutique.js?v=5.3"></script>
+<script src="js/07-duel.js?v=5.3"></script>
+<script src="js/08-langues.js?v=5.3"></script>
+<script src="js/09-laser.js?v=5.3"></script>
+<script src="js/10-interface.js?v=5.3"></script>
 
 </body>
 </html>
