@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "5.6";
+const VERSION = "5.7";
 
 (function(){
 
@@ -4116,32 +4116,11 @@ function paintDesert(c){
 
     }
 
-    /* les eclats de verre plantes dans le sable */
-    for(let i = 0; i < 18; i++){
-
-        const x  = Math.random() * W;
-        const y  = H * (.25 + Math.random() * .7);
-        const hh = (40 + Math.random() * 130) * unit;
-        const ww = (10 + Math.random() * 26) * unit;
-
-        const g = c.createLinearGradient(x, y - hh, x, y);
-        g.addColorStop(0,  "rgba(210,245,255,.75)");
-        g.addColorStop(1,  "rgba(120,190,220,.20)");
-
-        c.fillStyle = g;
-
-        c.beginPath();
-        c.moveTo(x, y - hh);
-        c.lineTo(x + ww * .5, y);
-        c.lineTo(x - ww * .5, y);
-        c.closePath();
-        c.fill();
-
-        c.strokeStyle = "rgba(255,255,255,.5)";
-        c.lineWidth   = 1.2 * unit;
-        c.stroke();
-
-    }
+    /*
+    Plus d'eclats peints dans le decor : les pics du desert
+    sont de vrais obstacles, poses sur le terrain. On ne
+    dessine ici que leur poussiere pour ne pas tromper l'oeil.
+    */
 
     /* la poussiere qui vole */
     for(let i = 0; i < Math.round(W * H / 4200); i++){
@@ -4171,9 +4150,48 @@ function paintDesert(c){
 
 const MAX_MIRAGES = 7;
 
+const DESERT_SPIKES = 9;
+
 function enterDesert(){
+
     w69Enter("desert", "🏜", "#ffd76a");
+
+    /* les pics de verre : solides, pour toi comme pour eux */
+    for(let i = 0; i < DESERT_SPIKES; i++){
+        spawnSpike();
+    }
+
     for(let i = 0; i < 3; i++){ spawnMirage(); }
+
+}
+
+
+function spawnSpike(){
+
+    const r = (26 + rnd() * 16) * unit;
+
+    const p = findSpot(r, 210);
+
+    if(!p){
+        return;
+    }
+
+    solids.push({
+        x:p.x,
+        y:p.y,
+        r:r,
+        pulse:rnd() * 10,
+        glass:{
+            seed:rnd() * 6.28,
+            shards:Array.from({length:3 + Math.floor(rnd() * 2)}, () => ({
+                a:(rnd() - .5) * .5,
+                w:.30 + rnd() * .26,
+                h:1.05 + rnd() * .5,
+                x:(rnd() - .5) * .9
+            }))
+        }
+    });
+
 }
 
 
@@ -4218,17 +4236,20 @@ function updateMirages(dt){
             /* il te suit de loin, transparent et inoffensif */
             const a = Math.atan2(aim.y - m.y, aim.x - m.x);
 
-            m.x += Math.cos(a) * base * .7 * dt;
-            m.y += Math.sin(a) * base * .7 * dt;
+            m.x += Math.cos(a) * base * .62 * dt;
+            m.y += Math.sin(a) * base * .62 * dt;
 
             /* chacun a son propre temps de repos : ils ne
-               se durcissent jamais tous en meme temps */
+               se jettent jamais tous en meme temps */
             if(m.rest > 0){
                 m.rest -= dt;
                 m.near  = 0;
             }else{
                 m.near = d < 260 * unit ? m.near + dt : 0;
             }
+
+            /* transparent ou non, le toucher coute une vie */
+            w69Hit(m);
 
             if(m.near > 1.1){
                 m.phase = "solid";
@@ -4270,6 +4291,9 @@ function updateMirages(dt){
         }
 
         w69Clamp(m);
+
+        /* les pics de verre les arretent aussi */
+        resolveSolids(m);
 
     }
 
@@ -6127,6 +6151,86 @@ function drawGuimauves(){
         ctx.restore();
 
     }
+
+}
+
+
+/* --- les pics de verre du desert --- */
+function drawGlassSpike(s, t){
+
+    const g = s.glass;
+
+    ctx.save();
+    ctx.translate(s.x, s.y);
+
+    /* l'ombre portee sur le sable */
+    ctx.globalAlpha = .3;
+    ctx.fillStyle   = "#8a5426";
+
+    ctx.beginPath();
+    ctx.ellipse(s.r * .18, s.r * .78, s.r * .95, s.r * .3, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.globalAlpha = 1;
+
+    for(const sh of g.shards){
+
+        const bx = sh.x * s.r * .8;
+        const hw = sh.w * s.r;
+        const hh = sh.h * s.r;
+
+        ctx.save();
+        ctx.translate(bx, s.r * .7);
+        ctx.rotate(sh.a);
+
+        const grad = ctx.createLinearGradient(0, -hh, 0, 0);
+        grad.addColorStop(0,   "rgba(232,250,255,.95)");
+        grad.addColorStop(.55, "rgba(150,215,240,.8)");
+        grad.addColorStop(1,   "rgba(70,140,180,.7)");
+
+        ctx.fillStyle = grad;
+
+        ctx.beginPath();
+        ctx.moveTo(0, -hh);
+        ctx.lineTo(hw * .5, 0);
+        ctx.lineTo(-hw * .5, 0);
+        ctx.closePath();
+        ctx.fill();
+
+        /* l'arete qui accroche la lumiere */
+        ctx.strokeStyle = "rgba(255,255,255,.85)";
+        ctx.lineWidth   = Math.max(1, s.r * .045);
+
+        ctx.beginPath();
+        ctx.moveTo(0, -hh);
+        ctx.lineTo(-hw * .12, 0);
+        ctx.stroke();
+
+        ctx.strokeStyle = "rgba(20,70,105,.85)";
+        ctx.lineWidth   = Math.max(1.4, s.r * .05);
+
+        ctx.beginPath();
+        ctx.moveTo(0, -hh);
+        ctx.lineTo(hw * .5, 0);
+        ctx.lineTo(-hw * .5, 0);
+        ctx.closePath();
+        ctx.stroke();
+
+        /* l'eclat qui scintille */
+        ctx.globalAlpha = .35 + .35 * Math.sin(t * 1.6 + g.seed + sh.x * 3);
+        ctx.fillStyle   = "#ffffff";
+
+        ctx.beginPath();
+        ctx.ellipse(0, -hh * .55, hw * .1, hh * .18, sh.a, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.globalAlpha = 1;
+
+        ctx.restore();
+
+    }
+
+    ctx.restore();
 
 }
 
