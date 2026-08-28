@@ -1279,6 +1279,13 @@ function stickReset(){
 
 canvas.addEventListener("pointerdown", e => {
 
+    /* dans l'editeur, un appui pose ou retire un element */
+    if(creaEdit){
+        e.preventDefault();
+        creaTouch(e.clientX, e.clientY);
+        return;
+    }
+
     if(!playing || paused){
         return;
     }

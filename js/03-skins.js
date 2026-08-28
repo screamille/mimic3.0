@@ -5102,6 +5102,12 @@ function updateUI(){
         sdot.classList.toggle("on", giftReady());
     }
 
+    const pdot = document.getElementById("passDot");
+
+    if(pdot){
+        pdot.classList.toggle("on", passNew());
+    }
+
     lobbySyncSkin();
 
     document.getElementById("lives").textContent =

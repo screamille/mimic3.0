@@ -976,6 +976,62 @@ document.getElementById("worldsClose").onclick = () => {
     document.getElementById("mainMenu").style.display = "block";
 };
 
+document.getElementById("creaButton").onclick = () => {
+    renderMaps();
+    document.getElementById("mainMenu").style.display = "none";
+    document.getElementById("creaList").style.display = "flex";
+};
+
+document.getElementById("mapsClose").onclick = () => {
+    document.getElementById("creaList").style.display = "none";
+    document.getElementById("mainMenu").style.display = "block";
+};
+
+document.getElementById("mapNew").onclick = () => {
+    openEditor(null);
+};
+
+document.getElementById("creaZone").onclick  = creaCycleZone;
+
+document.getElementById("creaFold").onclick = () => {
+
+    const bar = document.getElementById("creaBar");
+
+    bar.classList.toggle("folded");
+
+    document.getElementById("creaFold").textContent =
+        bar.classList.contains("folded") ? "▴" : "▾";
+
+    sound(560, .06, "sine", .03);
+
+};
+document.getElementById("creaSave").onclick  = saveCurrentMap;
+
+document.getElementById("creaTry").onclick = () => {
+    saveCurrentMap();
+    playMap(creaMap);
+};
+
+document.getElementById("creaQuit").onclick = () => {
+    closeEditor();
+    renderMaps();
+    document.getElementById("mainMenu").style.display = "none";
+    document.getElementById("creaList").style.display = "flex";
+};
+
+document.getElementById("passButton").onclick = () => {
+    renderPass();
+    document.getElementById("mainMenu").style.display   = "none";
+    document.getElementById("passScreen").style.display = "flex";
+    updateUI();
+};
+
+document.getElementById("passClose").onclick = () => {
+    document.getElementById("passScreen").style.display = "none";
+    document.getElementById("mainMenu").style.display   = "block";
+    updateUI();
+};
+
 document.getElementById("missionButton").onclick = () => {
     renderMissions();
     document.getElementById("mainMenu").style.display = "none";
