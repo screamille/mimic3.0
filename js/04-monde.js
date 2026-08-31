@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "6.1";
+const VERSION = "6.2";
 
 (function(){
 
@@ -2615,15 +2615,15 @@ function slowTick(dt){
    minuit.
 ========================================================= */
 
-/* chaque mission rapporte entre 100 et 150 pieces */
+/* chaque mission rapporte entre 50 et 75 pieces */
 const MISSIONS = [
-    {id:"coins", min:20, max:55, step:5,   reward:110, txt:g => "Ramasse " + g + " pièces en une partie"},
-    {id:"score", min:600, max:2400, step:200, reward:120, txt:g => "Fais " + g + " points en une partie"},
-    {id:"world", min:2,  max:9,  step:1,   reward:150, txt:g => "Atteins le monde " + g},
-    {id:"time",  min:60, max:180, step:30, reward:120, txt:g => "Survis " + g + " secondes"},
-    {id:"combo", min:6,  max:20, step:2,   reward:130, txt:g => "Atteins un combo de " + g},
-    {id:"nohit", min:40, max:110, step:10, reward:150, txt:g => "Survis " + g + " s sans perdre de vie"},
-    {id:"graze", min:10, max:35, step:5,   reward:100, txt:g => "Frôle " + g + " fois un danger"}
+    {id:"coins", min:20, max:55, step:5,   reward:55, txt:g => "Ramasse " + g + " pièces en une partie"},
+    {id:"score", min:600, max:2400, step:200, reward:60, txt:g => "Fais " + g + " points en une partie"},
+    {id:"world", min:2,  max:9,  step:1,   reward:75, txt:g => "Atteins le monde " + g},
+    {id:"time",  min:60, max:180, step:30, reward:60, txt:g => "Survis " + g + " secondes"},
+    {id:"combo", min:6,  max:20, step:2,   reward:65, txt:g => "Atteins un combo de " + g},
+    {id:"nohit", min:40, max:110, step:10, reward:75, txt:g => "Survis " + g + " s sans perdre de vie"},
+    {id:"graze", min:10, max:35, step:5,   reward:50, txt:g => "Frôle " + g + " fois un danger"}
 ];
 
 
@@ -3092,7 +3092,7 @@ function renderPass(){
 ========================================================= */
 
 const SHOP_PICKS = 3;
-const GIFT_COINS = 50;
+const GIFT_COINS = 25;
 
 let shopDay = loadJSON("mimicShopDay", null);
 let giftDay = localStorage.getItem("mimicGift") || "";

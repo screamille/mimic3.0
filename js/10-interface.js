@@ -922,7 +922,10 @@ document.getElementById("openShopStore").onclick = () => {
 
 lobbySetMode("solo");
 document.getElementById("retryButton").onclick     = () => startGame();
-document.getElementById("duelButton").onclick      = openDuel;
+/* le duel se lance par le selecteur du salon, plus par un onglet */
+const duelTab = document.getElementById("duelButton");
+
+if(duelTab) duelTab.onclick      = openDuel;
 document.getElementById("hostButton").onclick      = hostDuel;
 document.getElementById("joinButton").onclick      = joinDuel;
 document.getElementById("duelBack").onclick        = closeDuel;
