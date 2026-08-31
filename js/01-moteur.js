@@ -75,9 +75,6 @@ const ctx    = canvas.getContext("2d");
 
 let W = 0, H = 0, dpr = 1, unit = 1, topBound = 100;
 
-/* largeur des deux bandes noires, mesuree a chaque resize */
-let bandL = 0, bandR = 0;
-
 /* Zones réservées à l'interface */
 const TOP_UI    = 78;
 const BOTTOM_UI = 8;
@@ -109,17 +106,16 @@ function resize(){
     unit = Math.max(.65, Math.min(1.45, Math.min(W, H) / 720));
 
     /*
-    On mesure les deux bandes plutot que de deviner : ca gere
-    l'encoche des iPhone toute seule. Le haut et le bas du
-    terrain sont desormais entierement libres.
+    On mesure la barre d'infos plutot que de deviner : ca gere
+    l'encoche des iPhone toute seule. On s'arrete au HAUT de
+    la barre, pas en dessous : elle ne bloque pas les clics et
+    elle est translucide, donc on voit le terrain a travers.
     */
-    const bl = document.getElementById("bandL");
-    const br = document.getElementById("bandR");
+    const ui = document.getElementById("gameUI");
 
-    bandL = bl ? bl.getBoundingClientRect().width : 0;
-    bandR = br ? br.getBoundingClientRect().width : 0;
-
-    topBound = 10 * unit;
+    topBound = ui
+        ? ui.getBoundingClientRect().top
+        : 12;
 }
 
 var ambient    = [];
@@ -1278,13 +1274,6 @@ function stickReset(){
 }
 
 canvas.addEventListener("pointerdown", e => {
-
-    /* dans l'editeur, un appui pose ou retire un element */
-    if(creaEdit){
-        e.preventDefault();
-        creaTouch(e.clientX, e.clientY);
-        return;
-    }
 
     if(!playing || paused){
         return;

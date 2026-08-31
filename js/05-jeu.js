@@ -283,8 +283,7 @@ function createMimic(forcedType){
     poursuivant du monde 1 : ni HUNTER, ni PREDICTOR, ni
     TRAQUEUR, ni TRAQUEUR NOIR. Chaque monde a ses habitants.
     */
-    /* une carte ne contient que ce qu'on y a mis */
-    if(crea || zone !== "cyber"){
+    if(zone !== "cyber"){
         return;
     }
 
@@ -363,42 +362,6 @@ function createMimic(forcedType){
     }else{
         pickupMessage("⚠️ " + type.name + " ARRIVE", type.color);
     }
-
-}
-
-
-/*
-Un poursuivant place a la main dans l'editeur : meme creature,
-mais on choisit ou il demarre, et il ne remonte aucune trace.
-*/
-function creaMimic(type, x, y){
-
-    const m = {
-        x:x,
-        y:y,
-        r:type.size * unit,
-        type:type,
-        order:mimics.length,
-        lagSlot:Math.min(mimics.length, 2),
-        s:0,
-        cursor:0,
-        vx:0,
-        vy:0,
-        flank:(mimics.length % 3 - 1) * .6,
-        animationTime:Math.random() * 10,
-        rotation:0,
-        scale:1,
-        stunned:0,
-        spawnFlash:1.1,
-        trailTimer:0,
-        burstWait:0,
-        burstWarn:0,
-        burstLeft:0
-    };
-
-    resetBurst(m);
-
-    mimics.push(m);
 
 }
 
@@ -1045,10 +1008,8 @@ function update(dt){
 
     updatePortal(dt);
     updateGloutons(dt);
-    if(!crea){
-        updateBoss(dt);
-        updateW69(dt);
-    }
+    updateBoss(dt);
+    updateW69(dt);
     updateGuimauves(dt);
     updateAnguilles(dt);
     updateLanternes(dt);
@@ -1136,8 +1097,8 @@ function update(dt){
 
             const mult = comboMult();
 
-            /* ni le mode laser ni les cartes maison ne rapportent */
-            if(!laser.active && !crea){
+            /* le mode laser ne rapporte aucune piece */
+            if(!laser.active){
                 totalCoins += mult;
                 runCoins   += mult;
             }
@@ -1215,8 +1176,7 @@ function update(dt){
 
     levelTimer += dt;
 
-    /* une carte maison ne monte pas en niveau toute seule */
-    if(levelTimer > 12 && !crea){
+    if(levelTimer > 12){
 
         levelTimer = 0;
 
@@ -1320,12 +1280,6 @@ function update(dt){
             laser.players.length ? alive / laser.players.length : 0,
             "#ff466e"
         );
-
-    }else if(crea){
-
-        document.getElementById("score").textContent = Math.floor(score);
-
-        paintProgress("🛠 CARTE  " + creaName, 1, "#55d9ff");
 
     }else{
 
@@ -1493,12 +1447,6 @@ function drawRaw(){
     /* LE SOL */
 
     drawFloor();
-
-    /* dans l'editeur, on ne montre que la carte en construction */
-    if(creaEdit){
-        drawEditor();
-        return;
-    }
 
 
     /* CRÉATURES QUI DÉRIVENT DERRIÈRE LE MENU */
@@ -2559,7 +2507,7 @@ function endGame(){
         }
     }
 
-    if(!laser.active && !crea){
+    if(!laser.active){
         noteRecords();
         addXP(final * .25 + gameTime * 2);
     }
@@ -2680,18 +2628,6 @@ function startGame(seed){
     }
 
     keys.up = keys.down = keys.left = keys.right = false;
-
-    /*
-    Les bandes sont mises en place AVANT le placement des
-    objets : sinon le terrain est encore calcule sans elles
-    et des pieces ou des ennemis se retrouvent dessous.
-    */
-    document.getElementById("bandL").style.display = "block";
-    document.getElementById("bandR").style.display = "block";
-
-    resize();
-
-    crea = false;
 
     runCoins = 0;
     runGraze = 0;

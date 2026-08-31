@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "6.0";
+const VERSION = "6.1";
 
 (function(){
 
@@ -522,9 +522,9 @@ function paintDashButton(){
 function playArea(){
 
     return {
-        x0:bandL + 14 * unit,
+        x0:16 * unit,
         y0:topBound,
-        x1:W - bandR - 14 * unit,
+        x1:W - 16 * unit,
         y1:H - BOTTOM_UI * unit
     };
 
@@ -604,7 +604,7 @@ function findSpot(radius, minFromPlayer, gen){
 function addSolid(){
 
     /* le mode laser se joue dans une arene vide */
-    if(laser.active || crea){
+    if(laser.active){
         return;
     }
 
@@ -1021,7 +1021,7 @@ function addOrb(){
     Le mode laser, la salle du boss et les cartes maison se
     jouent tels quels : rien n'apparait tout seul.
     */
-    if(laser.active || crea || zone === "neant"){
+    if(laser.active || zone === "neant"){
         return;
     }
 
@@ -1043,7 +1043,7 @@ function addOrb(){
 
 function addCoin(){
 
-    if(laser.active || crea || zone === "neant"){
+    if(laser.active || zone === "neant"){
         return;
     }
 
@@ -1924,11 +1924,6 @@ function hexA(hex, a){
 
 function portalTarget(){
 
-    /* pas de portail dans une carte maison */
-    if(crea){
-        return null;
-    }
-
 
     if(zone === "cyber" && level >= PORTAL_LEVEL){
         return "marais";
@@ -2719,7 +2714,7 @@ function missionValue(id){
 
 function missionTick(){
 
-    if(!playing || laser.active || crea || !daily){
+    if(!playing || laser.active || !daily){
         return;
     }
 
@@ -2850,610 +2845,6 @@ function renderMissions(){
 
 
 
-
-
-/* =========================================================
-   LE MODE CREATIF
-
-   On pose ce qu'on veut sur le terrain, on enregistre, et on
-   joue sa carte. Tout reste sur l'appareil : c'est du local,
-   rien ne part sur internet.
-========================================================= */
-
-/* la partie en cours vient-elle d'une carte ? */
-let crea       = false;
-let creaEdit   = false;   /* on est dans l'editeur */
-let creaMap    = null;    /* la carte en cours d'edition */
-let creaName   = "";      /* le nom de la carte qu'on joue */
-let creaTool   = "bloc";
-let creaMaps   = loadJSON("mimicMaps", []);
-
-if(!Array.isArray(creaMaps)){
-    creaMaps = [];
-}
-
-
-const CREA_TOOLS = [
-    {id:"bloc",   name:"BLOC",     icon:"⬛", col:"#8fa0c8"},
-    {id:"pic",    name:"PIC",      icon:"🔺", col:"#9fe2ff"},
-    {id:"piece",  name:"PIÈCE",    icon:"🪙", col:"#ffd84d"},
-    {id:"orbe",   name:"ORBE",     icon:"🟣", col:"#b06cff"},
-    {id:"coeur",  name:"CŒUR",     icon:"💚", col:"#69ff88"},
-    {id:"hunter", name:"HUNTER",   icon:"▲",  col:"#ff5f6a"},
-    {id:"predictor", name:"PREDICTOR", icon:"◆", col:"#c86aff"},
-    {id:"traqueur",  name:"TRAQUEUR",  icon:"●", col:"#ffb347"},
-    {id:"depart", name:"DÉPART",   icon:"🎯", col:"#55d9ff"},
-    {id:"gomme",  name:"GOMME",    icon:"✖",  col:"#ff466e"}
-];
-
-
-const CREA_ZONES = [
-    {zone:"cyber",   name:"L'ESPACE"},
-    {zone:"marais",  name:"LE MARAIS"},
-    {zone:"bonbon",  name:"LES BONBONS"},
-    {zone:"abysse",  name:"LES ABYSSES"},
-    {zone:"neant",   name:"LE NÉANT"},
-    {zone:"desert",  name:"LE DÉSERT"},
-    {zone:"forge",   name:"LA FORGE"},
-    {zone:"biblio",  name:"LA BIBLIOTHÈQUE"},
-    {zone:"horloge", name:"L'HORLOGE"}
-];
-
-
-function saveMaps(){
-    try{ localStorage.setItem("mimicMaps", JSON.stringify(creaMaps)); }catch(e){}
-}
-
-
-function newMap(){
-    return {
-        name:"Ma carte " + (creaMaps.length + 1),
-        zone:"cyber",
-        start:{x:.5, y:.5},
-        items:[]
-    };
-}
-
-
-/*
-Les positions sont gardees en 0..1 du terrain : la carte
-s'affiche pareil sur telephone et sur PC.
-*/
-function creaPix(n){
-    const a = playArea();
-    return {x:a.x0 + n.x * (a.x1 - a.x0), y:a.y0 + n.y * (a.y1 - a.y0)};
-}
-
-function creaNorm(x, y){
-    const a = playArea();
-    return {
-        x:(x - a.x0) / Math.max(1, a.x1 - a.x0),
-        y:(y - a.y0) / Math.max(1, a.y1 - a.y0)
-    };
-}
-
-
-/* =========================================================
-   L'EDITEUR
-========================================================= */
-
-function openEditor(map){
-
-    creaMap  = map || newMap();
-    creaEdit = true;
-    crea     = false;
-
-    playing = false;
-    paused  = false;
-
-    document.getElementById("mainMenu").style.display  = "none";
-    document.getElementById("creaList").style.display  = "none";
-    document.getElementById("creaBar").style.display   = "flex";
-    document.getElementById("gameOver").style.display  = "none";
-
-    document.getElementById("bandL").style.display = "block";
-    document.getElementById("bandR").style.display = "block";
-    document.getElementById("gameUI").style.display = "none";
-    document.getElementById("pauseBtn").style.display = "none";
-    document.getElementById("skillBar").style.display = "none";
-
-    resize();
-
-    /* on prend le decor du monde choisi */
-    zone       = creaMap.zone;
-    floorCache = null;
-
-    creaTool = "bloc";
-
-    const bar = document.getElementById("creaBar");
-
-    bar.classList.remove("folded");
-
-    document.getElementById("creaFold").textContent = "▾";
-
-    creaSyncBar();
-
-    sound(600, .1, "sine", .04);
-
-}
-
-
-function closeEditor(){
-
-    creaEdit = false;
-
-    document.getElementById("creaBar").style.display  = "none";
-    document.getElementById("bandL").style.display    = "none";
-    document.getElementById("bandR").style.display    = "none";
-    document.getElementById("mainMenu").style.display = "block";
-
-    zone       = "cyber";
-    floorCache = null;
-
-    resize();
-
-}
-
-
-function creaSyncBar(){
-
-    const box = document.getElementById("creaTools");
-
-    if(!box){
-        return;
-    }
-
-    box.innerHTML = "";
-
-    for(const t of CREA_TOOLS){
-
-        const btn = document.createElement("button");
-
-        btn.className   = "creaTool" + (creaTool === t.id ? " on" : "");
-        btn.style.setProperty("--ct", t.col);
-        btn.innerHTML   = '<i>' + t.icon + '</i><span>' + t.name + '</span>';
-
-        btn.onclick = function(){
-            creaTool = t.id;
-            creaSyncBar();
-            sound(700, .05, "sine", .03);
-        };
-
-        box.appendChild(btn);
-
-    }
-
-    const zn = document.getElementById("creaZone");
-
-    if(zn){
-        const z = CREA_ZONES.find(x => x.zone === creaMap.zone) || CREA_ZONES[0];
-        zn.textContent = "🌍 " + z.name;
-    }
-
-    const nm = document.getElementById("creaName");
-
-    if(nm && nm.value !== creaMap.name){
-        nm.value = creaMap.name;
-    }
-
-    const ct = document.getElementById("creaCount");
-
-    if(ct){
-        ct.textContent = creaMap.items.length + " éléments";
-    }
-
-}
-
-
-function creaCycleZone(){
-
-    const i = CREA_ZONES.findIndex(z => z.zone === creaMap.zone);
-
-    creaMap.zone = CREA_ZONES[(i + 1) % CREA_ZONES.length].zone;
-
-    zone       = creaMap.zone;
-    floorCache = null;
-
-    creaSyncBar();
-
-    sound(620, .07, "sine", .035);
-
-}
-
-
-/* poser ou retirer un element */
-function creaTouch(px, py){
-
-    if(!creaEdit || !creaMap){
-        return;
-    }
-
-    const a = playArea();
-
-    if(px < a.x0 || px > a.x1 || py < a.y0 || py > a.y1){
-        return;
-    }
-
-    const n = creaNorm(px, py);
-
-    /* d'abord : est-ce qu'on tape sur quelque chose de deja pose ? */
-    const near = 26 * unit;
-
-    for(let i = creaMap.items.length - 1; i >= 0; i--){
-
-        const p = creaPix(creaMap.items[i]);
-
-        if(Math.hypot(p.x - px, p.y - py) < near){
-
-            if(creaTool === "gomme"){
-                creaMap.items.splice(i, 1);
-                sound(200, .08, "square", .03);
-                creaSyncBar();
-                return;
-            }
-
-            /* on ne superpose pas : on remplace */
-            creaMap.items.splice(i, 1);
-            break;
-
-        }
-
-    }
-
-    if(creaTool === "gomme"){
-        return;
-    }
-
-    if(creaTool === "depart"){
-
-        creaMap.start = n;
-
-        sound(880, .08, "sine", .035);
-
-        return;
-
-    }
-
-    if(creaMap.items.length >= 120){
-        pickupMessage("Carte pleine", "#ff466e");
-        return;
-    }
-
-    creaMap.items.push({t:creaTool, x:n.x, y:n.y, r:.5 + Math.random() * .5});
-
-    sound(760, .06, "sine", .03);
-
-    creaSyncBar();
-
-}
-
-
-/* le dessin de l'editeur, par-dessus le decor */
-function drawEditor(){
-
-    if(!creaEdit || !creaMap){
-        return;
-    }
-
-    const a = playArea();
-
-    /* le cadre du terrain */
-    ctx.save();
-    ctx.strokeStyle = "rgba(140,180,255,.35)";
-    ctx.lineWidth   = 2 * unit;
-    ctx.setLineDash([8 * unit, 8 * unit]);
-    ctx.strokeRect(a.x0, a.y0, a.x1 - a.x0, a.y1 - a.y0);
-    ctx.setLineDash([]);
-    ctx.restore();
-
-    for(const it of creaMap.items){
-
-        const p = creaPix(it);
-
-        creaIcon(it.t, p.x, p.y, 20 * unit * (.8 + it.r * .5));
-
-    }
-
-    /* le point de depart */
-    const sp = creaPix(creaMap.start);
-
-    ctx.save();
-    ctx.globalAlpha = .8;
-    ctx.strokeStyle = "#55d9ff";
-    ctx.lineWidth   = 2.4 * unit;
-    ctx.shadowColor = "#55d9ff";
-    ctx.shadowBlur  = 14;
-
-    ctx.beginPath();
-    ctx.arc(sp.x, sp.y, 20 * unit + Math.sin(gameTime * 3) * 3 * unit, 0, Math.PI * 2);
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.moveTo(sp.x - 26 * unit, sp.y);
-    ctx.lineTo(sp.x + 26 * unit, sp.y);
-    ctx.moveTo(sp.x, sp.y - 26 * unit);
-    ctx.lineTo(sp.x, sp.y + 26 * unit);
-    ctx.stroke();
-
-    ctx.restore();
-
-    const skin = SKINS.find(s => s.id === currentSkin) || SKINS[0];
-
-    ctx.save();
-    ctx.globalAlpha = .75;
-    ctx.translate(sp.x, sp.y);
-    paintSkinSlime(ctx, skin, 13 * unit, gameTime, false, {blink:1});
-    ctx.restore();
-
-}
-
-
-/* la petite vignette de chaque element dans l'editeur */
-function creaIcon(kind, x, y, r){
-
-    ctx.save();
-    ctx.translate(x, y);
-
-    if(kind === "bloc"){
-
-        ctx.fillStyle = "#4a5a7a";
-        ctx.strokeStyle = "#9fb4d8";
-        ctx.lineWidth = 2 * unit;
-
-        ctx.beginPath();
-        ctx.arc(0, 0, r, 0, Math.PI * 2);
-        ctx.fill();
-        ctx.stroke();
-
-    }else if(kind === "pic"){
-
-        ctx.fillStyle = "rgba(180,235,255,.9)";
-        ctx.strokeStyle = "#1a4a68";
-        ctx.lineWidth = 2 * unit;
-
-        ctx.beginPath();
-        ctx.moveTo(0, -r);
-        ctx.lineTo(r * .7, r * .7);
-        ctx.lineTo(-r * .7, r * .7);
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
-
-    }else if(kind === "piece"){
-
-        const g = ctx.createRadialGradient(-r * .3, -r * .3, r * .1, 0, 0, r);
-        g.addColorStop(0, "#ffe9a3");
-        g.addColorStop(1, "#c98a10");
-
-        ctx.fillStyle = g;
-        ctx.beginPath();
-        ctx.arc(0, 0, r * .7, 0, Math.PI * 2);
-        ctx.fill();
-
-    }else if(kind === "orbe"){
-
-        ctx.fillStyle   = "#a855ff";
-        ctx.shadowColor = "#a855ff";
-        ctx.shadowBlur  = 14;
-        ctx.beginPath();
-        ctx.arc(0, 0, r * .7, 0, Math.PI * 2);
-        ctx.fill();
-
-    }else if(kind === "coeur"){
-
-        ctx.fillStyle = "#61ff83";
-        ctx.font      = Math.round(r * 1.8) + "px sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText("💚", 0, 0);
-
-    }else{
-
-        /* les ennemis : leur vraie silhouette, en petit */
-        paintCreature(ctx, kind, 0, 0, r, -.35, gameTime);
-
-    }
-
-    ctx.restore();
-
-}
-
-
-/* =========================================================
-   JOUER SA CARTE
-========================================================= */
-
-function playMap(map){
-
-    document.getElementById("creaList").style.display = "none";
-    document.getElementById("creaBar").style.display  = "none";
-
-    creaEdit = false;
-
-    startGame();
-
-    crea = true;
-
-    /* le decor du monde choisi, sans ses habitants */
-    zone       = map.zone;
-    floorCache = null;
-
-    solids = []; coins = []; orbs = []; hearts = []; mimics = [];
-    archers = []; balls = []; slimes = []; blobs = []; puddles = [];
-    logs = []; crawlers = []; drips = []; candies = []; gloutons = [];
-    guimauves = []; anguilles = []; lanternes = []; bulles = [];
-    tomes = [];
-
-    boss = null; bossShots = []; bossBeams = [];
-
-    clearW69();
-
-    trace = [];
-    traceLength = 0;
-
-    portal = null;
-    warp   = null;
-
-    const sp = creaPix(map.start);
-
-    player.x = sp.x;
-    player.y = sp.y;
-    player.invincible = 2;
-
-    for(const it of map.items){
-
-        const p = creaPix(it);
-
-        if(it.t === "bloc"){
-
-            solids.push({x:p.x, y:p.y, r:(22 + it.r * 20) * unit, pulse:Math.random() * 10});
-
-        }else if(it.t === "pic"){
-
-            solids.push({
-                x:p.x, y:p.y, r:(24 + it.r * 16) * unit, pulse:Math.random() * 10,
-                glass:{
-                    seed:Math.random() * 6.28,
-                    shards:Array.from({length:3}, () => ({
-                        a:(Math.random() - .5) * .5,
-                        w:.3 + Math.random() * .25,
-                        h:1.05 + Math.random() * .5,
-                        x:(Math.random() - .5) * .9
-                    }))
-                }
-            });
-
-        }else if(it.t === "piece"){
-
-            coins.push({x:p.x, y:p.y, r:11 * unit, rotation:0, pulse:0});
-
-        }else if(it.t === "orbe"){
-
-            orbs.push({x:p.x, y:p.y, r:15 * unit, pulse:0});
-
-        }else if(it.t === "coeur"){
-
-            hearts.push({x:p.x, y:p.y, r:13 * unit, pulse:0});
-
-        }else{
-
-            const type = MIMIC_TYPES.find(
-                t => (t.name || "").toLowerCase() === it.t
-            );
-
-            if(type){
-                creaMimic(type, p.x, p.y);
-            }
-
-        }
-
-    }
-
-    creaName = map.name;
-
-    pickupMessage("🛠 " + map.name, "#55d9ff");
-
-}
-
-
-/* =========================================================
-   LA LISTE DES CARTES
-========================================================= */
-
-function renderMaps(){
-
-    const box = document.getElementById("mapList");
-
-    if(!box){
-        return;
-    }
-
-    box.innerHTML = "";
-
-    if(!creaMaps.length){
-
-        const note = document.createElement("div");
-        note.className   = "mapEmpty";
-        note.textContent = "Aucune carte pour l'instant. Appuie sur NOUVELLE CARTE.";
-        box.appendChild(note);
-
-        return;
-
-    }
-
-    creaMaps.forEach((m, i) => {
-
-        const row = document.createElement("div");
-        row.className = "mapRow";
-
-        const txt = document.createElement("span");
-
-        const nm = document.createElement("b");
-        nm.textContent = m.name;
-
-        const z = CREA_ZONES.find(x => x.zone === m.zone) || CREA_ZONES[0];
-
-        const sub = document.createElement("small");
-        sub.textContent = z.name + "  ·  " + m.items.length + " éléments";
-
-        txt.appendChild(nm);
-        txt.appendChild(sub);
-
-        const play = document.createElement("button");
-        play.className   = "mapBtn play";
-        play.textContent = "▶";
-        play.onclick = function(){ playMap(m); };
-
-        const edit = document.createElement("button");
-        edit.className   = "mapBtn";
-        edit.textContent = "✎";
-        edit.onclick = function(){ openEditor(m); };
-
-        const del = document.createElement("button");
-        del.className   = "mapBtn del";
-        del.textContent = "🗑";
-        del.onclick = function(){
-            creaMaps.splice(i, 1);
-            saveMaps();
-            renderMaps();
-            sound(180, .14, "square", .04);
-        };
-
-        row.appendChild(txt);
-        row.appendChild(play);
-        row.appendChild(edit);
-        row.appendChild(del);
-
-        box.appendChild(row);
-
-    });
-
-}
-
-
-function saveCurrentMap(){
-
-    if(!creaMap){
-        return;
-    }
-
-    const nm = document.getElementById("creaName");
-
-    if(nm && nm.value.trim()){
-        creaMap.name = nm.value.trim().slice(0, 24);
-    }
-
-    if(creaMaps.indexOf(creaMap) < 0){
-        creaMaps.push(creaMap);
-    }
-
-    saveMaps();
-
-    pickupMessage("💾 " + creaMap.name, "#61ff83");
-
-    coinChime();
-
-}
 
 
 /* =========================================================
@@ -4045,20 +3436,11 @@ function worldProgress(){
 
 function paintProgress(text, k, col){
 
-    const numEl  = document.getElementById("worldNum");
     const nameEl = document.getElementById("worldName");
     const fillEl = document.getElementById("progFill");
 
-    /* "MONDE 6" au-dessus de la barre, "LE DÉSERT DE VERRE" en dessous */
-    const cut = text.indexOf("  ");
-
-    if(numEl){
-        numEl.textContent = cut > 0 ? text.slice(0, cut) : text;
-        numEl.style.color = col;
-    }
-
     if(nameEl){
-        nameEl.textContent = cut > 0 ? text.slice(cut + 2) : "";
+        nameEl.textContent = text;
         nameEl.style.color = col;
     }
 

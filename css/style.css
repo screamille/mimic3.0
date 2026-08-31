@@ -43,45 +43,6 @@ html,body{
    UI JEU
 ========================= */
 
-/*
-Le terrain occupe toute la hauteur : tout ce qui doit rester
-lisible part sur les cotes, dans deux bandes noires. A gauche
-les informations, a droite la pause et les competences. Le
-haut et le bas sont entierement libres pour circuler.
-*/
-:root{
-    --band:clamp(72px, 9vw, 96px);
-
-    --bandL:var(--band);
-    --bandR:var(--band);
-}
-
-.sideBand{
-    position:fixed;
-    top:0;
-    bottom:0;
-
-    display:none;
-
-    z-index:8;
-
-    background:#000;
-
-    pointer-events:none;
-}
-
-.sideBand.l{
-    left:0;
-    width:calc(var(--bandL) + env(safe-area-inset-left));
-    border-right:1px solid rgba(90,120,190,.28);
-}
-
-.sideBand.r{
-    right:0;
-    width:calc(var(--bandR) + env(safe-area-inset-right));
-    border-left:1px solid rgba(90,120,190,.28);
-}
-
 #gameUI{
     position:fixed;
 
@@ -92,59 +53,44 @@ haut et le bas sont entierement libres pour circuler.
     */
     display:none;
 
-    top:0;
-    bottom:0;
-    left:env(safe-area-inset-left);
+    top:calc(12px + env(safe-area-inset-top));
+    left:12px;
+    right:12px;
 
-    width:var(--bandL);
+    justify-content:space-between;
+    align-items:center;
 
-    flex-direction:column;
-    justify-content:center;
-    align-items:stretch;
-
-    gap:6px;
-
-    padding:8px 6px calc(8px + env(safe-area-inset-bottom));
-
-    box-sizing:border-box;
+    gap:8px;
 
     z-index:10;
     pointer-events:none;
 }
 
 .stat{
-    min-width:0;
+    min-width:96px;
 
-    padding:5px 6px;
+    padding:9px 13px;
 
-    border:1px solid rgba(100,130,200,.45);
-    border-radius:10px;
+    border:1px solid rgba(100,130,200,.5);
+    border-radius:14px;
 
-    background:rgba(8,12,28,.72);
+    background:rgba(8,12,28,.6);
+
+    backdrop-filter:blur(10px);
 
     box-shadow:0 0 20px rgba(40,80,180,.08);
 }
 
+.stat.world{
+    min-width:160px;
+}
+
 .stat.world span{
     display:block;
-    margin-bottom:4px;
+    margin-bottom:5px;
 }
 
-.stat.world small{
-    display:block;
-
-    margin-top:4px;
-
-    /* le nom peut passer a la ligne : rien n'est coupe */
-    font-size:7.5px;
-    line-height:1.2;
-    letter-spacing:.1px;
-
-    white-space:normal;
-    word-break:break-word;
-
-    opacity:.85;
-}
+.stat.world small{ display:none; }
 
 .progBar{
     height:7px;
@@ -168,22 +114,17 @@ haut et le bas sont entierement libres pour circuler.
     transition:width .25s ease;
 }
 
-@media (max-height:500px){
-    :root{ --band:clamp(68px, 9vw, 84px); }
-    .stat{ padding:4px 5px; border-radius:9px; }
-    .stat span{ font-size:8px; }
-    .stat b{ font-size:13px; }
-    .stat.world small{ font-size:7px; }
-    .progBar{ height:4px; }
-    #gameUI{ gap:5px; padding:6px 5px calc(6px + env(safe-area-inset-bottom)); }
+@media (max-width:560px){
+    .stat{ min-width:84px; padding:7px 10px; }
+    .stat.world{ min-width:118px; }
+    .progBar{ height:5px; }
 }
 
 .stat span{
     display:block;
 
     color:#8996bb;
-    font-size:8.5px;
-    letter-spacing:.2px;
+    font-size:11px;
 
     white-space:nowrap;
     overflow:hidden;
@@ -202,14 +143,9 @@ haut et le bas sont entierement libres pour circuler.
 
 .stat b{
     display:block;
-    margin-top:1px;
+    margin-top:2px;
 
-    font-size:14px;
-    letter-spacing:-.3px;
-
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
+    font-size:17px;
 }
 
 #lives{
@@ -361,10 +297,11 @@ haut et le bas sont entierement libres pour circuler.
 .lasBoard{
     position:fixed;
 
-    /* entre les deux bandes, tout en haut du terrain */
-    left:calc(var(--bandL) + env(safe-area-inset-left) + 10px);
-    right:calc(var(--bandR) + env(safe-area-inset-right) + 10px);
-    top:calc(8px + env(safe-area-inset-top));
+    left:50%;
+    top:calc(76px + env(safe-area-inset-top));
+    transform:translateX(-50%);
+
+    max-width:92vw;
 
     display:flex;
     flex-wrap:wrap;
@@ -1564,8 +1501,7 @@ button:active{
 #skillBar{
     position:fixed;
 
-    right:0;
-    width:calc(var(--bandR) + env(safe-area-inset-right));
+    right:calc(14px + env(safe-area-inset-right));
 
     bottom:calc(82px + env(safe-area-inset-bottom));
 
@@ -1671,7 +1607,7 @@ button:active{
 #pauseBtn{
     position:fixed;
 
-    right:calc(env(safe-area-inset-right) + (var(--bandR) - 52px) / 2);
+    right:calc(14px + env(safe-area-inset-right));
     bottom:calc(14px + env(safe-area-inset-bottom));
 
     width:52px;
@@ -2021,285 +1957,6 @@ laisser un menu fige sans explication.
 
 .worldCard.locked em{ color:#5f6f97; }
 
-/* =========================
-   MODE CRÉATIF
-========================= */
-
-.mapList{
-    display:flex;
-    flex-direction:column;
-
-    gap:9px;
-
-    max-height:44vh;
-    overflow-y:auto;
-
-    margin-top:14px;
-    padding-right:4px;
-}
-
-.mapEmpty{
-    padding:18px 12px;
-
-    border:1px dashed rgba(120,150,220,.3);
-    border-radius:12px;
-
-    color:#8fa0c8;
-    font-size:12px;
-}
-
-.mapRow{
-    display:flex;
-    align-items:center;
-
-    gap:8px;
-
-    padding:10px 12px;
-
-    border:1px solid rgba(120,150,220,.22);
-    border-radius:12px;
-
-    background:rgba(12,18,40,.6);
-
-    text-align:left;
-}
-
-.mapRow span{
-    flex:1 1 auto;
-
-    display:flex;
-    flex-direction:column;
-
-    gap:2px;
-
-    min-width:0;
-}
-
-.mapRow b{
-    font-size:13px;
-    color:#e6eeff;
-
-    overflow:hidden;
-    text-overflow:ellipsis;
-    white-space:nowrap;
-}
-
-.mapRow small{
-    font-size:10.5px;
-    color:#8fa0c8;
-}
-
-.mapBtn{
-    flex:0 0 auto;
-
-    width:36px;
-    height:36px;
-
-    padding:0;
-
-    border:1px solid rgba(120,150,220,.3);
-    border-radius:10px;
-
-    background:rgba(255,255,255,.05);
-    color:#dce6ff;
-
-    font-size:14px;
-
-    cursor:pointer;
-}
-
-.mapBtn.play{
-    border-color:rgba(97,255,131,.5);
-    color:#61ff83;
-}
-
-.mapBtn.del:hover{
-    border-color:rgba(255,90,120,.6);
-    color:#ff8098;
-}
-
-.creaBar{
-    position:fixed;
-
-    left:calc(var(--bandL) + env(safe-area-inset-left) + 8px);
-    right:calc(var(--bandR) + env(safe-area-inset-right) + 8px);
-    bottom:calc(8px + env(safe-area-inset-bottom));
-
-    display:none;
-    flex-direction:column;
-
-    gap:7px;
-
-    z-index:22;
-
-    padding:8px 10px 10px;
-
-    border:1px solid rgba(120,150,220,.35);
-    border-radius:14px;
-
-    background:rgba(8,12,28,.88);
-    backdrop-filter:blur(10px);
-}
-
-.creaTop{
-    display:flex;
-    align-items:center;
-
-    gap:8px;
-}
-
-/* replie : il ne reste qu'une reglette, le terrain se degage */
-.creaBar.folded .creaTools,
-.creaBar.folded .creaActions,
-.creaBar.folded .creaName,
-.creaBar.folded .creaChip:not(.fold),
-.creaBar.folded .creaCount{
-    display:none;
-}
-
-.creaBar.folded{
-    left:auto;
-    right:calc(var(--bandR) + env(safe-area-inset-right) + 8px);
-
-    padding:4px 6px;
-}
-
-.creaChip.fold{
-    padding:7px 10px;
-    font-size:13px;
-}
-
-.creaName{
-    flex:1 1 auto;
-
-    min-width:0;
-
-    padding:7px 10px;
-
-    border:1px solid rgba(120,150,220,.35);
-    border-radius:10px;
-
-    background:rgba(255,255,255,.05);
-    color:#e6eeff;
-
-    font-size:12px;
-    font-family:inherit;
-}
-
-.creaChip{
-    flex:0 0 auto;
-
-    padding:7px 11px;
-
-    border:1px solid rgba(120,150,220,.35);
-    border-radius:10px;
-
-    background:rgba(255,255,255,.05);
-    color:#dce6ff;
-
-    font-size:11px;
-    font-weight:700;
-
-    cursor:pointer;
-}
-
-.creaCount{
-    flex:0 0 auto;
-
-    font-size:10.5px;
-    color:#8fa0c8;
-}
-
-.creaTools{
-    display:flex;
-
-    gap:6px;
-
-    overflow-x:auto;
-    scrollbar-width:none;
-
-    padding-bottom:2px;
-}
-
-.creaTools::-webkit-scrollbar{ display:none; }
-
-.creaTool{
-    --ct:#8fa0c8;
-
-    flex:0 0 auto;
-
-    display:flex;
-    flex-direction:column;
-    align-items:center;
-
-    gap:2px;
-
-    width:60px;
-
-    padding:6px 4px;
-
-    border:1px solid rgba(120,150,220,.25);
-    border-radius:10px;
-
-    background:rgba(255,255,255,.04);
-    color:#8fa0c8;
-
-    cursor:pointer;
-}
-
-.creaTool i{
-    font-style:normal;
-    font-size:15px;
-    line-height:1;
-    color:var(--ct);
-}
-
-.creaTool span{
-    font-size:8px;
-    font-weight:800;
-    letter-spacing:.2px;
-}
-
-.creaTool.on{
-    border-color:var(--ct);
-    background:color-mix(in srgb, var(--ct) 18%, transparent);
-    color:#ffffff;
-}
-
-.creaActions{
-    display:flex;
-    gap:7px;
-}
-
-.creaAct{
-    flex:1 1 0;
-
-    padding:9px 6px;
-
-    border:1px solid rgba(120,150,220,.3);
-    border-radius:10px;
-
-    background:rgba(255,255,255,.05);
-    color:#dce6ff;
-
-    font-size:11px;
-    font-weight:800;
-    letter-spacing:.4px;
-
-    cursor:pointer;
-}
-
-.creaAct.save{ border-color:rgba(97,255,131,.5); color:#61ff83; }
-.creaAct.play{ border-color:rgba(85,217,255,.55); color:#55d9ff; }
-
-@media (max-height:500px){
-    .creaBar{ gap:5px; padding:6px 8px 8px; }
-    .creaTool{ width:52px; padding:5px 3px; }
-    .creaTool i{ font-size:13px; }
-    .creaTool span{ font-size:7px; }
-    .creaAct{ padding:7px 4px; font-size:10px; }
-}
-
 .passTrack{
     height:9px;
 
@@ -2533,19 +2190,50 @@ laisser un menu fige sans explication.
 }
 
 .bossBar{
-    border-color:rgba(200,106,255,.55);
-    background:rgba(16,4,32,.78);
+    position:fixed;
+
+    left:50%;
+    transform:translateX(-50%);
+
+    bottom:calc(14px + env(safe-area-inset-bottom));
+
+    width:min(420px, 78vw);
+
+    z-index:14;
+
+    padding:8px 12px 10px;
+
+    border:1px solid rgba(200,106,255,.45);
+    border-radius:14px;
+
+    background:rgba(10,4,22,.72);
+    backdrop-filter:blur(8px);
+
+    pointer-events:none;
 }
 
-.bossBar span{
+.bossTop{
+    display:flex;
+    justify-content:space-between;
+    align-items:baseline;
+
+    margin-bottom:6px;
+}
+
+.bossTop b{
+    font-size:12px;
+    letter-spacing:1.4px;
     color:#e8d4ff;
-    letter-spacing:1.2px;
+}
+
+.bossTop span{
+    font-size:10px;
+    letter-spacing:2px;
+    font-weight:800;
 }
 
 .bossTrack{
-    height:8px;
-
-    margin-top:5px;
+    height:9px;
 
     border-radius:99px;
 
@@ -2564,18 +2252,10 @@ laisser un menu fige sans explication.
     transition:width .2s linear;
 }
 
-.bossBar small{
-    display:block;
-
-    margin-top:5px;
-
-    font-size:9px;
-    font-weight:800;
-    letter-spacing:1.6px;
-}
-
 @media (max-height:500px){
-    .bossTrack{ height:6px; }
+    .bossBar{ bottom:calc(10px + env(safe-area-inset-bottom)); padding:6px 10px 8px; }
+    .bossTop b{ font-size:11px; }
+    .bossTrack{ height:7px; }
 }
 
 .setArrow{
@@ -3225,15 +2905,14 @@ competences.
         bottom:calc(18px + env(safe-area-inset-bottom));
     }
 
+    /* on retrecit la barre d'infos pour laisser la place au bouton pause */
     #gameUI{
-        z-index:10;
+        right:calc(56px + env(safe-area-inset-right));
     }
 
     #pauseBtn{
         top:calc(12px + env(safe-area-inset-top));
         bottom:auto;
-
-        right:calc(env(safe-area-inset-right) + (var(--bandR) - 38px) / 2);
 
         width:38px;
         height:38px;

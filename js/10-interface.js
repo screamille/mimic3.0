@@ -976,49 +976,6 @@ document.getElementById("worldsClose").onclick = () => {
     document.getElementById("mainMenu").style.display = "block";
 };
 
-document.getElementById("creaButton").onclick = () => {
-    renderMaps();
-    document.getElementById("mainMenu").style.display = "none";
-    document.getElementById("creaList").style.display = "flex";
-};
-
-document.getElementById("mapsClose").onclick = () => {
-    document.getElementById("creaList").style.display = "none";
-    document.getElementById("mainMenu").style.display = "block";
-};
-
-document.getElementById("mapNew").onclick = () => {
-    openEditor(null);
-};
-
-document.getElementById("creaZone").onclick  = creaCycleZone;
-
-document.getElementById("creaFold").onclick = () => {
-
-    const bar = document.getElementById("creaBar");
-
-    bar.classList.toggle("folded");
-
-    document.getElementById("creaFold").textContent =
-        bar.classList.contains("folded") ? "▴" : "▾";
-
-    sound(560, .06, "sine", .03);
-
-};
-document.getElementById("creaSave").onclick  = saveCurrentMap;
-
-document.getElementById("creaTry").onclick = () => {
-    saveCurrentMap();
-    playMap(creaMap);
-};
-
-document.getElementById("creaQuit").onclick = () => {
-    closeEditor();
-    renderMaps();
-    document.getElementById("mainMenu").style.display = "none";
-    document.getElementById("creaList").style.display = "flex";
-};
-
 document.getElementById("passButton").onclick = () => {
     renderPass();
     document.getElementById("mainMenu").style.display   = "none";
@@ -1277,13 +1234,10 @@ function loop(t){
 
         hudShown = playing;
 
-        const show = playing ? "flex" : "none";
+        document.getElementById("gameUI").style.display =
+            playing ? "flex" : "none";
 
-        document.getElementById("gameUI").style.display = show;
-        document.getElementById("bandL").style.display  = playing ? "block" : "none";
-        document.getElementById("bandR").style.display  = playing ? "block" : "none";
-
-        /* les bandes changent la largeur du terrain */
+        /* la barre d'infos borne le haut du terrain */
         resize();
 
     }

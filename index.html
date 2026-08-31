@@ -10,7 +10,7 @@
 
 <title>MIMIC</title>
 
-<link rel="stylesheet" href="css/style.css?v=6.0">
+<link rel="stylesheet" href="css/style.css?v=6.1">
 </head>
 
 <body>
@@ -21,10 +21,6 @@
      UI
 ========================= -->
 
-<!-- les deux bandes noires : tout ce qui n'est pas le terrain -->
-<div id="bandL" class="sideBand l"></div>
-<div id="bandR" class="sideBand r"></div>
-
 <div id="gameUI">
 
     <div class="stat">
@@ -33,9 +29,8 @@
     </div>
 
     <div class="stat world" id="worldStat">
-        <span id="worldNum">MONDE 1</span>
+        <span id="worldName">MONDE 1  L'ESPACE</span>
         <div class="progBar"><i id="progFill"></i></div>
-        <small id="worldName">L'ESPACE</small>
         <b id="level" style="display:none">1</b>
     </div>
 
@@ -49,16 +44,18 @@
         <b id="lives">♥♥♥</b>
     </div>
 
-    <!-- la jauge de L'ŒIL DU NÉANT, dans la bande elle aussi -->
-    <div id="bossBar" class="stat bossBar" style="display:none">
-        <span>👁 L'ŒIL</span>
-        <div class="bossTrack"><i id="bossFill"></i></div>
-        <small id="bossPhase">SALVES</small>
-    </div>
-
 </div>
 
 <button id="pauseBtn">⏸</button>
+
+<!-- la jauge de L'ŒIL DU NÉANT -->
+<div id="bossBar" class="bossBar" style="display:none">
+    <div class="bossTop">
+        <b>👁 L'ŒIL DU NÉANT</b>
+        <span id="bossPhase">SALVES</span>
+    </div>
+    <div class="bossTrack"><i id="bossFill"></i></div>
+</div>
 
 <!-- mode laser : les vies de chaque joueur -->
 <div id="lasBoard" class="lasBoard" style="display:none"></div>
@@ -114,7 +111,6 @@
             <button class="navTab" id="duelButton" data-i18n="nav.duel">DUEL</button>
             <button class="navTab" id="missionButton">MISSIONS<i class="navDot" id="missionDot"></i></button>
             <button class="navTab" id="passButton">PASSE<i class="navDot" id="passDot"></i></button>
-            <button class="navTab" id="creaButton">CRÉATIF</button>
         </div>
 
         <div class="lobbyRight">
@@ -170,7 +166,7 @@
         <b id="bestScore">0</b>
     </div>
 
-    <div class="version" id="versionTag">V 6.0</div>
+    <div class="version" id="versionTag">V 6.1</div>
 
     <div id="errBanner" class="errBanner" style="display:none"></div>
 
@@ -295,53 +291,6 @@
             <button class="primary" id="worldsClose" data-i18n="ui.back">← RETOUR</button>
         </div>
 
-    </div>
-
-</div>
-
-
-<!-- =========================
-     MODE CRÉATIF
-========================= -->
-
-<div id="creaList" class="overlay" style="display:none">
-
-    <div class="menu">
-
-        <h1 style="margin:0 0 4px">🛠 MES CARTES</h1>
-
-        <p class="tagline" style="margin:6px auto 0">
-            Construis ton terrain, enregistre-le, et joue-le.
-            Tout reste sur cet appareil.
-        </p>
-
-        <div id="mapList" class="mapList"></div>
-
-        <div class="menuButtons" style="margin-top:16px">
-            <button class="primary" id="mapNew">➕ NOUVELLE CARTE</button>
-            <button class="secondary" id="mapsClose" data-i18n="ui.back">← RETOUR</button>
-        </div>
-
-    </div>
-
-</div>
-
-<!-- la barre de l'editeur, par-dessus le terrain -->
-<div id="creaBar" class="creaBar" style="display:none">
-
-    <div class="creaTop">
-        <input id="creaName" class="creaName" maxlength="24" placeholder="Nom de la carte">
-        <button id="creaZone" class="creaChip">🌍 L'ESPACE</button>
-        <span id="creaCount" class="creaCount">0 éléments</span>
-        <button id="creaFold" class="creaChip fold" title="Replier">▾</button>
-    </div>
-
-    <div id="creaTools" class="creaTools"></div>
-
-    <div class="creaActions">
-        <button id="creaSave" class="creaAct save">💾 ENREGISTRER</button>
-        <button id="creaTry"  class="creaAct play">▶ ESSAYER</button>
-        <button id="creaQuit" class="creaAct">← QUITTER</button>
     </div>
 
 </div>
@@ -1081,16 +1030,16 @@ fonctionne parfaitement même si aucun des deux ne répond.
 })();
 </script>
 
-<script src="js/01-moteur.js?v=6.0"></script>
-<script src="js/02-etat.js?v=6.0"></script>
-<script src="js/03-skins.js?v=6.0"></script>
-<script src="js/04-monde.js?v=6.0"></script>
-<script src="js/05-jeu.js?v=6.0"></script>
-<script src="js/06-boutique.js?v=6.0"></script>
-<script src="js/07-duel.js?v=6.0"></script>
-<script src="js/08-langues.js?v=6.0"></script>
-<script src="js/09-laser.js?v=6.0"></script>
-<script src="js/10-interface.js?v=6.0"></script>
+<script src="js/01-moteur.js?v=6.1"></script>
+<script src="js/02-etat.js?v=6.1"></script>
+<script src="js/03-skins.js?v=6.1"></script>
+<script src="js/04-monde.js?v=6.1"></script>
+<script src="js/05-jeu.js?v=6.1"></script>
+<script src="js/06-boutique.js?v=6.1"></script>
+<script src="js/07-duel.js?v=6.1"></script>
+<script src="js/08-langues.js?v=6.1"></script>
+<script src="js/09-laser.js?v=6.1"></script>
+<script src="js/10-interface.js?v=6.1"></script>
 
 </body>
 </html>
