@@ -10,7 +10,7 @@
 
 <title>MIMIC</title>
 
-<link rel="stylesheet" href="css/style.css?v=7.0">
+<link rel="stylesheet" href="css/style.css?v=7.1">
 </head>
 
 <body>
@@ -173,7 +173,7 @@
         <b id="bestScore">0</b>
     </div>
 
-    <div class="version" id="versionTag">V 7.0</div>
+    <div class="version" id="versionTag">V 7.1</div>
 
     <div id="errBanner" class="errBanner" style="display:none"></div>
 
@@ -812,10 +812,49 @@
             <b data-i18n="las.noCoin">Ce mode ne rapporte aucune pièce.</b>
         </p>
 
-        <div class="menuButtons">
-            <button class="primary" id="lasHost">
-                <em data-i18n="las.create">📡 CRÉER LE SALON</em>
+        <div class="lasModes" id="lasModes">
+
+            <button class="lasModeBtn on" id="lasModeFun">
+                🎈 AMICAL
+                <small>entre amis, avec un code</small>
             </button>
+
+            <button class="lasModeBtn" id="lasModeRanked">
+                🏆 CLASSÉ
+                <small>adversaires au hasard</small>
+            </button>
+
+        </div>
+
+        <!-- CLASSE : pas de code, on attend simplement des adversaires -->
+        <div id="lasRankBox" style="display:none">
+
+            <div class="queueCard">
+                <span class="queueDots" id="queueDots">● ● ●</span>
+                <b id="queueTitle">RECHERCHE D'ADVERSAIRES</b>
+                <small id="queueSub">La partie démarre dès qu'il y a 2 joueurs.</small>
+            </div>
+
+            <div class="menuButtons" style="margin-top:12px">
+                <button class="primary" id="lasFind" style="width:100%">
+                    🏆 TROUVER UNE PARTIE
+                </button>
+                <button class="secondary" id="lasLeave" style="width:100%;display:none">
+                    ✕ ANNULER LA RECHERCHE
+                </button>
+            </div>
+
+        </div>
+
+        <!-- AMICAL : le code et le QR -->
+        <div id="lasFunBox">
+
+            <div class="menuButtons">
+                <button class="primary" id="lasHost">
+                    <em data-i18n="las.create">📡 CRÉER LE SALON</em>
+                </button>
+            </div>
+
         </div>
 
         <div id="lasHostBox" style="display:none">
@@ -847,20 +886,6 @@
         </div>
 
         <div id="lasRoom" style="display:none;margin-top:16px">
-
-            <div class="lasModes" id="lasModes">
-
-                <button class="lasModeBtn on" id="lasModeFun">
-                    🎈 AMICAL
-                    <small>pour s'amuser</small>
-                </button>
-
-                <button class="lasModeBtn" id="lasModeRanked">
-                    🏆 CLASSÉ
-                    <small>trophées en jeu</small>
-                </button>
-
-            </div>
 
             <div class="setLabel" data-i18n="las.players">JOUEURS</div>
             <div id="lasList" class="lasList"></div>
@@ -1172,16 +1197,16 @@ fonctionne parfaitement même si aucun des deux ne répond.
 })();
 </script>
 
-<script src="js/01-moteur.js?v=7.0"></script>
-<script src="js/02-etat.js?v=7.0"></script>
-<script src="js/03-skins.js?v=7.0"></script>
-<script src="js/04-monde.js?v=7.0"></script>
-<script src="js/05-jeu.js?v=7.0"></script>
-<script src="js/06-boutique.js?v=7.0"></script>
-<script src="js/07-duel.js?v=7.0"></script>
-<script src="js/08-langues.js?v=7.0"></script>
-<script src="js/09-laser.js?v=7.0"></script>
-<script src="js/10-interface.js?v=7.0"></script>
+<script src="js/01-moteur.js?v=7.1"></script>
+<script src="js/02-etat.js?v=7.1"></script>
+<script src="js/03-skins.js?v=7.1"></script>
+<script src="js/04-monde.js?v=7.1"></script>
+<script src="js/05-jeu.js?v=7.1"></script>
+<script src="js/06-boutique.js?v=7.1"></script>
+<script src="js/07-duel.js?v=7.1"></script>
+<script src="js/08-langues.js?v=7.1"></script>
+<script src="js/09-laser.js?v=7.1"></script>
+<script src="js/10-interface.js?v=7.1"></script>
 
 </body>
 </html>

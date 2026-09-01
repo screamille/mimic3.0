@@ -925,14 +925,13 @@ document.getElementById("helloBack").onclick = () => {
 
 document.getElementById("lasModeFun").onclick = () => {
 
-    if(!laser.host){
+    if(laser.queue || laser.players.length){
         return;
     }
 
     laser.ranked = false;
 
     lasPaintModes();
-    lasSend({t:"room", players:lasRoster(), ranked:false});
 
     sound(520, .08, "triangle", .05);
 
@@ -940,18 +939,20 @@ document.getElementById("lasModeFun").onclick = () => {
 
 document.getElementById("lasModeRanked").onclick = () => {
 
-    if(!laser.host){
+    if(laser.queue || laser.players.length){
         return;
     }
 
     laser.ranked = true;
 
     lasPaintModes();
-    lasSend({t:"room", players:lasRoster(), ranked:true});
 
     sound(760, .08, "triangle", .05);
 
 };
+
+document.getElementById("lasFind").onclick  = lasFindMatch;
+document.getElementById("lasLeave").onclick = lasLeaveQueue;
 
 
 document.getElementById("lasHost").onclick  = lasHostRoom;

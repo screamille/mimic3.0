@@ -28,7 +28,8 @@ const LAS_LIVES   = 3;
 const LAS_COLORS = ["#4fd8ff", "#ffd24d", "#8dff6a", "#ff7ba8", "#c78cff"];
 
 const laser = {
-    ranked:false,      /* partie classee : des trophees sont en jeu */
+    ranked:false,
+    queue:false,       /* on cherche des adversaires au hasard */      /* partie classee : des trophees sont en jeu */
     again:[],          /* qui a demande la revanche */
     againReady:0,      /* ce que l'hote annonce aux invites */
     againTotal:0,
@@ -567,6 +568,21 @@ function lasRefreshRoom(){
 
     lasPaintModes();
 
+    /* en mode classe on ne montre ni code, ni bouton LANCER */
+    if(laser.queue){
+
+        document.getElementById("lasStart").style.display = "none";
+
+        if(laser.host && laser.players.length >= 2){
+            queueCountdown();
+        }
+
+        queuePaint();
+
+        return;
+
+    }
+
     const start = document.getElementById("lasStart");
 
     start.style.display = laser.host ? "block" : "none";
@@ -644,7 +660,34 @@ function lasPeerGone(conn, isHost){
             laser.players[conn.__idx].alive = false;
         }
 
-        lasSend({t:"room", players:lasRoster()});
+        /*
+        Dans la file d'attente, un joueur qui s'en va doit
+        vraiment disparaitre de la liste : sinon le compte a
+        rebours continuerait tout seul, sans adversaire.
+        */
+        if(laser.queue && !laser.active){
+
+            const kept = [laser.players[0]];
+
+            laser.conns.forEach(c => {
+
+                if(c && c.__idx != null && laser.players[c.__idx]){
+                    kept.push(laser.players[c.__idx]);
+                    c.__idx = kept.length - 1;
+                }
+
+            });
+
+            laser.players = kept;
+
+            if(laser.players.length < 2){
+                clearQueueTimer();
+                lasSend({t:"tick", n:-1});
+            }
+
+        }
+
+        lasSend({t:"room", players:lasRoster(), ranked:laser.ranked});
         lasRefreshRoom();
 
         /*
@@ -662,6 +705,13 @@ function lasPeerGone(conn, isHost){
 
         if(laser.active){
             lasFinish();
+            return;
+        }
+
+        /* toujours dans la file : on repart chercher quelqu'un */
+        if(laser.queue){
+            queueSay("ON CHERCHE ENCORE…", "Ton adversaire est parti.", true);
+            setTimeout(function(){ if(laser.queue){ lasFindMatch(); } }, 900);
         }
 
     }
@@ -765,6 +815,19 @@ function lasMessage(d, conn, isHost){
         return;
     }
 
+    if(d.t === "tick"){
+
+        queueLeft = d.n;
+
+        if(d.n < 0){
+            queueLeft = 0;
+        }
+
+        queuePaint();
+
+        return;
+    }
+
     if(d.t === "againState"){
 
         laser.againReady = d.n     || 0;
@@ -857,7 +920,10 @@ function lasBegin(){
 
     laser.active = true;
     laser.ended  = false;
+    laser.queue  = false;
     laser.again  = [];
+
+    clearQueueTimer();
     laser.againReady = 0;
     laser.beams  = [];
     laser.wave   = 0;
@@ -996,12 +1062,31 @@ function lasPaintModes(){
     fun.classList.toggle("on", !laser.ranked);
     rkd.classList.toggle("on",  laser.ranked);
 
-    /* seul l'hote decide ; les autres voient juste le mode choisi */
-    fun.disabled = !laser.host;
-    rkd.disabled = !laser.host;
+    /* une fois dans un salon ou dans la file, on ne change plus */
+    const locked = laser.queue || laser.players.length > 0;
 
-    fun.style.opacity = laser.host || !laser.ranked ? "1" : ".45";
-    rkd.style.opacity = laser.host ||  laser.ranked ? "1" : ".45";
+    fun.disabled = locked;
+    rkd.disabled = locked;
+
+    fun.style.opacity = locked && laser.ranked  ? ".45" : "1";
+    rkd.style.opacity = locked && !laser.ranked ? ".45" : "1";
+
+    /* les deux moities de l'ecran : le code d'un cote, la file de l'autre */
+    const funBox = document.getElementById("lasFunBox");
+    const rkdBox = document.getElementById("lasRankBox");
+    const joinBox = document.getElementById("lasJoinBox");
+
+    if(funBox){  funBox.style.display  = laser.ranked ? "none"  : "block"; }
+    if(rkdBox){  rkdBox.style.display  = laser.ranked ? "block" : "none";  }
+
+    if(joinBox && !laser.host && !laser.queue){
+        joinBox.style.display = laser.ranked ? "none" : "block";
+    }
+
+    if(laser.ranked){
+        document.getElementById("lasHostBox").style.display = "none";
+        if(joinBox){ joinBox.style.display = "none"; }
+    }
 
 }
 
@@ -1148,10 +1233,21 @@ function openLaser(){
 
     laser.open = true;
 
+    laser.queue   = false;
+    laser.host    = false;
+    laser.players = [];
+
+    clearQueueTimer();
+
     document.getElementById("lasHostBox").style.display = "none";
     document.getElementById("lasRoom").style.display    = "none";
     document.getElementById("lasJoinBox").style.display = "block";
     document.getElementById("lasHost").style.display    = "block";
+
+    queueButtons(false);
+    queueSay("RECHERCHE D'ADVERSAIRES", "La partie démarre dès qu'il y a 2 joueurs.", false);
+
+    lasPaintModes();
 
     lasStatus("");
 
@@ -1160,6 +1256,9 @@ function openLaser(){
 
 function closeLaser(){
 
+    laser.queue = false;
+
+    clearQueueTimer();
     lasCleanup();
 
     document.getElementById("laserScreen").style.display = "none";
@@ -1237,6 +1336,279 @@ function lasHostRoom(){
     laser.peer.on("error", err => {
         lasStatus("❌ " + ((err && err.type) || "?"));
     });
+
+}
+
+
+/* =========================================================
+   LE MODE CLASSE : PAS DE CODE, UNE FILE D'ATTENTE
+
+   Il n'y a pas de serveur : le salon public EST un joueur.
+   Le premier arrive prend l'adresse publique et devient
+   l'hote ; les suivants tombent sur "adresse deja prise"
+   et se branchent sur lui. Des qu'on est deux, un compte a
+   rebours part, et les retardataires peuvent encore entrer.
+========================================================= */
+
+const RANK_ROOM  = "mimicrank-a1";   /* l'adresse du salon public */
+const QUEUE_GO   = 8;                /* secondes avant le depart  */
+
+let queueTimer = null;
+let queueLeft  = 0;
+
+
+function queueSay(title, sub, dots){
+
+    const t = document.getElementById("queueTitle");
+    const u = document.getElementById("queueSub");
+    const d = document.getElementById("queueDots");
+
+    if(t){ t.textContent = title; }
+    if(u){ u.textContent = sub;   }
+
+    if(d){
+        d.className   = "queueDots" + (dots ? " on" : "");
+        d.innerHTML   = dots ? "<span>●</span><span>●</span><span>●</span>" : "🏆";
+    }
+
+}
+
+
+function queueButtons(searching){
+
+    const find  = document.getElementById("lasFind");
+    const leave = document.getElementById("lasLeave");
+
+    if(find){  find.style.display  = searching ? "none"  : "block"; }
+    if(leave){ leave.style.display = searching ? "block" : "none";  }
+
+}
+
+
+function clearQueueTimer(){
+
+    if(queueTimer){
+        clearInterval(queueTimer);
+        queueTimer = null;
+    }
+
+    queueLeft = 0;
+
+}
+
+
+/* le compte a rebours, tenu par l'hote */
+function queueCountdown(){
+
+    if(!laser.host || queueTimer){
+        return;
+    }
+
+    queueLeft = QUEUE_GO;
+
+    lasSend({t:"tick", n:queueLeft});
+
+    queueTimer = setInterval(function(){
+
+        queueLeft--;
+
+        /* quelqu'un est parti : on n'est plus assez, on annule */
+        if(laser.players.length < 2){
+            clearQueueTimer();
+            lasSend({t:"tick", n:-1});
+            lasRefreshRoom();
+            return;
+        }
+
+        lasSend({t:"tick", n:queueLeft});
+        lasRefreshRoom();
+
+        if(queueLeft <= 0){
+
+            clearQueueTimer();
+
+            laser.seed = Math.floor(Math.random() * 1e9) + 1;
+
+            lasSend({t:"go", seed:laser.seed, ranked:true});
+
+            lasBegin();
+
+        }
+
+    }, 1000);
+
+}
+
+
+/* l'affichage de la file, chez l'hote comme chez les invites */
+function queuePaint(){
+
+    const n = laser.players.length;
+
+    if(queueLeft > 0){
+
+        queueSay(
+            "ÇA COMMENCE DANS " + queueLeft + "…",
+            n + " joueur" + (n > 1 ? "s" : "") + " dans l'arène",
+            false
+        );
+
+        return;
+
+    }
+
+    if(n < 2){
+
+        queueSay(
+            "RECHERCHE D'ADVERSAIRES",
+            "La partie démarre dès qu'un autre joueur arrive.",
+            true
+        );
+
+        return;
+
+    }
+
+    queueSay("ADVERSAIRE TROUVÉ", n + " joueurs prêts", false);
+
+}
+
+
+function lasFindMatch(){
+
+    if(typeof Peer === "undefined"){
+        lasStatus(T("las.noLib"));
+        return;
+    }
+
+    lasCleanup();
+    clearQueueTimer();
+
+    /* le salon public doit etre sur le meme serveur pour tous */
+    duelServer = 0;
+
+    laser.ranked = true;
+    laser.queue  = true;
+    laser.host   = false;
+    laser.me     = 0;
+
+    queueButtons(true);
+    queueSay("RECHERCHE D'ADVERSAIRES", "Connexion…", true);
+    lasStatus("");
+
+    /* 1) on tente de prendre l'adresse publique : on serait l'hote */
+    laser.peer = newPeer(RANK_ROOM);
+
+    if(!laser.peer){
+        return;
+    }
+
+    laser.peer.on("open", () => {
+
+        laser.host = true;
+        laser.me   = 0;
+
+        laser.players = [{
+            name:playerName(),
+            skin:currentSkin,
+            color:LAS_COLORS[0],
+            x:0, y:0, alive:true, lives:LAS_LIVES, time:0
+        }];
+
+        lasRefreshRoom();
+
+    });
+
+    laser.peer.on("connection", conn => lasBind(conn, true));
+
+    laser.peer.on("error", err => {
+
+        const type = (err && err.type) || "?";
+
+        /* l'adresse est prise : quelqu'un attend deja, on le rejoint */
+        if(type === "unavailable-id"){
+            queueJoinHost();
+            return;
+        }
+
+        if(!laser.queue){
+            return;
+        }
+
+        lasStatus("❌ " + type);
+        queueSay("CONNEXION IMPOSSIBLE", "Vérifie ta connexion, puis réessaie.", false);
+        queueButtons(false);
+
+    });
+
+}
+
+
+/* on se branche sur le joueur qui tient deja le salon public */
+function queueJoinHost(){
+
+    if(laser.peer){
+        try{ laser.peer.destroy(); }catch(e){}
+        laser.peer = null;
+    }
+
+    laser.host = false;
+
+    queueSay("ADVERSAIRE TROUVÉ", "On te place dans l'arène…", true);
+
+    laser.peer = newPeer(null);
+
+    if(!laser.peer){
+        return;
+    }
+
+    laser.peer.on("open", () => {
+
+        const conn = laser.peer.connect(RANK_ROOM, {reliable:true});
+
+        laser.conn = conn;
+
+        lasBind(conn, false);
+
+    });
+
+    laser.peer.on("error", err => {
+
+        const type = (err && err.type) || "?";
+
+        if(!laser.queue){
+            return;
+        }
+
+        /*
+        L'hote s'est envole entre-temps : on repart au debut,
+        et cette fois c'est nous qui tiendrons le salon.
+        */
+        if(type === "peer-unavailable"){
+            setTimeout(function(){ if(laser.queue){ lasFindMatch(); } }, 900);
+            return;
+        }
+
+        lasStatus("❌ " + type);
+        queueSay("CONNEXION IMPOSSIBLE", "Vérifie ta connexion, puis réessaie.", false);
+        queueButtons(false);
+
+    });
+
+}
+
+
+function lasLeaveQueue(){
+
+    laser.queue = false;
+
+    clearQueueTimer();
+    lasCleanup();
+
+    queueButtons(false);
+    queueSay("RECHERCHE D'ADVERSAIRES", "La partie démarre dès qu'il y a 2 joueurs.", false);
+
+    document.getElementById("lasRoom").style.display = "none";
 
 }
 
