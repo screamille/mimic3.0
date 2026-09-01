@@ -1585,6 +1585,11 @@ function drawRaw(){
             continue;
         }
 
+        if(s.hang){
+            drawSuspendu(s, nowSec);
+            continue;
+        }
+
         if(zone === "abysse"){
             drawAbyssRock(s, nowSec);
             continue;

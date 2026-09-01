@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "7.8";
+const VERSION = "7.9";
 
 (function(){
 
@@ -5456,10 +5456,218 @@ deux grands yeux blancs, et la bouche fendue d'un bout a
 l'autre, pleine de dents triangulaires. Une main a cote,
 faite de capsules, comme si elle tenait le bord d'une porte.
 */
-function paintMimicHead(c, x, y, r, t, glitch, col){
+/*
+Le corps. LE MIMIC n'est pas qu'une tete : sous le crane il
+y a un torse de metal, deux epaules, et surtout deux longs
+bras qui se tendent quand il fonce. Le bas se perd dans le
+noir du couloir — on ne voit jamais ce qui le porte.
+*/
+function paintMimicBody(c, r, t, col, reach){
+
+    const rz = reach || 0;
+
+    /* --- le bas qui se perd dans l'ombre --- */
+    const fade = c.createLinearGradient(0, r * .6, 0, r * 2.9);
+    fade.addColorStop(0,  "#1c1428");
+    fade.addColorStop(.55,"#120c1c");
+    fade.addColorStop(1,  "rgba(8,4,14,0)");
+
+    c.fillStyle = fade;
+
+    c.beginPath();
+    c.moveTo(-r * .52, r * .55);
+    c.lineTo( r * .52, r * .55);
+    c.lineTo( r * .78, r * 2.9);
+    c.lineTo(-r * .78, r * 2.9);
+    c.closePath();
+    c.fill();
+
+    /* --- le torse --- */
+    const tors = c.createLinearGradient(0, r * .5, 0, r * 1.9);
+    tors.addColorStop(0,   "#463650");
+    tors.addColorStop(.35, "#2a2036");
+    tors.addColorStop(1,   "#120c1c");
+
+    c.fillStyle   = tors;
+    c.shadowColor = "#000000";
+    c.shadowBlur  = 16;
+
+    c.beginPath();
+    c.roundRect(-r * .60, r * .48, r * 1.20, r * 1.45, [r * .22, r * .22, r * .34, r * .34]);
+    c.fill();
+
+    c.shadowBlur = 0;
+
+    /* la plaque de poitrine, avec sa fente lumineuse */
+    c.fillStyle = "#1a1226";
+
+    c.beginPath();
+    c.roundRect(-r * .34, r * .70, r * .68, r * .78, r * .14);
+    c.fill();
+
+    c.strokeStyle = hexA(col, .8);
+    c.lineWidth   = r * .035;
+    c.shadowColor = col;
+    c.shadowBlur  = 14;
+
+    c.beginPath();
+    c.moveTo(0, r * .78);
+    c.lineTo(0, r * 1.40);
+    c.stroke();
+
+    c.shadowBlur = 0;
+
+    /* les cotes du torse, gravees */
+    c.strokeStyle = "rgba(0,0,0,.45)";
+    c.lineWidth   = r * .025;
+
+    for(let i = 0; i < 3; i++){
+
+        const yy = r * (.82 + i * .22);
+
+        c.beginPath();
+        c.moveTo(-r * .55, yy);
+        c.lineTo(-r * .38, yy + r * .05);
+        c.moveTo( r * .55, yy);
+        c.lineTo( r * .38, yy + r * .05);
+        c.stroke();
+
+    }
+
+    /* --- les deux bras --- */
+    for(let side = -1; side <= 1; side += 2){
+
+        c.save();
+        c.translate(side * r * .74, r * .66);
+
+        /* l'epaule */
+        const pa = c.createRadialGradient(0, -r * .06, 0, 0, 0, r * .30);
+        pa.addColorStop(0, "#5b4869");
+        pa.addColorStop(1, "#1a1226");
+
+        c.fillStyle = pa;
+
+        c.beginPath();
+        c.arc(0, 0, r * .26, 0, Math.PI * 2);
+        c.fill();
+
+        c.strokeStyle = "rgba(0,0,0,.5)";
+        c.lineWidth   = r * .02;
+        c.stroke();
+
+        /*
+        Au repos les bras pendent et se balancent ; quand il
+        fonce, ils se tendent vers l'avant, ouverts.
+        */
+        const sway = Math.sin(t * 1.6 + (side > 0 ? .7 : 0)) * .13;
+
+        /*
+        Sans rotation, le bras pend droit vers le bas. Au repos
+        il s'ecarte un peu et se balance ; quand il fonce, il
+        se leve presque a l'horizontale, pret a saisir.
+        */
+        /*
+        L'axe vertical de la toile pointe vers le bas : un angle
+        positif ecarte donc le bras vers la GAUCHE. Pour que
+        chaque bras s'ecarte de son cote, on inverse le signe.
+        */
+        const dir = -side;
+
+        const a1 = dir * (.34 + sway) + dir * rz * 1.05;
+        const a2 = dir * (.40 - sway * .6) + dir * rz * .34;
+
+        c.rotate(a1);
+
+        /* le bras */
+        const seg = c.createLinearGradient(0, -r * .1, 0, r * .1);
+        seg.addColorStop(0,  "#544260");
+        seg.addColorStop(.5, "#2b2137");
+        seg.addColorStop(1,  "#130d1d");
+
+        c.fillStyle   = seg;
+        c.strokeStyle = "rgba(0,0,0,.55)";
+        c.lineWidth   = r * .022;
+
+        c.beginPath();
+        c.roundRect(-r * .105, 0, r * .21, r * .62, r * .10);
+        c.fill();
+        c.stroke();
+
+        /* le coude */
+        c.translate(0, r * .62);
+        c.rotate(a2 - a1);
+
+        c.beginPath();
+        c.arc(0, 0, r * .115, 0, Math.PI * 2);
+        c.fillStyle = "#4a3a58";
+        c.fill();
+        c.stroke();
+
+        /* l'avant-bras */
+        c.fillStyle = seg;
+
+        c.beginPath();
+        c.roundRect(-r * .095, 0, r * .19, r * .58, r * .09);
+        c.fill();
+        c.stroke();
+
+        /* --- la main, quatre doigts qui se referment --- */
+        c.translate(0, r * .58);
+
+        const palm = c.createLinearGradient(0, 0, 0, r * .26);
+        palm.addColorStop(0, "#4a3a58");
+        palm.addColorStop(1, "#140d1c");
+
+        c.fillStyle = palm;
+
+        c.beginPath();
+        c.roundRect(-r * .13, 0, r * .26, r * .24, r * .09);
+        c.fill();
+        c.stroke();
+
+        /* les doigts : ouverts quand il fonce, replies au repos */
+        const grip = 1 - rz;
+
+        for(let f = 0; f < 4; f++){
+
+            c.save();
+            c.translate(-r * .10 + f * r * .066, r * .21);
+            c.rotate((f - 1.5) * .22 + grip * .55);
+
+            for(let sg = 0; sg < 2; sg++){
+
+                if(sg){
+                    c.translate(0, r * .16);
+                    c.rotate(grip * .6);
+                }
+
+                c.fillStyle = sg ? "#2b2137" : "#3d2f4b";
+
+                c.beginPath();
+                c.roundRect(-r * .032, 0, r * .064, r * .17, r * .03);
+                c.fill();
+                c.stroke();
+
+            }
+
+            c.restore();
+
+        }
+
+        c.restore();
+
+    }
+
+}
+
+
+function paintMimicHead(c, x, y, r, t, glitch, col, reach){
 
     c.save();
     c.translate(x, y);
+
+    /* le corps, dessine avant la tete : elle passe par-dessus */
+    paintMimicBody(c, r, t, col, reach || 0);
 
     /* le halo violet qui le precede */
     const halo = c.createRadialGradient(0, 0, r * .4, 0, 0, r * 2.6);
@@ -5652,77 +5860,6 @@ function paintMimicHead(c, x, y, r, t, glitch, col){
     }
     c.stroke();
 
-    /* --- la main, comme si elle empoignait le bord d'une porte --- */
-    c.save();
-    c.translate(r * .96, r * .30);
-    c.rotate(.10 + Math.sin(t * 1.4) * .04);
-
-    /* la paume, derriere les doigts */
-    const palm = c.createLinearGradient(0, -r * .34, 0, r * .40);
-    palm.addColorStop(0, "#4a3a58");
-    palm.addColorStop(1, "#140d1c");
-
-    c.fillStyle   = palm;
-    c.strokeStyle = "rgba(0,0,0,.55)";
-    c.lineWidth   = r * .018;
-
-    c.beginPath();
-    c.roundRect(r * .02, -r * .36, r * .26, r * .78, r * .11);
-    c.fill();
-    c.stroke();
-
-    /*
-    Quatre doigts qui pointent vers LUI : c'est ce qui donne
-    la prise. Chacun fait deux phalanges, la seconde repliee.
-    */
-    for(let f = 0; f < 4; f++){
-
-        const fy = -r * .27 + f * r * .185;
-
-        c.save();
-        c.translate(r * .04, fy);
-        c.scale(-1, 1);                 /* les doigts partent vers la gauche */
-        c.rotate(-.10 + f * .05);
-
-        for(let seg = 0; seg < 2; seg++){
-
-            if(seg){
-                c.rotate(.55);          /* la phalange se replie */
-            }
-
-            const cap = c.createLinearGradient(0, -r * .075, 0, r * .075);
-            cap.addColorStop(0,  "#63506f");
-            cap.addColorStop(.45,"#33263c");
-            cap.addColorStop(1,  "#150e1e");
-
-            c.fillStyle   = cap;
-            c.strokeStyle = "rgba(0,0,0,.6)";
-            c.lineWidth   = r * .016;
-
-            c.beginPath();
-            c.roundRect(0, -r * .070, r * .21, r * .140, r * .066);
-            c.fill();
-            c.stroke();
-
-            /* le reflet sur le metal */
-            c.strokeStyle = "rgba(200,165,255,.22)";
-            c.lineWidth   = r * .013;
-
-            c.beginPath();
-            c.moveTo(r * .03, -r * .050);
-            c.lineTo(r * .17, -r * .050);
-            c.stroke();
-
-            c.translate(r * .195, 0);
-
-        }
-
-        c.restore();
-
-    }
-
-    c.restore();
-
     c.restore();
 
 }
@@ -5837,6 +5974,11 @@ function drawMimic(){
 
     const sh = mim.shake * 5 * unit;
 
+    /* les bras se tendent quand il fonce, et juste avant */
+    const reach =
+        mim.state === "charge" ? 1 :
+        mim.state === "guette" ? .45 : 0;
+
     paintMimicHead(
         ctx,
         mim.x + (Math.random() - .5) * sh,
@@ -5844,7 +5986,8 @@ function drawMimic(){
         mim.r,
         mim.t,
         mim.glitch,
-        col
+        col,
+        reach
     );
 
     ctx.restore();
@@ -5903,7 +6046,6 @@ let tomeTimer  = 0;
 let pages      = [];  /* MONDE 8 : leurs lames         */
 let engrenages = [];  /* MONDE 9 : la roue qui longe   */
 let pendules   = [];  /* MONDE 9 : le balancier        */
-let coucous    = [];  /* MONDE 9 : l'oiseau de laiton  */
 
 let w69Timer = 0;
 
@@ -5912,7 +6054,7 @@ function clearW69(){
     mirages    = [];
     chaines    = []; fournaises = [];
     grimoires  = []; pages      = []; tomes = []; tomeTimer = 0;
-    engrenages = []; pendules   = []; coucous = [];
+    engrenages = []; pendules   = [];
     w69Timer = 0;
 }
 
@@ -7000,211 +7142,185 @@ function drawFournaises(){
 }
 
 
-/* --- LE COUCOU : il plane, puis il pique --- */
-function spawnCoucou(){
+/*
+--- LES SUSPENDUS ---
 
-    const r = (22 + rnd() * 7) * unit;
+Des contrepoids de laiton pendus au plafond par leur chaine.
+Ils ne te poursuivent pas : ils sont la, ils balancent a
+peine, et ils bouchent le passage. C'est autour d'eux qu'il
+faut se faufiler quand les engrenages arrivent.
+
+Ce sont de vrais obstacles : on les range dans les solides,
+et la collision du jeu s'occupe du reste.
+*/
+
+const MAX_SUSPENDUS = 5;
+
+
+function spawnSuspendu(){
+
     const a = playArea();
 
-    coucous.push({
-        x:a.x0 + rnd() * (a.x1 - a.x0),
-        y:a.y0 + 20 * unit,
+    const r = (24 + rnd() * 12) * unit;
+
+    /* on l'accroche loin des autres, pour laisser des passages */
+    let ax = 0;
+    let best = -1;
+
+    for(let k = 0; k < 12; k++){
+
+        const tryX = a.x0 + (a.x1 - a.x0) * (.12 + rnd() * .76);
+
+        let near = 1e9;
+
+        for(const o of solids){
+            if(o.hang){
+                near = Math.min(near, Math.abs(o.hang.ax - tryX));
+            }
+        }
+
+        if(near > best){
+            best = near;
+            ax   = tryX;
+        }
+
+    }
+
+    const len = (a.y1 - a.y0) * (.30 + rnd() * .42);
+
+    solids.push({
+        x:ax,
+        y:a.y0 + len,
         r:r,
-        phase:"hover", timer:1.6 + rnd(),
-        ang:0, vx:0, vy:0,
-        wing:rnd() * 6.28,
-        birth:.5, stunned:0
+        pulse:rnd() * 10,
+        hang:{
+            ax:ax,
+            len:len,
+            amp:(10 + rnd() * 26) * unit,
+            t:rnd() * 6.28,
+            speed:.35 + rnd() * .4
+        }
     });
 
 }
 
 
-function updateCoucous(dt){
+function updateSuspendus(dt){
 
-    const base = mimicSpeed({type:MIMIC_TYPES[0]});
-    const area = playArea();
+    const a = playArea();
 
-    for(const c of coucous){
+    for(const o of solids){
 
-        if(c.birth > 0){ c.birth = Math.max(0, c.birth - dt); continue; }
-        if(c.stunned > 0){ c.stunned -= dt; continue; }
-
-        c.wing += dt * (c.phase === "dive" ? 26 : 13);
-
-        const aim = lureTarget();
-
-        if(c.phase === "hover"){
-
-            /* il tourne au-dessus, en se placant a ta verticale */
-            const tx = aim.x;
-            const ty = area.y0 + (area.y1 - area.y0) * .18;
-
-            c.x += (tx - c.x) * Math.min(1, dt * 1.2);
-            c.y += (ty - c.y) * Math.min(1, dt * 1.6);
-
-            c.ang = Math.sin(gameTime * 2) * .12;
-
-            c.timer -= dt;
-
-            if(c.timer <= 0){
-                c.phase = "call";
-                c.timer = .6;
-                sound(880, .12, "square", .035);
-                sound(660, .12, "square", .03);
-            }
-
-        }else if(c.phase === "call"){
-
-            /* le chant : deux notes, et il se cabre */
-            c.timer -= dt;
-            c.ang    = -.5;
-
-            if(c.timer <= 0){
-
-                const a = Math.atan2(aim.y - c.y, aim.x - c.x);
-
-                c.vx = Math.cos(a) * base * 3;
-                c.vy = Math.sin(a) * base * 3;
-
-                c.ang   = a;
-                c.phase = "dive";
-                c.timer = 1.1;
-
-                sound(320, .2, "sawtooth", .04);
-
-            }
-
-        }else{
-
-            c.timer -= dt;
-
-            c.x += c.vx * dt;
-            c.y += c.vy * dt;
-
-            /* il rebondit sur les bords au lieu de sortir */
-            if(c.x < area.x0 + c.r || c.x > area.x1 - c.r){ c.vx = -c.vx; c.ang = Math.PI - c.ang; }
-            if(c.y < area.y0 + c.r || c.y > area.y1 - c.r){ c.vy = -c.vy; c.ang = -c.ang; }
-
-            if(c.timer <= 0){
-                c.phase = "hover";
-                c.timer = 2 + rnd() * 1.4;
-            }
-
-            if(w69Hit(c)){
-                burst(c.x, c.y, 18, "#ffd76a");
-            }
-
+        if(!o.hang){
+            continue;
         }
 
-        w69Clamp(c);
+        o.hang.t += dt * o.hang.speed;
+
+        o.x = o.hang.ax + Math.sin(o.hang.t) * o.hang.amp;
+        o.y = a.y0 + o.hang.len;
 
     }
 
 }
 
 
-function drawCoucous(){
+function drawSuspendu(s, t){
 
-    for(const c of coucous){
+    const a = playArea();
 
-        const r    = c.r * (c.birth > 0 ? 1 - c.birth / .5 : 1);
-        const dive = c.phase === "dive";
+    const h = s.hang;
 
-        ctx.save();
-        ctx.translate(c.x, c.y);
-        ctx.rotate(c.ang);
+    ctx.save();
 
-        /* les ailes de laiton, en battement */
-        const beat = Math.sin(c.wing) * .7;
+    /* la chaine : des maillons jusqu'au plafond */
+    const top = a.y0 - 4 * unit;
 
-        [-1, 1].forEach(sg => {
+    ctx.strokeStyle = "rgba(190,220,240,.35)";
+    ctx.lineWidth   = 2.2 * unit;
 
-            ctx.save();
-            ctx.rotate(sg * (beat + .3));
+    ctx.beginPath();
+    ctx.moveTo(h.ax, top);
+    ctx.lineTo(s.x, s.y - s.r * .8);
+    ctx.stroke();
 
-            const g = ctx.createLinearGradient(0, 0, -r * .4, sg * r * 1.6);
-            g.addColorStop(0, "#ffe6a8");
-            g.addColorStop(1, "#a8762a");
+    const links = Math.max(3, Math.floor((s.y - top) / (14 * unit)));
 
-            ctx.fillStyle = g;
+    ctx.strokeStyle = "rgba(159,233,255,.55)";
+    ctx.lineWidth   = 1.6 * unit;
 
-            ctx.beginPath();
-            ctx.moveTo(-r * .1, 0);
-            ctx.quadraticCurveTo(-r * .9, sg * r * 1.5, -r * 1.5, sg * r * .5);
-            ctx.quadraticCurveTo(-r * .8, sg * r * .3, -r * .1, 0);
-            ctx.fill();
+    for(let i = 1; i < links; i++){
 
-            ctx.strokeStyle = "#6b4a10";
-            ctx.lineWidth   = r * .07;
-            ctx.stroke();
+        const u  = i / links;
+        const lx = h.ax + (s.x - h.ax) * u;
+        const ly = top + (s.y - s.r * .8 - top) * u;
 
-            ctx.restore();
-
-        });
-
-        /* la queue */
-        ctx.fillStyle = "#8fb6d0";
         ctx.beginPath();
-        ctx.moveTo(-r * .7, 0);
-        ctx.lineTo(-r * 1.5, -r * .35);
-        ctx.lineTo(-r * 1.3, 0);
-        ctx.lineTo(-r * 1.5, r * .35);
-        ctx.closePath();
-        ctx.fill();
-
-        /* le corps de cuivre */
-        const body = ctx.createRadialGradient(r * .1, -r * .25, r * .1, 0, 0, r);
-        body.addColorStop(0, "#ffe9c0");
-        body.addColorStop(.55, "#d8a53d");
-        body.addColorStop(1, "#7a5210");
-
-        ctx.fillStyle = body;
-        ctx.beginPath();
-        ctx.ellipse(0, 0, r, r * .78, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.strokeStyle = "#3a2708";
-        ctx.lineWidth   = r * .09;
+        ctx.ellipse(lx, ly, 3.4 * unit, 5.4 * unit, 0, 0, Math.PI * 2);
         ctx.stroke();
 
-        /* les rivets */
-        ctx.fillStyle = "#5f4210";
-
-        for(let i = 0; i < 5; i++){
-            const a = i * 1.25;
-            ctx.beginPath();
-            ctx.arc(Math.cos(a) * r * .5, Math.sin(a) * r * .35, r * .07, 0, Math.PI * 2);
-            ctx.fill();
-        }
-
-        /* le bec */
-        ctx.fillStyle = "#e8f2ff";
-        ctx.beginPath();
-        ctx.moveTo(r * .85, -r * .18);
-        ctx.lineTo(r * 1.7, 0);
-        ctx.lineTo(r * .85, r * .18);
-        ctx.closePath();
-        ctx.fill();
-
-        /* l'oeil de verre */
-        ctx.fillStyle = "#1a1206";
-        ctx.beginPath();
-        ctx.arc(r * .45, -r * .22, r * .2, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle   = dive ? "#ff5f4d" : "#9fe9ff";
-        ctx.shadowColor = dive ? "#ff5f4d" : "#9fe9ff";
-        ctx.shadowBlur  = 10;
-
-        ctx.beginPath();
-        ctx.arc(r * .5, -r * .24, r * .1, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.restore();
-
     }
 
+    /* l'attache au plafond */
+    ctx.fillStyle = "#2b4356";
+    ctx.fillRect(h.ax - 7 * unit, top - 2 * unit, 14 * unit, 7 * unit);
+
+    /* le contrepoids : un cylindre de laiton */
+    ctx.translate(s.x, s.y);
+
+    const grad = ctx.createLinearGradient(-s.r, 0, s.r, 0);
+    grad.addColorStop(0,   "#6a5a2e");
+    grad.addColorStop(.35, "#d9c06a");
+    grad.addColorStop(.6,  "#f2e2a8");
+    grad.addColorStop(1,   "#5a4a24");
+
+    ctx.fillStyle   = grad;
+    ctx.shadowColor = "#000000";
+    ctx.shadowBlur  = 14;
+
+    ctx.beginPath();
+    ctx.roundRect(-s.r * .62, -s.r * .95, s.r * 1.24, s.r * 1.9, s.r * .3);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+
+    /* les deux cerclages */
+    ctx.strokeStyle = "rgba(60,44,16,.7)";
+    ctx.lineWidth   = 2 * unit;
+
+    [-.42, .42].forEach(k => {
+        ctx.beginPath();
+        ctx.moveTo(-s.r * .62, s.r * k);
+        ctx.lineTo( s.r * .62, s.r * k);
+        ctx.stroke();
+    });
+
+    /* le reflet qui glisse quand il balance */
+    ctx.globalAlpha = .5;
+    ctx.fillStyle   = "rgba(255,255,255,.5)";
+
+    ctx.fillRect(-s.r * .32 + Math.sin(h.t) * s.r * .18, -s.r * .8, s.r * .12, s.r * 1.6);
+
+    ctx.globalAlpha = 1;
+
+    /* l'anneau du haut */
+    ctx.strokeStyle = "#9fe9ff";
+    ctx.lineWidth   = 2.4 * unit;
+
+    ctx.beginPath();
+    ctx.arc(0, -s.r * 1.05, s.r * .18, 0, Math.PI * 2);
+    ctx.stroke();
+
+    ctx.restore();
+
 }
+
+
+/* --- LE COUCOU : il plane, puis il pique --- *//* --- LE COUCOU : il plane, puis il pique --- */
+
+
+
+
 
 
 /* --- LE TOME : la colonne tremble, puis ça tombe --- */
@@ -7614,7 +7730,7 @@ function enterClock(){
     w69Enter("horloge", "🕰", "#9fe9ff");
     for(let i = 0; i < 2; i++){ spawnEngrenage(); }
     for(let i = 0; i < 2; i++){ spawnPendule(); }
-    for(let i = 0; i < 2; i++){ spawnCoucou(); }
+    for(let i = 0; i < 4; i++){ spawnSuspendu(); }
 }
 
 
@@ -7969,14 +8085,22 @@ function updateW69(dt){
 
         updateEngrenages(dt);
         updatePendules(dt);
-        updateCoucous(dt);
+        updateSuspendus(dt);
 
         w69Timer -= dt;
 
         if(w69Timer <= 0){
+
             w69Timer = 12;
-            if(coucous.length < 3){ spawnCoucou(); }
-            else if(pendules.length < 3){ spawnPendule(); }
+
+            const pendus = solids.filter(o => o.hang).length;
+
+            if(pendus < MAX_SUSPENDUS){
+                spawnSuspendu();
+            }else if(pendules.length < 3){
+                spawnPendule();
+            }
+
         }
 
         return;
@@ -7986,7 +8110,7 @@ function updateW69(dt){
     /* on n'est plus dans ces mondes : on range */
     if(mirages.length || chaines.length || fournaises.length ||
        grimoires.length || pages.length || tomes.length ||
-       engrenages.length || pendules.length || coucous.length){
+       engrenages.length || pendules.length){
         clearW69();
     }
 
@@ -8006,7 +8130,6 @@ function drawW69(){
     }else if(zone === "horloge"){
         drawEngrenages();
         drawPendules();
-        drawCoucous();
     }
 
 }
@@ -8016,7 +8139,7 @@ function drawW69(){
 function w69Creatures(){
     return [].concat(
         mirages, chaines, fournaises,
-        grimoires, engrenages, pendules, coucous
+        grimoires, engrenages, pendules
     );
 }
 
