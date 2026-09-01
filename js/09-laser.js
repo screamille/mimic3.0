@@ -379,11 +379,25 @@ ligne — on echange un retard imperceptible contre un
 mouvement parfaitement continu.
 */
 
-const LAS_LAG = 110;   /* ms de retard : le prix de la fluidite */
-const LAS_BUF = 5;     /* positions gardees : elles doivent couvrir LAS_LAG */
+const LAS_LAG = 150;   /* ms de retard : le prix de la fluidite */
+const LAS_BUF = 8;
+const LAS_FILTER = 1e-5;   /* plus petit = plus reactif */     /* positions gardees : elles doivent couvrir LAS_LAG */
 
 
-/* une position vient d'arriver pour ce joueur */
+/*
+Une position vient d'arriver.
+
+Les paquets partent a intervalle regulier, mais ils
+n'ARRIVENT pas regulierement : le reseau les groupe puis
+fait une pause. Si on datait chaque position a son heure
+d'arrivee, on rejouerait ces irregularites — le slime
+avancerait vite, puis lentement, au rythme du reseau.
+
+On leur donne donc une horloge REGULIERE, calee sur
+l'intervalle moyen d'envoi, et qu'on ramene tout doucement
+vers l'heure reelle pour ne jamais deriver. C'est ce que
+font les lecteurs video avec le son.
+*/
 function lasNote(pl, x, y){
 
     if(!pl || typeof x !== "number" || typeof y !== "number"){
@@ -405,21 +419,54 @@ function lasNote(pl, x, y){
     const last = pl.buf[pl.buf.length - 1];
 
     if(last && last.x === x && last.y === y){
-        last.t = now;
         return;
     }
 
-    pl.buf.push({x:x, y:y, t:now});
+    /* l'intervalle moyen entre deux arrivees */
+    if(pl.seen){
 
-    /*
-    Le tampon doit couvrir plus que LAS_LAG, sinon l'instant
-    vise tombe AVANT la plus vieille position connue et le
-    joueur se fige en attendant la suivante. A 20 envois par
-    seconde, cinq points couvrent 200 ms : large.
-    */
+        const gap = now - pl.seen;
+
+        pl.step = pl.step
+            ? pl.step * .88 + Math.max(8, Math.min(400, gap)) * .12
+            : Math.max(8, Math.min(400, gap));
+
+    }
+
+    pl.seen = now;
+
+pl.buf.push({x:x, y:y, t:now});
+
     while(pl.buf.length > LAS_BUF){
         pl.buf.shift();
     }
+
+}
+
+
+/*
+Catmull-Rom : la courbe passe EXACTEMENT par les points
+recus, mais elle arrive et repart dans la meme direction de
+chaque cote. C'est ce qui enleve les petits angles qu'une
+ligne droite laisse a chaque position recue — le slime ne
+"tourne" plus par a-coups, il decrit une vraie trajectoire.
+*/
+function lasSpline(p0, p1, p2, p3, u, key){
+
+    const a = p0[key];
+    const b = p1[key];
+    const c = p2[key];
+    const d = p3[key];
+
+    const u2 = u * u;
+    const u3 = u2 * u;
+
+    return .5 * (
+        (2 * b) +
+        (-a + c) * u +
+        (2 * a - 5 * b + 4 * c - d) * u2 +
+        (-a + 3 * b - 3 * c + d) * u3
+    );
 
 }
 
@@ -429,8 +476,6 @@ function lasSmooth(dt){
     const now = (typeof performance !== "undefined" && performance.now)
         ? performance.now()
         : Date.now();
-
-    const when = now - LAS_LAG;
 
     laser.players.forEach((pl, i) => {
 
@@ -443,6 +488,9 @@ function lasSmooth(dt){
             pl.dy = pl.y || 0;
         }
 
+        const px = pl.dx;
+        const py = pl.dy;
+
         const buf = pl.buf;
 
         /* pas encore assez de points : on rattrape doucement */
@@ -453,47 +501,104 @@ function lasSmooth(dt){
             pl.dx += ((pl.x || 0) - pl.dx) * k;
             pl.dy += ((pl.y || 0) - pl.dy) * k;
 
-            return;
+            pl.play = 0;
 
-        }
+        }else{
 
-        /* on cherche les deux positions qui encadrent l'instant vise */
-        let a = buf[0];
-        let b = buf[1];
+            /*
+            La tete de lecture. Elle avance a la vitesse du
+            temps qui passe — c'est ce qui donne un mouvement
+            regulier — et elle se recale en douceur pour
+            rester LAS_LAG derriere la derniere position
+            connue. Aucun a-coup, aucune derive.
+            */
+            const newest = buf[buf.length - 1].t;
+            const target = newest - LAS_LAG;
 
-        for(let k = 1; k < buf.length; k++){
+            pl.play = (typeof performance !== "undefined" && performance.now ? performance.now() : Date.now()) - LAS_LAG;
 
-            if(buf[k].t >= when){
-                a = buf[k - 1];
-                b = buf[k];
-                break;
+            const when = pl.play;
+
+            /* les deux positions qui encadrent l'instant vise */
+            let n = 1;
+
+            for(let k = 1; k < buf.length; k++){
+                n = k;
+                if(buf[k].t >= when){ break; }
             }
 
-            a = buf[k - 1];
-            b = buf[k];
+            const p1 = buf[n - 1];
+            const p2 = buf[n];
+
+            /* les voisins, pour donner sa courbure a la trajectoire */
+            const p0 = buf[n - 2] || p1;
+            const p3 = buf[n + 1] || p2;
+
+            const span = Math.max(1, p2.t - p1.t);
+
+            const u = Math.max(0, Math.min(1.4, (when - p1.t) / span));
+
+            let tx, ty;
+
+            if(u <= 1){
+
+                tx = lasSpline(p0, p1, p2, p3, u, "x");
+                ty = lasSpline(p0, p1, p2, p3, u, "y");
+
+            }else{
+
+                /* le reseau a hoquete : on prolonge tout droit, sans exces */
+                tx = p2.x + (p2.x - p1.x) * (u - 1);
+                ty = p2.y + (p2.y - p1.y) * (u - 1);
+
+            }
+
+            /*
+            Dernier filtre. Les positions n'arrivent pas a
+            intervalle parfaitement regulier, et la courbe en
+            garde un reste de tremblement. On glisse donc vers
+            elle au lieu de s'y coller : quelques millisecondes
+            de plus, et le mouvement devient net.
+            */
+            const k = 1 - Math.pow(LAS_FILTER, dt);
+
+            pl.dx += (tx - pl.dx) * k;
+            pl.dy += (ty - pl.dy) * k;
+
+            /* ecart enorme : on se teleporte plutot que de traverser l'arene */
+            if(Math.abs(pl.x - pl.dx) > .35 || Math.abs(pl.y - pl.dy) > .35){
+                pl.dx = pl.x;
+                pl.dy = pl.y;
+                pl.buf = [{x:pl.x, y:pl.y, t:now}];
+            }
 
         }
 
-        const span = Math.max(1, b.t - a.t);
-
-        let u = (when - a.t) / span;
-
         /*
-        Le reseau a hoquete : l'instant vise depasse la
-        derniere position connue. On prolonge le mouvement,
-        mais pas plus d'une demi-position — sinon un joueur
-        deconnecte partirait tout droit hors de l'ecran.
+        Sa vitesse a l'ecran : elle sert a le faire pencher et
+        s'etirer comme le fait ton propre slime. Un corps qui
+        reagit a son mouvement parait bien plus fluide qu'un
+        corps qui glisse tout raide.
         */
-        u = Math.max(0, Math.min(1.5, u));
+        if(dt > 0){
 
-        pl.dx = a.x + (b.x - a.x) * u;
-        pl.dy = a.y + (b.y - a.y) * u;
+            const vx = (pl.dx - px) / dt;
+            const vy = (pl.dy - py) / dt;
 
-        /* ecart enorme : on se teleporte plutot que de traverser l'arene */
-        if(Math.abs(pl.x - pl.dx) > .35 || Math.abs(pl.y - pl.dy) > .35){
-            pl.dx = pl.x;
-            pl.dy = pl.y;
-            pl.buf = [{x:pl.x, y:pl.y, t:now}];
+            const v = Math.sqrt(vx * vx + vy * vy);
+
+            if(v > .0001){
+                pl.ang = Math.atan2(vy, vx);
+            }
+
+            const want = Math.max(0, Math.min(1, v / .55));
+
+            /* on lisse la vitesse elle-meme : pas de sursaut d'etirement */
+            pl.spd = (typeof pl.spd === "number" ? pl.spd : 0) +
+                     (want - (typeof pl.spd === "number" ? pl.spd : 0)) * Math.min(1, dt * 9);
+
+            pl.wave = (pl.wave || 0) + dt * (2.2 + pl.spd * 7);
+
         }
 
     });
@@ -532,7 +637,13 @@ function drawLaserPlayers(){
         ctx.fillStyle = "#000000";
 
         ctx.beginPath();
-        ctx.ellipse(q.x, q.y + r * .92, r * .78, r * .26, 0, 0, Math.PI * 2);
+        ctx.ellipse(
+            q.x - Math.cos(pl.ang || 0) * r * (pl.spd || 0) * .18,
+            q.y + r * .92,
+            r * (.78 + (pl.spd || 0) * .2),
+            r * (.26 - (pl.spd || 0) * .05),
+            0, 0, Math.PI * 2
+        );
         ctx.fill();
 
         ctx.globalAlpha = gone ? .22 : 1;
@@ -554,7 +665,13 @@ function drawLaserPlayers(){
 
         ctx.translate(q.x, q.y);
 
-        paintSkinSlime(ctx, skin, r, gameTime + i * .7, false, {blink:1});
+        paintSkinSlime(ctx, skin, r, gameTime + i * .7, false, {
+            blink:1,
+            speed:pl.spd  || 0,
+            angle:pl.ang  || 0,
+            wave: pl.wave || 0,
+            shear:Math.cos(pl.ang || 0) * (pl.spd || 0) * .16
+        });
 
         ctx.restore();
 
@@ -1168,9 +1285,16 @@ function lasBegin(){
         p.y = .5;
 
         /* la position affichee part au meme endroit : pas de glissade au depart */
-        p.dx  = p.x;
-        p.dy  = p.y;
-        p.buf = null;
+        p.dx   = p.x;
+        p.dy   = p.y;
+        p.buf   = null;
+        p.seen  = 0;
+        p.step  = 0;
+        p.clock = 0;
+        p.play  = 0;
+        p.spd   = 0;
+        p.ang  = 0;
+        p.wave = 0;
     });
 
     if(laser.players[laser.me]){
@@ -1419,12 +1543,12 @@ function lasUpdate(dt){
 
     }
 
-    /* on partage sa position 20 fois par seconde */
+    /* on partage sa position 30 fois par seconde */
     laser.send -= dt;
 
     if(laser.send <= 0){
 
-        laser.send = .05;
+        laser.send = .033;
 
         const n = lasNorm(player.x, player.y);
 
