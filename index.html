@@ -10,7 +10,7 @@
 
 <title>MIMIC</title>
 
-<link rel="stylesheet" href="css/style.css?v=6.8">
+<link rel="stylesheet" href="css/style.css?v=6.9">
 </head>
 
 <body>
@@ -165,7 +165,7 @@
         <b id="bestScore">0</b>
     </div>
 
-    <div class="version" id="versionTag">V 6.8</div>
+    <div class="version" id="versionTag">V 6.9</div>
 
     <div id="errBanner" class="errBanner" style="display:none"></div>
 
@@ -847,9 +847,11 @@
 
         <div id="lasRank" class="lasList" style="margin-top:14px"></div>
 
-        <div class="menuButtons" style="margin-top:18px">
+        <p id="lasAgainState" class="hint" style="margin:14px 0 0"></p>
+
+        <div class="menuButtons" style="margin-top:10px">
             <button class="primary" id="lasAgain">
-                <em data-i18n="las.again">🔄 REJOUER</em>
+                <em id="lasAgainTxt" data-i18n="las.again">🔄 REJOUER</em>
             </button>
             <button class="secondary" id="lasQuit" data-i18n="ui.menu">🏠 MENU</button>
         </div>
@@ -1060,16 +1062,16 @@ fonctionne parfaitement même si aucun des deux ne répond.
 })();
 </script>
 
-<script src="js/01-moteur.js?v=6.8"></script>
-<script src="js/02-etat.js?v=6.8"></script>
-<script src="js/03-skins.js?v=6.8"></script>
-<script src="js/04-monde.js?v=6.8"></script>
-<script src="js/05-jeu.js?v=6.8"></script>
-<script src="js/06-boutique.js?v=6.8"></script>
-<script src="js/07-duel.js?v=6.8"></script>
-<script src="js/08-langues.js?v=6.8"></script>
-<script src="js/09-laser.js?v=6.8"></script>
-<script src="js/10-interface.js?v=6.8"></script>
+<script src="js/01-moteur.js?v=6.9"></script>
+<script src="js/02-etat.js?v=6.9"></script>
+<script src="js/03-skins.js?v=6.9"></script>
+<script src="js/04-monde.js?v=6.9"></script>
+<script src="js/05-jeu.js?v=6.9"></script>
+<script src="js/06-boutique.js?v=6.9"></script>
+<script src="js/07-duel.js?v=6.9"></script>
+<script src="js/08-langues.js?v=6.9"></script>
+<script src="js/09-laser.js?v=6.9"></script>
+<script src="js/10-interface.js?v=6.9"></script>
 
 </body>
 </html>

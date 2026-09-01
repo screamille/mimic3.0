@@ -28,6 +28,9 @@ const LAS_LIVES   = 3;
 const LAS_COLORS = ["#4fd8ff", "#ffd24d", "#8dff6a", "#ff7ba8", "#c78cff"];
 
 const laser = {
+    again:[],          /* qui a demande la revanche */
+    againReady:0,      /* ce que l'hote annonce aux invites */
+    againTotal:0,
     active:false,     /* une partie laser est en cours   */
     open:false,       /* l'ecran du salon est ouvert     */
     peer:null,
@@ -640,6 +643,15 @@ function lasPeerGone(conn, isHost){
         lasSend({t:"room", players:lasRoster()});
         lasRefreshRoom();
 
+        /*
+        Sans ca, un joueur qui quitte apres la partie bloquait
+        la revanche : on attendait un vote qui ne viendrait
+        jamais. On recompte des qu'il s'en va.
+        */
+        if(!laser.active && document.getElementById("lasResult").style.display === "flex"){
+            lasAgainCheck();
+        }
+
     }else{
 
         lasStatus(T("las.hostGone"));
@@ -660,6 +672,17 @@ function lasMessage(d, conn, isHost){
     }
 
     if(isHost){
+
+        if(d.t === "again"){
+
+            if(conn.__idx != null){
+                laser.again[conn.__idx] = true;
+            }
+
+            lasAgainCheck();
+
+            return;
+        }
 
         if(d.t === "hello"){
 
@@ -722,6 +745,16 @@ function lasMessage(d, conn, isHost){
     if(d.t === "room"){
         laser.players = d.players;
         lasRefreshRoom();
+        return;
+    }
+
+    if(d.t === "againState"){
+
+        laser.againReady = d.n     || 0;
+        laser.againTotal = d.total || laser.players.length;
+
+        lasAgainPaint();
+
         return;
     }
 
@@ -800,6 +833,8 @@ function lasBegin(){
 
     laser.active = true;
     laser.ended  = false;
+    laser.again  = [];
+    laser.againReady = 0;
     laser.beams  = [];
     laser.wave   = 0;
     laser.time   = 0;
@@ -901,7 +936,12 @@ function lasFinish(winner){
 
     document.getElementById("lasResult").style.display = "flex";
 
-    document.getElementById("lasAgain").style.display = laser.host ? "block" : "none";
+    /* la revanche se decide a plusieurs : tout le monde voit le bouton */
+    laser.again = [];
+
+    document.getElementById("lasAgain").style.display = "block";
+
+    lasAgainPaint();
 
     sound(won ? 720 : 220, .2, "sine", .05);
 

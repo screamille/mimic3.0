@@ -895,9 +895,95 @@ document.getElementById("lasStart").onclick = () => {
 
 document.getElementById("lasAgain").onclick = () => {
 
+    /* deja vote : on attend les autres */
+    if(laser.again[laser.me]){
+        return;
+    }
+
+    laser.again[laser.me] = true;
+
+    sound(660, .1, "triangle", .05);
+
+    if(laser.host){
+        lasAgainCheck();
+    }else{
+        lasSend({t:"again"});
+        lasAgainPaint();
+    }
+
+};
+
+
+/*
+La revanche ne part que quand TOUT LE MONDE a appuye sur
+REJOUER. L'hote tient le compte et previent les autres a
+chaque vote.
+*/
+function lasPresent(){
+
+    const list = [0];
+
+    laser.conns.forEach(c => {
+        if(c && c.__idx != null && list.indexOf(c.__idx) < 0){
+            list.push(c.__idx);
+        }
+    });
+
+    return list;
+
+}
+
+
+function lasAgainPaint(){
+
+    const box = document.getElementById("lasAgainState");
+    const txt = document.getElementById("lasAgainTxt");
+
+    if(!box || !txt){
+        return;
+    }
+
+    const total = laser.host ? lasPresent().length : (laser.againTotal || laser.players.length);
+    const n     = laser.host
+        ? lasPresent().filter(i => laser.again[i]).length
+        : (laser.againReady || (laser.again[laser.me] ? 1 : 0));
+
+    if(laser.again[laser.me]){
+
+        txt.textContent = "⏳ EN ATTENTE…";
+        box.textContent = n + " / " + total + " prêts pour la revanche";
+
+    }else{
+
+        txt.textContent = "🔄 REJOUER";
+        box.textContent = n > 0
+            ? n + " / " + total + " veulent rejouer"
+            : "Il faut que tout le monde appuie sur REJOUER.";
+
+    }
+
+}
+
+
+function lasAgainCheck(){
+
     if(!laser.host){
         return;
     }
+
+    const here = lasPresent();
+    const n    = here.filter(i => laser.again[i]).length;
+
+    lasSend({t:"againState", n:n, total:here.length});
+
+    lasAgainPaint();
+
+    if(n < here.length){
+        return;
+    }
+
+    /* tout le monde est d'accord : on relance */
+    laser.again = [];
 
     laser.players.forEach(p => { p.alive = true; p.lives = LAS_LIVES; p.time = 0; });
 
