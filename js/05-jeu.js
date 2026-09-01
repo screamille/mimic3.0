@@ -1299,10 +1299,6 @@ function update(dt){
     bossBar();
     lasBoard();
 
-    if(duel.active){
-        duelUpdate(dt);
-    }
-
 }
 
 
@@ -2532,11 +2528,6 @@ function endGame(){
     document.getElementById("pauseBtn").style.display = "none";
     document.getElementById("skillBar").style.display = "none";
 
-    if(duel.active){
-        duelDeath();
-        return;
-    }
-
     document.getElementById("gameOver").style.display = "flex";
 
 }
@@ -2614,28 +2605,15 @@ function startGame(seed){
     document.getElementById("gameOver").style.display    = "none";
     document.getElementById("shop").style.display        = "none";
     document.getElementById("pauseScreen").style.display = "none";
-    document.getElementById("duelScreen").style.display  = "none";
-    document.getElementById("duelResult").style.display  = "none";
-
-    const inDuel = !!(duel.conn && duel.conn.open);
-
-    /* pas de pause en duel : le chrono de l'autre, lui, tourne */
     /* pas de pause en reseau : ca desynchroniserait tout le monde */
     document.getElementById("pauseBtn").style.display =
-        (inDuel || laser.active) ? "none" : "block";
+        laser.active ? "none" : "block";
 
     buildSkillBar();
 
     /* le mode rayon se joue sans competences : la barre reste cachee */
     document.getElementById("skillBar").style.display =
         (anyAbility() && !lasOn()) ? "flex" : "none";
-
-    if(inDuel){
-        duelBegin();
-    }else{
-        duel.active = false;
-        document.getElementById("duelBar").style.display = "none";
-    }
 
     keys.up = keys.down = keys.left = keys.right = false;
 
@@ -2668,8 +2646,6 @@ function quitToMenu(){
 
     playing = false;
     paused  = false;
-
-    duelCleanup();
 
     stickReset();
     saveGame();

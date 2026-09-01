@@ -358,7 +358,6 @@ function padVoice(freq, at, hold, vol, cutoff, detune){
 }
 
 
-
 /* =========================================================
    MUSIQUE DU MENU — FUTURE GARAGE
 
@@ -739,7 +738,6 @@ function fgUpdate(){
     }
 
 }
-
 
 
 /* =========================================================

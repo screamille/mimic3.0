@@ -2031,7 +2031,6 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
     }
 
 
-
     /* ECLIPSE : la couronne qui rayonne au-dela du corps */
     if(skin.effect === "eclipse"){
 
@@ -2304,7 +2303,6 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
     c.restore();
 
 }
-
 
 
 /* =========================================================
@@ -4791,8 +4789,6 @@ function paintSkinInner(c, skin, w, h, r, t, f){
         return;
 
     }
-
-
 
 
     /* ---------- ECLIPSE : le soleil noir et sa couronne ---------- */

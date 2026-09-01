@@ -1326,17 +1326,6 @@ button:active{
     line-height:1.7;
 }
 
-/* =========================
-   DUEL
-========================= */
-
-#duelScreen{
-    display:none;
-}
-
-#duelResult{
-    display:none;
-}
 
 .codeBox{
     margin:18px 0;
@@ -1419,12 +1408,6 @@ button:active{
     text-transform:uppercase;
 }
 
-#duelStatus{
-    min-height:22px;
-    margin:14px 0 4px;
-    color:#8b99bd;
-    font-size:13px;
-}
 
 #countdown{
     position:fixed;
@@ -1445,46 +1428,6 @@ button:active{
     text-shadow:0 0 40px rgba(85,217,255,.6);
 }
 
-/* bandeau adversaire pendant le duel */
-#duelBar{
-    position:fixed;
-
-    top:calc(74px + env(safe-area-inset-top));
-    left:12px;
-    right:12px;
-
-    display:none;
-
-    z-index:11;
-
-    padding:8px 13px;
-
-    border-radius:14px;
-    border:1px solid rgba(150,120,220,.5);
-
-    background:rgba(14,10,30,.8);
-
-    backdrop-filter:blur(10px);
-
-    font-size:13px;
-}
-
-#duelBar .row{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    gap:10px;
-}
-
-#duelBar .who{
-    color:#a9a0d8;
-    font-size:11px;
-    letter-spacing:1px;
-}
-
-#duelBar b{
-    font-size:16px;
-}
 
 .dead{
     color:#ff466e;
@@ -1601,7 +1544,6 @@ button:active{
 .skillBtn.ready:active .skillFace{
     transform:scale(.9);
 }
-
 
 
 #pauseBtn{

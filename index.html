@@ -10,7 +10,7 @@
 
 <title>MIMIC</title>
 
-<link rel="stylesheet" href="css/style.css?v=7.4">
+<link rel="stylesheet" href="css/style.css?v=7.5">
 </head>
 
 <body>
@@ -62,22 +62,6 @@
 
 <!-- competences : en bas a droite, sous le bouton pause -->
 <div id="skillBar"></div>
-
-<div id="duelBar">
-
-    <div class="row">
-        <span class="who">TOI</span>
-        <b id="myTime">0.0 s</b>
-        <b id="myLives">♥♥♥</b>
-    </div>
-
-    <div class="row" style="margin-top:5px">
-        <span class="who" id="foeName">ADVERSAIRE</span>
-        <b id="foeTime">0.0 s</b>
-        <b id="foeLives">♥♥♥</b>
-    </div>
-
-</div>
 
 <div id="countdown"></div>
 
@@ -173,7 +157,7 @@
         <b id="bestScore">0</b>
     </div>
 
-    <div class="version" id="versionTag">V 7.4</div>
+    <div class="version" id="versionTag">V 7.5</div>
 
     <div id="errBanner" class="errBanner" style="display:none"></div>
 
@@ -643,161 +627,6 @@
 
 
 <!-- =========================
-     DUEL
-========================= -->
-
-<div id="duelScreen" class="overlay">
-
-    <div class="menu">
-
-        <h1 style="margin:0 0 6px" data-i18n="duel.title">⚔️ DUEL</h1>
-
-        <p id="fileWarning" class="hint" style="display:none;margin:10px 0 0;color:#ffd84d">
-            <em data-i18n="duel.fileWarn">⚠️ Le jeu est ouvert depuis un fichier, pas depuis un lien. Le QR code ne peut donc contenir que le code à recopier. Mets le jeu en ligne et scanner lancera le duel directement.</em>
-        </p>
-
-        <p class="subtitle" style="margin:8px auto 18px">
-            <em data-i18n="duel.sub">Même terrain, mêmes ennemis, chacun sur son téléphone.</em>
-            <b data-i18n="duel.sub2">Celui qui survit le plus longtemps gagne.</b>
-        </p>
-
-        <div class="menuButtons">
-
-            <button class="primary" id="hostButton">
-                <em data-i18n="duel.create">📡 CRÉER LA PARTIE</em>
-            </button>
-
-        </div>
-
-        <div id="hostBox" style="display:none">
-
-            <div class="codeBox">
-                <small data-i18n="duel.give">DONNE CE CODE À TON ADVERSAIRE</small>
-                <span class="code" id="myCode">····</span>
-            </div>
-
-            <div id="qrWrap">
-                <canvas id="qrCanvas"></canvas>
-            </div>
-
-            <p id="qrHint"></p>
-
-        </div>
-
-        <div id="joinBox" style="margin-top:16px">
-
-            <p class="hint" style="margin:0 0 8px">
-                <em data-i18n="duel.orJoin">ou rejoins une partie existante</em>
-            </p>
-
-            <input
-                id="codeInput"
-                maxlength="4"
-                placeholder="CODE"
-                autocomplete="off"
-                autocapitalize="characters"
-            >
-
-            <button class="secondary" id="joinButton" style="width:100%">
-                <em data-i18n="duel.join">🔗 REJOINDRE</em>
-            </button>
-
-        </div>
-
-        <p id="duelStatus"></p>
-
-        <div class="menuButtons" style="margin-top:10px">
-
-            <button class="secondary" id="duelRetryButton">
-                🔁 RÉESSAYER
-            </button>
-
-            <button class="secondary" id="duelBack">
-                ← RETOUR
-            </button>
-
-        </div>
-
-    </div>
-
-</div>
-
-
-<div id="duelJoining" class="overlay" style="display:none">
-
-    <div class="menu">
-
-        <h1 style="margin:0 0 10px">⚔️ DUEL</h1>
-
-        <p class="subtitle" style="margin:8px auto 6px">
-            Invitation reçue.
-        </p>
-
-        <div class="codeBox">
-            <small>PARTIE</small>
-            <span class="code" id="joiningCode">····</span>
-        </div>
-
-        <p id="joiningStatus" style="color:#8b99bd;font-size:13px;margin:14px 0 4px">
-            Connexion à ton adversaire…
-        </p>
-
-        <div class="menuButtons" style="margin-top:10px">
-            <button class="secondary" id="joiningCancel">
-                <em data-i18n="ui.cancel">← ANNULER</em>
-            </button>
-        </div>
-
-    </div>
-
-</div>
-
-
-<div id="duelResult" class="overlay">
-
-    <div class="menu">
-
-        <h1 id="duelVerdict" style="margin:0 0 8px">VICTOIRE</h1>
-
-        <p id="duelDetail" class="subtitle" style="margin:8px auto 18px"></p>
-
-        <div class="menuStats">
-
-            <div class="menuStat">
-                <small data-i18n="duel.yourTime">TON TEMPS</small>
-                <b id="duelMine">0 s</b>
-            </div>
-
-            <div class="menuStat">
-                <small data-i18n="duel.opponent">ADVERSAIRE</small>
-                <b id="duelTheirs">0 s</b>
-            </div>
-
-            <div class="menuStat">
-                <small data-i18n="duel.levelReached">NIVEAU ATTEINT</small>
-                <b id="duelLevel">1</b>
-            </div>
-
-        </div>
-
-        <div class="menuButtons">
-
-            <button class="primary" id="duelRematch">
-                <em data-i18n="duel.rematch">🔄 REVANCHE</em>
-            </button>
-
-            <button class="secondary" id="duelQuit">
-                <em data-i18n="ui.menu">🏠 MENU</em>
-            </button>
-
-        </div>
-
-    </div>
-
-</div>
-
-
-<!-- =========================
      MODE LASER (2 à 5 joueurs)
 ========================= -->
 
@@ -1197,16 +1026,16 @@ fonctionne parfaitement même si aucun des deux ne répond.
 })();
 </script>
 
-<script src="js/01-moteur.js?v=7.4"></script>
-<script src="js/02-etat.js?v=7.4"></script>
-<script src="js/03-skins.js?v=7.4"></script>
-<script src="js/04-monde.js?v=7.4"></script>
-<script src="js/05-jeu.js?v=7.4"></script>
-<script src="js/06-boutique.js?v=7.4"></script>
-<script src="js/07-duel.js?v=7.4"></script>
-<script src="js/08-langues.js?v=7.4"></script>
-<script src="js/09-laser.js?v=7.4"></script>
-<script src="js/10-interface.js?v=7.4"></script>
+<script src="js/01-moteur.js?v=7.5"></script>
+<script src="js/02-etat.js?v=7.5"></script>
+<script src="js/03-skins.js?v=7.5"></script>
+<script src="js/04-monde.js?v=7.5"></script>
+<script src="js/05-jeu.js?v=7.5"></script>
+<script src="js/06-boutique.js?v=7.5"></script>
+<script src="js/07-duel.js?v=7.5"></script>
+<script src="js/08-langues.js?v=7.5"></script>
+<script src="js/09-laser.js?v=7.5"></script>
+<script src="js/10-interface.js?v=7.5"></script>
 
 </body>
 </html>

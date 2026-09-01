@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "7.4";
+const VERSION = "7.5";
 
 (function(){
 
@@ -2220,12 +2220,6 @@ function enterCandy(){
 }
 
 
-
-
-
-
-
-
 /* =========================================================
    PROGRESSION, MISSIONS ET COMBO
 
@@ -2855,10 +2849,6 @@ function renderMissions(){
     }
 
 }
-
-
-
-
 
 
 /* =========================================================
@@ -3616,8 +3606,6 @@ function giftCard(){
     }
 
 }
-
-
 
 
 /* =========================================================
@@ -4850,8 +4838,6 @@ function bossBar(){
 }
 
 
-
-
 /* =========================================================
    MONDES 6 A 9
 
@@ -5732,7 +5718,6 @@ function drawGrimoires(){
 }
 
 
-
 /* --- LA FOURNAISE : elle souffle un cone de feu --- */
 function spawnFournaise(){
 
@@ -6172,7 +6157,6 @@ function drawCoucous(){
     }
 
 }
-
 
 
 /* --- LE TOME : la colonne tremble, puis ça tombe --- */
@@ -8271,7 +8255,6 @@ function drawBulles(){
     ctx.restore();
 
 }
-
 
 
 function updateWarp(dt){

@@ -737,11 +737,7 @@ function startInMarais(){
 
 document.getElementById("startButton").onclick = () => {
 
-    if(lobbyMode === "duel"){
-
-        openDuel();
-
-    }else if(lobbyMode === "laser"){
+    if(lobbyMode === "laser"){
 
         openLaser();
 
@@ -760,7 +756,7 @@ entrainement par monde deja atteint. Le monde 1 n'y est
 pas : c'est deja la partie normale.
 */
 function lobbyModeList(){
-    return ["solo", "duel", "laser"];
+    return ["solo", "laser"];
 }
 
 
@@ -1096,14 +1092,6 @@ if(!profile.name){
 }
 
 document.getElementById("retryButton").onclick     = () => startGame();
-/* le duel se lance par le selecteur du salon, plus par un onglet */
-const duelTab = document.getElementById("duelButton");
-
-if(duelTab) duelTab.onclick      = openDuel;
-document.getElementById("hostButton").onclick      = hostDuel;
-document.getElementById("joinButton").onclick      = joinDuel;
-document.getElementById("duelBack").onclick        = closeDuel;
-
 /* le bouton cle reviendra avec les prochains codes */
 const codeBtn = document.getElementById("codeButton");
 
@@ -1216,43 +1204,6 @@ document.getElementById("guideClose").onclick = () => {
     document.getElementById("guide").style.display     = "none";
     document.getElementById("settings").style.display  = "flex";
 };
-document.getElementById("joiningCancel").onclick   = closeDuel;
-
-document.getElementById("duelRetryButton").onclick = () => {
-    duelServer = 0;
-    if(duel.host && duel.code){ hostDuel(); } else { openDuel(); }
-};
-document.getElementById("duelQuit").onclick        = closeDuel;
-
-document.getElementById("codeInput").oninput = e => {
-    e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "");
-};
-
-document.getElementById("duelRematch").onclick = () => {
-
-    duel.myRematch = true;
-
-    duelSend({t:"rematch"});
-
-    if(duel.foeRematch && duel.host){
-
-        duelStartMatch();
-
-    }else if(duel.foeRematch && !duel.host){
-
-        document.getElementById("duelDetail").textContent =
-            "Revanche acceptée, ça démarre…";
-
-    }else{
-
-        document.getElementById("duelDetail").textContent =
-            "En attente de ton adversaire…";
-
-        document.getElementById("duelRematch").style.display = "none";
-
-    }
-
-};
 document.getElementById("openShop").onclick        = openShop;
 document.getElementById("gameOverShop").onclick    = openShop;
 document.getElementById("closeShop").onclick       = closeShop;
@@ -1316,77 +1267,10 @@ document.getElementById("quitButton").onclick      = quitToMenu;
 
 document.getElementById("menuButton").onclick = () => {
 
-    duelCleanup();
-
     document.getElementById("gameOver").style.display = "none";
     document.getElementById("mainMenu").style.display = "block";
 
 };
-
-
-/* =========================================================
-   LIEN D'INVITATION
-
-   Quand on arrive par un QR code scanné, l'adresse contient
-   le code de la partie : on rejoint sans rien taper.
-========================================================= */
-
-(function(){
-
-    const match =
-        (location.search + location.hash).match(/duel=([A-Za-z0-9]{4})/);
-
-    if(!match){
-        return;
-    }
-
-    const code = match[1].toUpperCase();
-
-    /* on attend que la librairie multijoueur soit prête */
-    let waited = 0;
-
-    const tryJoin = setInterval(() => {
-
-        waited += 250;
-
-        if(typeof Peer !== "undefined"){
-
-            clearInterval(tryJoin);
-
-            /* écran dédié : aucun bouton à toucher, ça se connecte tout seul */
-            joiningByLink = true;
-
-            document.getElementById("mainMenu").style.display     = "none";
-            document.getElementById("duelScreen").style.display   = "none";
-            document.getElementById("duelJoining").style.display  = "flex";
-            document.getElementById("joiningCode").textContent    = code;
-
-            document.getElementById("codeInput").value = code;
-
-            duelStatus("Connexion à ton adversaire…");
-
-            joinDuel();
-
-            return;
-        }
-
-        if(waited > 8000){
-
-            clearInterval(tryJoin);
-
-            joiningByLink = false;
-
-            openDuel();
-
-            document.getElementById("codeInput").value = code;
-
-            duelStatus("⚠️ Librairie multijoueur indisponible. Vérifie ta connexion puis appuie sur REJOINDRE.");
-
-        }
-
-    }, 250);
-
-})();
 
 
 /* =========================================================
