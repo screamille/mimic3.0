@@ -367,6 +367,7 @@ function renderShop(){
     setTab(shopInStore);
 
     giftCard();
+    adCard();
 
     const container = document.getElementById("shopContent");
 

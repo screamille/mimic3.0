@@ -1794,6 +1794,66 @@ laisser un menu fige sans explication.
     text-align:left;
 }
 
+.shopAd{
+    border-color:rgba(120,190,255,.45);
+    background:linear-gradient(140deg,rgba(60,150,255,.16),rgba(20,50,110,.14));
+}
+
+.shopAd .giftTxt b{ color:#8fd8ff; }
+
+.shopAd .giftBtn{
+    background:linear-gradient(140deg,#8fd8ff,#3d8fe0);
+    color:#04203a;
+}
+
+.shopAd.taken .giftTxt b{ color:#8fa0c8; }
+
+.adScreen{
+    position:fixed;
+    inset:0;
+
+    display:none;
+    align-items:center;
+    justify-content:center;
+
+    z-index:120;
+
+    background:rgba(4,6,14,.94);
+}
+
+.adBox{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+
+    gap:10px;
+
+    padding:26px 34px;
+
+    border:1px solid rgba(120,150,220,.3);
+    border-radius:18px;
+
+    background:rgba(12,18,40,.9);
+}
+
+.adBox b{
+    font-size:12px;
+    letter-spacing:3px;
+    color:#8fa0c8;
+}
+
+.adBox i{
+    font-style:normal;
+    font-size:46px;
+    font-weight:800;
+    color:#8fd8ff;
+}
+
+.adBox small{
+    font-size:10.5px;
+    color:#6b7899;
+}
+
 .shopGift.taken{
     border-color:rgba(120,150,220,.22);
     background:rgba(12,18,40,.55);

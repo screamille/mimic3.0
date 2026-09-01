@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "6.2";
+const VERSION = "6.3";
 
 (function(){
 
@@ -3220,6 +3220,206 @@ function giftCard(){
 
     if(btn && ready){
         btn.onclick = claimGift;
+    }
+
+}
+
+
+
+
+/* =========================================================
+   LA PUBLICITE RECOMPENSEE
+
+   Un seul endroit dans tout le jeu appelle une regie : la
+   fonction showAd(). Sur le web elle simule ; dans
+   l'application Android elle passe par AdMob si le module
+   est present. Le reste du jeu n'a pas a savoir lequel.
+========================================================= */
+
+const AD_REWARD  = 100;   /* pieces gagnees par pub regardee */
+const AD_MAX_DAY = 3;     /* pubs par jour au maximum        */
+
+let ads = loadJSON("mimicAds", null);
+
+if(!ads || typeof ads !== "object"){
+    ads = {day:"", n:0};
+}
+
+
+function adsCheck(){
+
+    if(ads.day !== todayKey()){
+        ads.day = todayKey();
+        ads.n   = 0;
+        saveAds();
+    }
+
+}
+
+
+function saveAds(){
+    try{ localStorage.setItem("mimicAds", JSON.stringify(ads)); }catch(e){}
+}
+
+
+function adsLeft(){
+    adsCheck();
+    return Math.max(0, AD_MAX_DAY - ads.n);
+}
+
+
+/*
+Le seul point de contact avec une regie publicitaire.
+
+Pour brancher AdMob dans l'application Android, il suffit de
+remplacer le corps de cette fonction par l'appel du module
+@capacitor-community/admob (voir README-ANDROID.md). Elle doit
+appeler donne(true) si la pub a ete regardee jusqu'au bout,
+et donne(false) sinon.
+*/
+function showAd(donne){
+
+    /* --- 1. l'application Android, si AdMob est branche --- */
+    const admob = window.Capacitor &&
+                  window.Capacitor.Plugins &&
+                  window.Capacitor.Plugins.AdMob;
+
+    if(admob && typeof admob.prepareRewardVideoAd === "function"){
+
+        admob.prepareRewardVideoAd({
+            adId:AD_UNIT_REWARD,
+            isTesting:AD_TESTING
+        })
+        .then(function(){ return admob.showRewardVideoAd(); })
+        .then(function(){ donne(true); })
+        .catch(function(err){
+            mimicReport(err, "pub");
+            donne(false);
+        });
+
+        return;
+
+    }
+
+    /* --- 2. sur le web : on simule, pour pouvoir tester --- */
+    adFake(donne);
+
+}
+
+
+/* l'identifiant du bloc AdMob : a remplacer par le tien */
+const AD_UNIT_REWARD = "ca-app-pub-3940256099942544/5224354917";
+const AD_TESTING     = true;
+
+
+/* la fausse pub : cinq secondes, un compte a rebours, et c'est tout */
+function adFake(donne){
+
+    const el = document.getElementById("adScreen");
+
+    if(!el){
+        donne(false);
+        return;
+    }
+
+    let n = 5;
+
+    const num = document.getElementById("adCount");
+
+    num.textContent = n;
+
+    el.style.display = "flex";
+
+    const tick = setInterval(function(){
+
+        n--;
+
+        num.textContent = n;
+
+        if(n <= 0){
+
+            clearInterval(tick);
+
+            el.style.display = "none";
+
+            donne(true);
+
+        }
+
+    }, 1000);
+
+}
+
+
+function watchAd(){
+
+    if(adsLeft() <= 0){
+        return;
+    }
+
+    showAd(function(ok){
+
+        if(!ok){
+            pickupMessage("Pub interrompue", "#8fa0c8");
+            return;
+        }
+
+        ads.n++;
+        saveAds();
+
+        totalCoins += AD_REWARD;
+
+        saveGame();
+        coinChime();
+        buzz([25, 50, 25]);
+
+        pickupMessage("📺 +" + AD_REWARD + " 🪙", "#ffd84d");
+
+        renderShop();
+
+    });
+
+}
+
+
+/* la carte de la pub, sous le cadeau du jour */
+function adCard(){
+
+    const box = document.getElementById("shopAd");
+
+    if(!box){
+        return;
+    }
+
+    if(!shopInStore){
+        box.style.display = "none";
+        return;
+    }
+
+    const left = adsLeft();
+
+    box.style.display = "flex";
+
+    box.classList.toggle("taken", left <= 0);
+
+    box.innerHTML =
+        '<span class="giftIcon">📺</span>' +
+        '<span class="giftTxt">' +
+            '<b>REGARDER UNE PUB</b>' +
+            '<small>' +
+                (left > 0
+                    ? AD_REWARD + " pièces  ·  " + left + " restantes aujourd'hui"
+                    : "Reviens dans " + untilMidnight()) +
+            '</small>' +
+        '</span>' +
+        '<button class="giftBtn"' + (left > 0 ? "" : " disabled") + '>' +
+            (left > 0 ? '<i class="coinDot"></i> +' + AD_REWARD : "✅") +
+        '</button>';
+
+    const btn = box.querySelector(".giftBtn");
+
+    if(btn && left > 0){
+        btn.onclick = watchAd;
     }
 
 }
