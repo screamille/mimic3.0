@@ -601,10 +601,16 @@ function lasSend(msg){
 }
 
 
+/*
+La liste partagee doit porter la POSITION, sinon les autres
+joueurs restent cloues en haut a gauche de l'arene : c'est
+exactement ce qui les rendait invisibles.
+*/
 function lasRoster(){
 
     return laser.players.map(p => ({
         name:p.name, skin:p.skin, color:p.color,
+        x:p.x || 0, y:p.y || 0,
         alive:p.alive, lives:p.lives, time:p.time
     }));
 
@@ -882,7 +888,16 @@ function lasMessage(d, conn, isHost){
     /* --- cote invite --- */
 
     if(d.t === "you"){
+
         laser.me = d.idx;
+
+        /*
+        On redit qui on est maintenant que l'hote nous a donne
+        une place : son premier "bonjour" a pu arriver avant
+        qu'il ait fini de nous inscrire.
+        */
+        lasSend({t:"hello", skin:currentSkin, name:playerName()});
+
         return;
     }
 
@@ -958,6 +973,11 @@ function lasMessage(d, conn, isHost){
             laser.players[i].alive = p.alive;
             laser.players[i].lives = p.lives;
             laser.players[i].time  = p.time;
+
+            /* le skin et le pseudo peuvent arriver en cours de route */
+            if(p.skin){  laser.players[i].skin  = p.skin;  }
+            if(p.name){  laser.players[i].name  = p.name;  }
+            if(p.color){ laser.players[i].color = p.color; }
 
         });
 
