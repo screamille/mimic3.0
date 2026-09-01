@@ -366,7 +366,71 @@ function drawLaserBeams(){
    lisse sans rien changer au reseau.
 ========================================================= */
 
+/*
+Les positions n'arrivent que 20 fois par seconde. Dessinees
+telles quelles, les autres avanceraient par a-coups.
+
+On garde donc les DEUX dernieres positions recues avec leur
+heure d'arrivee, et on dessine le joueur a un instant place
+volontairement 120 ms dans le passe : cet instant tombe
+toujours ENTRE deux positions connues, et on peut glisser de
+l'une a l'autre. C'est la meme methode que les vrais jeux en
+ligne — on echange un retard imperceptible contre un
+mouvement parfaitement continu.
+*/
+
+const LAS_LAG = 110;   /* ms de retard : le prix de la fluidite */
+const LAS_BUF = 5;     /* positions gardees : elles doivent couvrir LAS_LAG */
+
+
+/* une position vient d'arriver pour ce joueur */
+function lasNote(pl, x, y){
+
+    if(!pl || typeof x !== "number" || typeof y !== "number"){
+        return;
+    }
+
+    const now = (typeof performance !== "undefined" && performance.now)
+        ? performance.now()
+        : Date.now();
+
+    pl.x = x;
+    pl.y = y;
+
+    if(!pl.buf){
+        pl.buf = [];
+    }
+
+    /* deux fois la meme position : inutile de l'empiler */
+    const last = pl.buf[pl.buf.length - 1];
+
+    if(last && last.x === x && last.y === y){
+        last.t = now;
+        return;
+    }
+
+    pl.buf.push({x:x, y:y, t:now});
+
+    /*
+    Le tampon doit couvrir plus que LAS_LAG, sinon l'instant
+    vise tombe AVANT la plus vieille position connue et le
+    joueur se fige en attendant la suivante. A 20 envois par
+    seconde, cinq points couvrent 200 ms : large.
+    */
+    while(pl.buf.length > LAS_BUF){
+        pl.buf.shift();
+    }
+
+}
+
+
 function lasSmooth(dt){
+
+    const now = (typeof performance !== "undefined" && performance.now)
+        ? performance.now()
+        : Date.now();
+
+    const when = now - LAS_LAG;
 
     laser.players.forEach((pl, i) => {
 
@@ -374,22 +438,62 @@ function lasSmooth(dt){
             return;
         }
 
-        if(typeof pl.dx !== "number" || typeof pl.dy !== "number"){
-            pl.dx = pl.x;
-            pl.dy = pl.y;
-            return;
+        if(typeof pl.dx !== "number"){
+            pl.dx = pl.x || 0;
+            pl.dy = pl.y || 0;
         }
 
-        /* on rattrape ~92 % de l'ecart par seconde */
-        const k = 1 - Math.pow(.0008, dt);
+        const buf = pl.buf;
 
-        pl.dx += ((pl.x || 0) - pl.dx) * k;
-        pl.dy += ((pl.y || 0) - pl.dy) * k;
+        /* pas encore assez de points : on rattrape doucement */
+        if(!buf || buf.length < 2){
 
-        /* trop loin : on se teleporte plutot que de glisser */
-        if(Math.abs(pl.x - pl.dx) > .28 || Math.abs(pl.y - pl.dy) > .28){
+            const k = 1 - Math.pow(.0008, dt);
+
+            pl.dx += ((pl.x || 0) - pl.dx) * k;
+            pl.dy += ((pl.y || 0) - pl.dy) * k;
+
+            return;
+
+        }
+
+        /* on cherche les deux positions qui encadrent l'instant vise */
+        let a = buf[0];
+        let b = buf[1];
+
+        for(let k = 1; k < buf.length; k++){
+
+            if(buf[k].t >= when){
+                a = buf[k - 1];
+                b = buf[k];
+                break;
+            }
+
+            a = buf[k - 1];
+            b = buf[k];
+
+        }
+
+        const span = Math.max(1, b.t - a.t);
+
+        let u = (when - a.t) / span;
+
+        /*
+        Le reseau a hoquete : l'instant vise depasse la
+        derniere position connue. On prolonge le mouvement,
+        mais pas plus d'une demi-position — sinon un joueur
+        deconnecte partirait tout droit hors de l'ecran.
+        */
+        u = Math.max(0, Math.min(1.5, u));
+
+        pl.dx = a.x + (b.x - a.x) * u;
+        pl.dy = a.y + (b.y - a.y) * u;
+
+        /* ecart enorme : on se teleporte plutot que de traverser l'arene */
+        if(Math.abs(pl.x - pl.dx) > .35 || Math.abs(pl.y - pl.dy) > .35){
             pl.dx = pl.x;
             pl.dy = pl.y;
+            pl.buf = [{x:pl.x, y:pl.y, t:now}];
         }
 
     });
@@ -856,7 +960,7 @@ function lasMessage(d, conn, isHost){
             const p = laser.players[conn.__idx];
 
             if(p){
-                p.x = d.x; p.y = d.y;
+                lasNote(p, d.x, d.y);
                 p.alive = d.a;
                 p.lives = d.hp;
                 p.time  = d.tm;
@@ -968,8 +1072,8 @@ function lasMessage(d, conn, isHost){
                 return;
             }
 
-            laser.players[i].x     = p.x;
-            laser.players[i].y     = p.y;
+            lasNote(laser.players[i], p.x, p.y);
+
             laser.players[i].alive = p.alive;
             laser.players[i].lives = p.lives;
             laser.players[i].time  = p.time;
@@ -1064,8 +1168,9 @@ function lasBegin(){
         p.y = .5;
 
         /* la position affichee part au meme endroit : pas de glissade au depart */
-        p.dx = p.x;
-        p.dy = p.y;
+        p.dx  = p.x;
+        p.dy  = p.y;
+        p.buf = null;
     });
 
     if(laser.players[laser.me]){
@@ -1314,12 +1419,12 @@ function lasUpdate(dt){
 
     }
 
-    /* on partage sa position ~15 fois par seconde */
+    /* on partage sa position 20 fois par seconde */
     laser.send -= dt;
 
     if(laser.send <= 0){
 
-        laser.send = .066;
+        laser.send = .05;
 
         const n = lasNorm(player.x, player.y);
 
@@ -1465,7 +1570,7 @@ function lasHostRoom(){
 ========================================================= */
 
 const RANK_ROOM  = "mimicrank-a1";   /* l'adresse du salon public */
-const QUEUE_GO   = 8;                /* secondes avant le depart  */
+const QUEUE_GO   = 30;               /* secondes avant le depart  */
 
 let queueTimer = null;
 let queueLeft  = 0;
