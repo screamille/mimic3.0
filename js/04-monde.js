@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "6.5";
+const VERSION = "6.6";
 
 (function(){
 
@@ -3010,6 +3010,37 @@ function passNew(){
 }
 
 
+/*
+Ce qu'on montre sur la carte : une icone, un montant, et le
+nom en petit. Les pieces, une capacite, ou le gros lot.
+*/
+function passRewardCard(r){
+
+    if(!r){
+        return {ic:"?", amt:"", sub:""};
+    }
+
+    if(r.all){
+        return {ic:"🏆", amt:r.coins + " 🪙", sub:"+" + r.all + " DE CHAQUE"};
+    }
+
+    if(r.ability){
+
+        const ab = ABILITIES.find(a => a.id === r.ability);
+
+        return {
+            ic:  ab ? ab.icon : "✨",
+            amt: "×" + r.n,
+            sub: ab ? ab.name : r.ability
+        };
+
+    }
+
+    return {ic:"🪙", amt:String(r.coins), sub:"PIÈCES"};
+
+}
+
+
 function renderPass(){
 
     const box = document.getElementById("passList");
@@ -3021,16 +3052,22 @@ function renderPass(){
     pass.seen = passTier();
     savePass();
 
+    const done  = passTier();
+    const total = PASS_REWARDS.length;
+
+    const badge = document.getElementById("passTierNum");
+
+    if(badge){
+        badge.textContent = done;
+    }
+
     const head = document.getElementById("passHead");
 
     if(head){
 
-        const t = passTier();
-
-        head.textContent = t >= PASS_REWARDS.length
-            ? "Passe terminée — tout est à toi"
-            : "Palier " + t + " / " + PASS_REWARDS.length +
-              "   ·   " + (PASS_STEP - (pass.xp % PASS_STEP)) + " XP avant le suivant";
+        head.textContent = done >= total
+            ? "PASSE TERMINÉE — TOUT EST À TOI"
+            : (PASS_STEP - (pass.xp % PASS_STEP)) + " XP AVANT LE PALIER " + (done + 1);
 
     }
 
@@ -3042,56 +3079,65 @@ function renderPass(){
 
     box.innerHTML = "";
 
-    const done = passTier();
-
     PASS_REWARDS.forEach((r, i) => {
 
         const n    = i + 1;
         const got  = n <= done;
-        const next = n === done + 1;
+        const now  = n === done + 1;
+        const big  = (n % 5 === 0) || n === total;
 
-        const row = document.createElement("div");
+        const stop = document.createElement("div");
 
-        row.className = "passRow" + (got ? " got" : "") + (next ? " next" : "");
+        stop.className =
+            "passStop" +
+            (got ? " got" : now ? " now" : " locked") +
+            (big ? " big" : "");
 
-        const num = document.createElement("i");
-        num.className   = "passNum";
-        num.textContent = n;
+        const card = document.createElement("div");
+        card.className = "passCard";
 
-        const txt = document.createElement("span");
+        const info = passRewardCard(r);
 
-        const nm = document.createElement("b");
-        nm.textContent = passRewardText(r);
+        const ic = document.createElement("span");
+        ic.className   = "ic";
+        ic.textContent = info.ic;
 
-        const sub = document.createElement("small");
-        sub.textContent = got
-            ? "Reçu"
-            : next
-                ? "Palier suivant"
-                : (n * PASS_STEP) + " XP";
+        const amt = document.createElement("span");
+        amt.className   = "amt";
+        amt.textContent = info.amt;
 
-        txt.appendChild(nm);
-        txt.appendChild(sub);
+        const sub = document.createElement("span");
+        sub.className   = "sub";
+        sub.textContent = info.sub;
 
-        const mark = document.createElement("em");
-        mark.textContent = got ? "✅" : next ? "▶" : "🔒";
+        card.appendChild(ic);
+        card.appendChild(amt);
+        card.appendChild(sub);
 
-        row.appendChild(num);
-        row.appendChild(txt);
-        row.appendChild(mark);
+        const node = document.createElement("i");
+        node.className   = "passNode";
+        node.textContent = n;
 
-        box.appendChild(row);
+        stop.appendChild(card);
+        stop.appendChild(node);
+
+        box.appendChild(stop);
 
     });
 
-    /* on amene le palier en cours sous les yeux */
-    const nextRow = box.querySelector(".passRow.next");
+    /* on amene le palier en cours sous les yeux, au milieu */
+    setTimeout(function(){
 
-    if(nextRow && nextRow.scrollIntoView){
-        setTimeout(function(){
-            try{ nextRow.scrollIntoView({block:"center"}); }catch(e){}
-        }, 30);
-    }
+        const cur = box.querySelector(".passStop.now") ||
+                    box.querySelector(".passStop:last-child");
+
+        if(cur){
+            try{
+                box.scrollLeft = cur.offsetLeft - box.clientWidth / 2 + cur.offsetWidth / 2;
+            }catch(e){}
+        }
+
+    }, 30);
 
 }
 

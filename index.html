@@ -10,7 +10,7 @@
 
 <title>MIMIC</title>
 
-<link rel="stylesheet" href="css/style.css?v=6.5">
+<link rel="stylesheet" href="css/style.css?v=6.6">
 </head>
 
 <body>
@@ -165,7 +165,7 @@
         <b id="bestScore">0</b>
     </div>
 
-    <div class="version" id="versionTag">V 6.5</div>
+    <div class="version" id="versionTag">V 6.6</div>
 
     <div id="errBanner" class="errBanner" style="display:none"></div>
 
@@ -311,15 +311,28 @@
 
 <div id="passScreen" class="overlay" style="display:none">
 
-    <div class="menu">
+    <div class="menu passMenu">
 
-        <h1 style="margin:0 0 4px">🎖 PASSE DE COMBAT</h1>
+        <div class="passHero">
 
-        <p class="tagline" id="passHead" style="margin:6px auto 0"></p>
+            <div class="passHeroTxt">
+                <span class="passSeason">SAISON 1</span>
+                <h1>PASSE DE COMBAT</h1>
+            </div>
 
-        <div class="passTrack"><i id="passFill"></i></div>
+            <div class="passTierBadge">
+                <b id="passTierNum">0</b>
+                <small>PALIER</small>
+            </div>
 
-        <div id="passList" class="passList"></div>
+        </div>
+
+        <div class="passBarWrap">
+            <div class="passTrack"><i id="passFill"></i></div>
+            <span class="passXp" id="passHead"></span>
+        </div>
+
+        <div id="passList" class="passRoad"></div>
 
         <div class="menuButtons" style="margin-top:16px">
             <button class="primary" id="passClose" data-i18n="ui.back">← RETOUR</button>
@@ -1047,16 +1060,16 @@ fonctionne parfaitement même si aucun des deux ne répond.
 })();
 </script>
 
-<script src="js/01-moteur.js?v=6.5"></script>
-<script src="js/02-etat.js?v=6.5"></script>
-<script src="js/03-skins.js?v=6.5"></script>
-<script src="js/04-monde.js?v=6.5"></script>
-<script src="js/05-jeu.js?v=6.5"></script>
-<script src="js/06-boutique.js?v=6.5"></script>
-<script src="js/07-duel.js?v=6.5"></script>
-<script src="js/08-langues.js?v=6.5"></script>
-<script src="js/09-laser.js?v=6.5"></script>
-<script src="js/10-interface.js?v=6.5"></script>
+<script src="js/01-moteur.js?v=6.6"></script>
+<script src="js/02-etat.js?v=6.6"></script>
+<script src="js/03-skins.js?v=6.6"></script>
+<script src="js/04-monde.js?v=6.6"></script>
+<script src="js/05-jeu.js?v=6.6"></script>
+<script src="js/06-boutique.js?v=6.6"></script>
+<script src="js/07-duel.js?v=6.6"></script>
+<script src="js/08-langues.js?v=6.6"></script>
+<script src="js/09-laser.js?v=6.6"></script>
+<script src="js/10-interface.js?v=6.6"></script>
 
 </body>
 </html>

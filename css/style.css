@@ -2017,14 +2017,155 @@ laisser un menu fige sans explication.
 
 .worldCard.locked em{ color:#5f6f97; }
 
-.passTrack{
-    height:9px;
+/* =========================================================
+   LA PASSE DE COMBAT
 
-    margin-top:12px;
+   Une route qui defile de gauche a droite, comme dans les
+   gros jeux mobiles : un jalon par palier, la recompense
+   posee au-dessus, et la route qui s'allume derriere toi.
+========================================================= */
+
+.passMenu{
+    max-width:min(760px, 94vw);
+}
+
+/* --- la banniere du haut --- */
+
+.passHero{
+    position:relative;
+
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+
+    gap:12px;
+
+    padding:12px 14px;
+
+    border-radius:16px;
+
+    border:1px solid rgba(255,215,106,.35);
+
+    background:
+        linear-gradient(135deg, rgba(255,154,61,.22), rgba(120,60,255,.20) 55%, rgba(10,14,30,.2)),
+        rgba(10,14,30,.75);
+
+    overflow:hidden;
+}
+
+/* le rayon qui balaie la banniere */
+.passHero::after{
+    content:"";
+
+    position:absolute;
+    top:-60%;
+    left:-40%;
+
+    width:35%;
+    height:220%;
+
+    background:linear-gradient(90deg, rgba(255,255,255,0), rgba(255,255,255,.16), rgba(255,255,255,0));
+
+    transform:rotate(14deg);
+
+    animation:passSweep 4.5s linear infinite;
+
+    pointer-events:none;
+}
+
+@keyframes passSweep{
+    0%   { left:-40%; }
+    100% { left:120%; }
+}
+
+.passHeroTxt{
+    text-align:left;
+    min-width:0;
+}
+
+.passSeason{
+    display:inline-block;
+
+    padding:2px 8px;
+    margin-bottom:4px;
 
     border-radius:99px;
 
-    background:rgba(255,255,255,.10);
+    background:linear-gradient(180deg,#ffd76a,#ff9a3d);
+
+    color:#2a1400;
+
+    font-size:9.5px;
+    font-weight:900;
+    letter-spacing:.14em;
+}
+
+.passHeroTxt h1{
+    margin:0;
+
+    font-size:clamp(15px, 3.4vw, 22px);
+
+    letter-spacing:.06em;
+
+    background:linear-gradient(180deg,#fff6d8,#ffc65a);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+
+    text-shadow:0 2px 0 rgba(0,0,0,.35);
+}
+
+/* la pastille du palier en cours */
+.passTierBadge{
+    flex:0 0 auto;
+
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+
+    width:60px;
+    height:60px;
+
+    border-radius:50%;
+
+    border:3px solid #ffd76a;
+
+    background:radial-gradient(circle at 50% 35%, #3a2a5e, #140d28);
+
+    box-shadow:0 0 18px rgba(255,215,106,.35), inset 0 -4px 10px rgba(0,0,0,.5);
+}
+
+.passTierBadge b{
+    font-size:22px;
+    line-height:1;
+    color:#ffe9a8;
+    text-shadow:0 2px 0 rgba(0,0,0,.5);
+}
+
+.passTierBadge small{
+    font-size:7.5px;
+    letter-spacing:.14em;
+    color:#c8b7ff;
+}
+
+/* --- la barre d'experience --- */
+
+.passBarWrap{
+    position:relative;
+    margin-top:12px;
+}
+
+.passTrack{
+    height:14px;
+
+    border-radius:99px;
+
+    background:rgba(6,9,20,.85);
+    border:1px solid rgba(120,150,220,.25);
+
+    box-shadow:inset 0 2px 6px rgba(0,0,0,.6);
+
     overflow:hidden;
 }
 
@@ -2036,98 +2177,273 @@ laisser un menu fige sans explication.
 
     border-radius:99px;
 
-    background:linear-gradient(90deg,#ffd76a,#ff9a3d);
+    background:linear-gradient(180deg,#ffe9a8,#ffd76a 45%,#ff9a3d);
+
+    box-shadow:0 0 12px rgba(255,180,80,.7);
+
+    transition:width .5s ease;
 }
 
-.passList{
+.passXp{
+    display:block;
+
+    margin-top:6px;
+
+    font-size:10.5px;
+    letter-spacing:.06em;
+    color:#a9b8dd;
+}
+
+/* --- la route des paliers --- */
+
+.passRoad{
     display:flex;
-    flex-direction:column;
+    align-items:flex-end;
 
-    gap:8px;
-
-    max-height:46vh;
-    overflow-y:auto;
+    gap:0;
 
     margin-top:14px;
-    padding-right:4px;
+    padding:6px 8px 12px;
+
+    overflow-x:auto;
+    overflow-y:hidden;
+
+    scroll-behavior:smooth;
+
+    -webkit-overflow-scrolling:touch;
 }
 
-.passRow{
+.passRoad::-webkit-scrollbar{ height:6px; }
+.passRoad::-webkit-scrollbar-thumb{
+    background:rgba(255,215,106,.35);
+    border-radius:99px;
+}
+
+.passStop{
+    position:relative;
+
+    flex:0 0 auto;
+
     display:flex;
+    flex-direction:column;
     align-items:center;
 
-    gap:12px;
-
-    padding:9px 12px;
-
-    border:1px solid rgba(120,150,220,.18);
-    border-radius:12px;
-
-    background:rgba(10,14,30,.55);
-
-    text-align:left;
+    width:92px;
 }
 
-.passRow.got{
-    border-color:rgba(97,255,131,.35);
-    background:rgba(18,42,28,.5);
+/* le bitume : un trait derriere le jalon, d'un stop a l'autre */
+.passStop::before{
+    content:"";
+
+    position:absolute;
+    left:-50%;
+    right:50%;
+    bottom:20px;
+
+    height:8px;
+
+    border-radius:99px;
+
+    background:rgba(255,255,255,.09);
+
+    z-index:0;
 }
 
-.passRow.next{
-    border-color:rgba(255,215,106,.6);
-    background:rgba(46,34,10,.55);
+.passStop:first-child::before{ display:none; }
+
+.passStop.got::before,
+.passStop.now::before{
+    background:linear-gradient(90deg,#ffd76a,#ff9a3d);
+    box-shadow:0 0 10px rgba(255,180,80,.55);
 }
 
-.passNum{
-    flex:0 0 auto;
+/* la carte de recompense */
+.passCard{
+    position:relative;
+
+    z-index:2;
+
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+
+    gap:2px;
+
+    width:76px;
+    height:76px;
+
+    margin-bottom:10px;
+
+    border-radius:14px;
+
+    border:2px solid rgba(120,150,220,.28);
+
+    background:linear-gradient(180deg, rgba(38,48,84,.9), rgba(12,16,34,.95));
+
+    box-shadow:0 6px 0 rgba(0,0,0,.35);
+}
+
+.passCard .ic{
+    font-size:26px;
+    line-height:1;
+
+    filter:drop-shadow(0 2px 3px rgba(0,0,0,.6));
+}
+
+.passCard .amt{
+    font-size:11px;
+    font-weight:900;
+    color:#e6eeff;
+}
+
+.passCard .sub{
+    font-size:7.5px;
+    letter-spacing:.08em;
+    color:#8fa0c8;
+
+    max-width:70px;
+
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+/* recu : la carte vire au vert et se marque */
+.passStop.got .passCard{
+    border-color:rgba(97,255,131,.55);
+    background:linear-gradient(180deg, rgba(20,58,36,.92), rgba(8,26,18,.95));
+}
+
+.passStop.got .passCard::after{
+    content:"✓";
+
+    position:absolute;
+    top:-8px;
+    right:-8px;
 
     display:flex;
     align-items:center;
     justify-content:center;
 
-    width:28px;
-    height:28px;
+    width:22px;
+    height:22px;
 
-    border-radius:9px;
+    border-radius:50%;
 
-    background:rgba(255,255,255,.06);
-    border:1px solid rgba(120,150,220,.25);
+    background:linear-gradient(180deg,#7dffa0,#22b552);
+    border:2px solid #0a1020;
 
-    color:#8fa0c8;
-
-    font-style:normal;
-    font-weight:800;
+    color:#062a12;
     font-size:12px;
+    font-weight:900;
 }
 
-.passRow.got .passNum{ color:#61ff83; border-color:rgba(97,255,131,.45); }
-.passRow.next .passNum{ color:#ffd76a; border-color:rgba(255,215,106,.6); }
+/* en cours : la carte respire */
+.passStop.now .passCard{
+    border-color:#ffd76a;
 
-.passRow span{
-    flex:1 1 auto;
+    background:linear-gradient(180deg, rgba(70,52,16,.95), rgba(24,16,6,.95));
+
+    box-shadow:0 6px 0 rgba(0,0,0,.35), 0 0 22px rgba(255,200,90,.45);
+
+    animation:passPulse 1.4s ease-in-out infinite;
+}
+
+@keyframes passPulse{
+    0%,100%{ transform:translateY(0)     scale(1);    }
+    50%    { transform:translateY(-3px)  scale(1.045); }
+}
+
+/* verrouille : eteint */
+.passStop.locked .passCard{
+    opacity:.55;
+    filter:saturate(.5);
+}
+
+.passStop.locked .passCard::after{
+    content:"🔒";
+
+    position:absolute;
+    right:4px;
+    bottom:3px;
+
+    font-size:11px;
+}
+
+/* les gros paliers : bordure violette et halo */
+.passStop.big .passCard{
+    width:84px;
+    height:88px;
+
+    border-color:#c86aff;
+
+    background:linear-gradient(180deg, rgba(70,32,112,.95), rgba(20,8,40,.95));
+
+    box-shadow:0 6px 0 rgba(0,0,0,.35), 0 0 22px rgba(200,106,255,.45);
+}
+
+.passStop.big .passCard .ic{ font-size:32px; }
+
+.passStop.big.got .passCard{ border-color:rgba(97,255,131,.6); }
+
+/* le jalon pose sur la route */
+.passNode{
+    position:relative;
+
+    z-index:2;
 
     display:flex;
-    flex-direction:column;
+    align-items:center;
+    justify-content:center;
 
-    gap:2px;
+    width:34px;
+    height:34px;
 
-    min-width:0;
-}
+    border-radius:50%;
 
-.passRow b{
-    font-size:12.5px;
-    color:#e6eeff;
-}
+    border:3px solid rgba(120,150,220,.35);
 
-.passRow small{
-    font-size:10px;
+    background:radial-gradient(circle at 50% 35%, #2a3457, #0b1020);
+
     color:#8fa0c8;
+
+    font-size:12px;
+    font-weight:900;
+    font-style:normal;
+
+    box-shadow:0 3px 0 rgba(0,0,0,.45);
 }
 
-.passRow em{
-    flex:0 0 auto;
-    font-style:normal;
-    font-size:13px;
+.passStop.got .passNode{
+    border-color:#61ff83;
+    color:#0a2814;
+    background:linear-gradient(180deg,#9dffb8,#33c866);
+}
+
+.passStop.now .passNode{
+    border-color:#ffd76a;
+    color:#2a1400;
+    background:linear-gradient(180deg,#ffe9a8,#ffb347);
+
+    box-shadow:0 3px 0 rgba(0,0,0,.45), 0 0 16px rgba(255,200,90,.7);
+}
+
+/* l'ecran est court : on serre tout */
+@media (max-height:430px){
+
+    .passHero{ padding:8px 10px; }
+    .passTierBadge{ width:48px; height:48px; }
+    .passTierBadge b{ font-size:18px; }
+
+    .passCard{ width:64px; height:62px; margin-bottom:8px; }
+    .passCard .ic{ font-size:21px; }
+    .passStop.big .passCard{ width:70px; height:72px; }
+    .passStop.big .passCard .ic{ font-size:25px; }
+    .passStop{ width:78px; }
+    .passNode{ width:28px; height:28px; font-size:11px; }
+    .passStop::before{ bottom:17px; }
+
 }
 
 .missionList{
