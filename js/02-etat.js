@@ -93,6 +93,7 @@ const DESERT_LEVEL  = 100;  /* portail vers LE DÉSERT DE VERRE */
 const FORGE_LEVEL   = 120;  /* portail vers LA FORGE */
 const BIBLIO_LEVEL  = 140;  /* portail vers LA BIBLIOTHÈQUE */
 const CLOCK_LEVEL   = 160;  /* portail vers L'HORLOGE */
+const MIMIC_LEVEL   = 200;  /* portail vers LE COULOIR : LE MIMIC t'attend */
 const MAX_ANGUILLES = 3;    /* anguilles simultanées */
 const MAX_LANTERNES = 3;    /* lanternes simultanées */
 
@@ -106,7 +107,8 @@ const WORLDS = [
     {zone:"desert",  n:6, name:"LE DÉSERT DE VERRE",   from:DESERT_LEVEL, to:FORGE_LEVEL,  col:"#ffd76a"},
     {zone:"forge",   n:7, name:"LA FORGE",             from:FORGE_LEVEL,  to:BIBLIO_LEVEL, col:"#ff7a2a"},
     {zone:"biblio",  n:8, name:"LA BIBLIOTHÈQUE",      from:BIBLIO_LEVEL, to:CLOCK_LEVEL,  col:"#b06cff"},
-    {zone:"horloge", n:9, name:"L'HORLOGE",            from:CLOCK_LEVEL,  to:null,         col:"#9fe9ff"}
+    {zone:"horloge", n:9, name:"L'HORLOGE",            from:CLOCK_LEVEL,  to:MIMIC_LEVEL,  col:"#9fe9ff"},
+    {zone:"couloir", n:10,name:"LE COULOIR",          from:MIMIC_LEVEL,  to:null,         col:"#b06cff"}
 ];
 
 
@@ -122,7 +124,8 @@ const WARP_VEIL = {
     desert:  "#3a2a08",
     forge:   "#3a1405",
     biblio:  "#24104a",
-    horloge: "#0b2436"
+    horloge: "#0b2436",
+    couloir: "#1a0730"
 };
 const MAX_BLOBS    = 4;     /* slimes du marais présents en même temps */
 const START_SOLIDS = 9;     /* blocs présents dès le début */

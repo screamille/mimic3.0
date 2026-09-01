@@ -88,7 +88,8 @@ const SKINS = [
 
     /* --- recompense : il ne s'achete pas --- */
     {id:"abyssal",   name:"ABYSSAL SLIME",   color:"#2fe0ff", color2:"#04243a", price:0,    effect:"abyssal",   rarity:4, exclusive:true},
-    {id:"neant",     name:"NÉANT SLIME",     color:"#c86aff", color2:"#100322", price:0,    effect:"neant",     rarity:4, exclusive:true}
+    {id:"neant",     name:"NÉANT SLIME",     color:"#c86aff", color2:"#100322", price:0,    effect:"neant",     rarity:4, exclusive:true},
+    {id:"mimic",     name:"MIMIC SLIME",     color:"#1b1424", color2:"#c86aff", price:0,    effect:"mimic",     rarity:4, exclusive:true}
 ];
 
 
@@ -623,6 +624,7 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
             sablier:["#ffe9a8", "#ffcf4d"],
             abyssal:["#5fe8ff", "#7bffca"],
             neant:  ["#ffc65a", "#ffc65a"],
+            mimic:  ["#ffffff", "#c86aff"],
             lampe:  ["#ffd0f5", "#ff6ad5"],
             holo:   ["#d8feff", "#5fe8ff"],
             requin: ["#eef4fa", "#eef4fa"],
@@ -2030,6 +2032,29 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
 
     }
 
+
+    /* MIMIC : les eclats de glitch qui le cernent */
+    if(skin.effect === "mimic"){
+
+        c.save();
+
+        for(let i = 0; i < 5; i++){
+
+            const k = (t * .5 + i / 5) % 1;
+
+            c.globalAlpha = (1 - k) * .5;
+            c.fillStyle   = i % 2 ? "#ff3af0" : "#c86aff";
+
+            const yy = (-.5 + ((i * .37 + t * .3) % 1)) * r * 2.4;
+
+            c.fillRect(-r * (1.1 + k * .8), yy, r * (2.2 + k * 1.6), r * .05);
+
+        }
+
+        c.globalAlpha = 1;
+        c.restore();
+
+    }
 
     /* ECLIPSE : la couronne qui rayonne au-dela du corps */
     if(skin.effect === "eclipse"){
@@ -4786,6 +4811,104 @@ function paintSkinInner(c, skin, w, h, r, t, f){
         }
 
         c.globalAlpha = 1;
+        return;
+
+    }
+
+
+    /* ---------- MIMIC : du metal sombre, et des dents ---------- */
+    if(e === "mimic"){
+
+        /* la carcasse : un metal presque noir */
+        const shell = c.createLinearGradient(0, -h, 0, h);
+        shell.addColorStop(0,   "#4a3a58");
+        shell.addColorStop(.32, "#231a30");
+        shell.addColorStop(1,   "#0d0714");
+
+        c.fillStyle = shell;
+        c.fillRect(-w * 1.3, -h * 1.4, w * 2.6, h * 2.8);
+
+        /* le dome du haut, comme sur sa tete */
+        const dome = c.createLinearGradient(0, -h, 0, -h * .15);
+        dome.addColorStop(0, "#6a5580");
+        dome.addColorStop(1, "rgba(60,45,80,0)");
+
+        c.fillStyle = dome;
+        c.fillRect(-w * 1.3, -h * 1.4, w * 2.6, h * 1.35);
+
+        /* la couture */
+        c.strokeStyle = "rgba(0,0,0,.55)";
+        c.lineWidth   = h * .05;
+
+        c.beginPath();
+        c.moveTo(-w, -h * .18);
+        c.lineTo( w, -h * .18);
+        c.stroke();
+
+        /* le liseré violet sur le flanc */
+        c.strokeStyle = "rgba(200,106,255,.7)";
+        c.lineWidth   = h * .045;
+        c.shadowColor = "#c86aff";
+        c.shadowBlur  = 12;
+
+        c.beginPath();
+        c.moveTo(-w * .82, -h * .4);
+        c.lineTo(-w * .82,  h * .4);
+        c.stroke();
+
+        c.shadowBlur = 0;
+
+        /* la rangee de dents, bien en bas pour laisser la place aux yeux */
+        const my = h * .52;
+        const mw = w * .62;
+        const mh = h * .13;
+
+        c.fillStyle = "#05020a";
+
+        c.beginPath();
+        c.moveTo(-mw, my - mh);
+        c.quadraticCurveTo(0, my + mh * 2.4, mw, my - mh);
+        c.closePath();
+        c.fill();
+
+        c.fillStyle = "#f8f5ff";
+
+        const N = 7;
+
+        for(let i = 0; i < N; i++){
+
+            const u  = (i + .5) / N;
+            const px = -mw + u * mw * 2;
+
+            const top = my - mh + Math.sin(u * Math.PI) * mh * .5;
+            const len = mh * (.9 + Math.sin(u * Math.PI) * .9);
+
+            c.beginPath();
+            c.moveTo(px - mw / N, top);
+            c.lineTo(px + mw / N, top);
+            c.lineTo(px,          top + len);
+            c.closePath();
+            c.fill();
+
+        }
+
+        /* le tremblement du glitch, par intermittence */
+        const g = Math.sin(t * 1.7) > .93 ? 1 : 0;
+
+        if(g){
+
+            c.globalAlpha = .35;
+
+            c.fillStyle = "#ff3af0";
+            c.fillRect(-w * 1.3, -h * .55, w * 2.6, h * .12);
+
+            c.fillStyle = "#3affe0";
+            c.fillRect(-w * 1.3,  h * .18, w * 2.6, h * .08);
+
+            c.globalAlpha = 1;
+
+        }
+
         return;
 
     }

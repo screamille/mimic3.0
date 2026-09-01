@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "7.6";
+const VERSION = "7.8";
 
 (function(){
 
@@ -1035,7 +1035,7 @@ function addOrb(){
     Le mode laser, la salle du boss et les cartes maison se
     jouent tels quels : rien n'apparait tout seul.
     */
-    if(laser.active || zone === "neant"){
+    if(laser.active || zone === "neant" || zone === "couloir"){
         return;
     }
 
@@ -1057,7 +1057,7 @@ function addOrb(){
 
 function addCoin(){
 
-    if(laser.active || zone === "neant"){
+    if(laser.active || zone === "neant" || zone === "couloir"){
         return;
     }
 
@@ -1431,6 +1431,8 @@ function buildFloor(){
         paintLibrary(c);
     }else if(zone === "horloge"){
         paintClock(c);
+    }else if(zone === "couloir"){
+        paintCorridor(c);
     }else{
         paintGalaxy(c);
     }
@@ -1964,6 +1966,7 @@ function portalTarget(){
     if(zone === "desert" && level >= FORGE_LEVEL) { return "forge"; }
     if(zone === "forge"  && level >= BIBLIO_LEVEL){ return "biblio"; }
     if(zone === "biblio" && level >= CLOCK_LEVEL) { return "horloge"; }
+    if(zone === "horloge" && level >= MIMIC_LEVEL){ return "couloir"; }
 
     return null;
 
@@ -4006,6 +4009,11 @@ function worldProgress(){
         return boss ? 1 - boss.hp : 1;
     }
 
+    /* dans LE COULOIR, c'est l'usure du MIMIC */
+    if(wd.zone === "couloir"){
+        return mim ? 1 - mim.hp : 1;
+    }
+
     if(!wd.to){
         return 1;
     }
@@ -4827,6 +4835,7 @@ function bossBar(){
 
     el.style.display = "block";
 
+    document.getElementById("bossName").textContent  = "👁 L'ŒIL DU NÉANT";
     document.getElementById("bossPhase").textContent = ph.name;
     document.getElementById("bossPhase").style.color = ph.col;
 
@@ -4834,6 +4843,1045 @@ function bossBar(){
 
     f.style.width      = (boss.hp * 100).toFixed(1) + "%";
     f.style.background = "linear-gradient(90deg,#2a0640," + ph.col + ")";
+
+}
+
+
+/* =========================================================
+   MONDE 10 : LE COULOIR — LE MIMIC
+
+   Un couloir sans fin, borde de portes. Derriere l'une
+   d'elles, quelque chose attend : une tete de metal, deux
+   yeux blancs et une bouche pleine de dents.
+
+   Il ne se bat pas de face. Il entrouvre une porte, te
+   regarde, puis traverse le couloir d'un trait. Plus il
+   s'use, plus il triche.
+========================================================= */
+
+const MIM_TIME   = 105;   /* secondes pour l'user entierement */
+const MIM_PUNCH  = .06;   /* ce qu'il regagne quand il te touche */
+
+const MIM_PHASES = [
+    {name:"LES PORTES", col:"#b06cff"},
+    {name:"LA POIGNE",  col:"#d64bff"},
+    {name:"GLITCH",     col:"#ff3af0"}
+];
+
+let mim         = null;   /* LE MIMIC lui-meme       */
+let mimDoors    = [];     /* les portes du couloir   */
+let mimHands    = [];     /* les mains qui rampent   */
+let mimBeams    = [];     /* les rayons de ses yeux  */
+let mimCleared  = false;  /* l'a-t-on deja brise ?   */
+
+
+function mimPhase(){
+
+    if(!mim){
+        return 0;
+    }
+
+    return mim.hp > .66 ? 0 : mim.hp > .33 ? 1 : 2;
+
+}
+
+
+/* les portes : le long des trois murs, jamais dans les coins */
+function mimBuildDoors(){
+
+    const a = playArea();
+
+    mimDoors = [];
+
+    const w = (a.x1 - a.x0);
+    const h = (a.y1 - a.y0);
+
+    /* le mur du fond */
+    for(let i = 0; i < 4; i++){
+        mimDoors.push({
+            x:a.x0 + w * (.18 + i * .215),
+            y:a.y0 + 26 * unit,
+            side:"haut",
+            open:0
+        });
+    }
+
+    /* les deux murs lateraux */
+    for(let i = 0; i < 2; i++){
+
+        mimDoors.push({
+            x:a.x0 + 6 * unit,
+            y:a.y0 + h * (.35 + i * .3),
+            side:"gauche",
+            open:0
+        });
+
+        mimDoors.push({
+            x:a.x1 - 6 * unit,
+            y:a.y0 + h * (.35 + i * .3),
+            side:"droite",
+            open:0
+        });
+
+    }
+
+}
+
+
+function enterCorridor(){
+
+    zone = "couloir";
+
+    portal = null;
+
+    solids = []; orbs = []; coins = []; hearts = [];
+    balls  = []; slimes = []; trails = []; mimics = [];
+    archers = []; blobs = []; puddles = []; logs = [];
+    crawlers = []; drips = []; candies = []; gloutons = [];
+    guimauves = []; anguilles = []; lanternes = []; bulles = [];
+
+    boss = null; bossShots = []; bossBeams = [];
+
+    clearW69();
+
+    trace       = [];
+    traceLength = 0;
+
+    const a = playArea();
+
+    player.x = (a.x0 + a.x1) / 2;
+    player.y = (a.y0 + a.y1) * .78;
+
+    player.invincible = 3;
+
+    mimBuildDoors();
+
+    mimHands   = [];
+    mimBeams   = [];
+    mimCleared = false;
+
+    mim = {
+        x:(a.x0 + a.x1) / 2,
+        y:a.y0 + (a.y1 - a.y0) * .22,
+        r:Math.min(W, H) * .17,
+        hp:1,
+        phase:0,
+        t:0,
+        state:"attente",
+        timer:2.2,
+        door:0,
+        aim:0,
+        vx:0,
+        vy:0,
+        glitch:0,
+        shake:0,
+        dark:0,
+        dead:0,
+        smile:1
+    };
+
+    noteWorld("couloir");
+
+    worldBanner("couloir", "🚪");
+
+    sound(52, 1.6, "sine",     .09);
+    sound(88, 1.1, "sawtooth", .05);
+
+}
+
+
+/* --------- LES ATTAQUES --------- */
+
+/* il choisit une porte et s'y montre */
+function mimPeek(){
+
+    if(!mimDoors.length){
+        mimBuildDoors();
+    }
+
+    /* jamais deux fois la meme, et plutot loin de toi : on doit courir */
+    let best = 0;
+    let bestScore = -1;
+
+    mimDoors.forEach((d, i) => {
+
+        if(i === mim.door){
+            return;
+        }
+
+        const far = Math.hypot(d.x - player.x, d.y - player.y);
+        const sc  = far * (.7 + Math.random() * .6);
+
+        if(sc > bestScore){
+            bestScore = sc;
+            best = i;
+        }
+
+    });
+
+    mim.door  = best;
+    mim.state = "guette";
+    mim.timer = mimPhase() === 2 ? .62 : mimPhase() === 1 ? .78 : .95;
+
+    const d = mimDoors[best];
+
+    mim.x = d.x;
+    mim.y = d.y;
+
+    sound(150, .25, "square", .04);
+
+}
+
+
+/* il traverse le couloir d'un trait, droit sur toi */
+function mimCharge(){
+
+    const dx = player.x - mim.x;
+    const dy = player.y - mim.y;
+
+    const len = Math.max(1, Math.hypot(dx, dy));
+
+    const sp = (620 + mimPhase() * 170) * unit;
+
+    mim.vx = dx / len * sp;
+    mim.vy = dy / len * sp;
+
+    mim.state = "charge";
+    mim.timer = 1.35;
+    mim.shake = 1;
+
+    sound(70, .45, "sawtooth", .07);
+    buzz([25, 40, 25]);
+
+}
+
+
+/* une main se detache et rampe vers toi */
+function mimSpawnHand(){
+
+    const a = playArea();
+
+    mimHands.push({
+        x:mim.x,
+        y:mim.y + mim.r * .5,
+        r:16 * unit,
+        life:7,
+        slam:0,
+        wave:0
+    });
+
+    sound(120, .3, "square", .045);
+
+}
+
+
+function mimFireBeams(){
+
+    mimBeams = [];
+
+    const base = Math.atan2(player.y - mim.y, player.x - mim.x);
+
+    /* deux rayons, un par oeil : ils s'ecartent puis se referment */
+    for(let i = 0; i < 2; i++){
+        mimBeams.push({
+            a:base + (i ? .42 : -.42),
+            spin:(i ? -1 : 1) * .34,
+            grow:0,
+            life:2.5
+        });
+    }
+
+    sound(320, .5, "sine", .05);
+
+}
+
+
+function updateMimic(dt){
+
+    if(zone !== "couloir"){
+
+        if(mim || mimHands.length || mimBeams.length){
+            mim = null;
+            mimHands = [];
+            mimBeams = [];
+        }
+
+        return;
+
+    }
+
+    const a = playArea();
+
+    /* ---- les mains vivent meme apres sa mort ---- */
+    for(const h of mimHands){
+
+        h.life -= dt;
+        h.wave += dt * 7;
+
+        if(h.slam > 0){
+
+            h.slam -= dt;
+
+            /* l'onde de choc : large mais breve */
+            if(h.slam < .35 && h.slam > .1 && player.invincible <= 0){
+
+                const d = Math.hypot(h.x - player.x, h.y - player.y);
+
+                if(d < h.r * 3.4 && d > h.r * 1.2){
+
+                    loseLife(null);
+
+                    if(mim){
+                        mim.hp = Math.min(1, mim.hp + MIM_PUNCH);
+                    }
+
+                }
+
+            }
+
+        }else{
+
+            /* elle rampe, doucement mais sans jamais s'arreter */
+            const dx = player.x - h.x;
+            const dy = player.y - h.y;
+            const len = Math.max(1, Math.hypot(dx, dy));
+
+            const sp = 118 * unit;
+
+            h.x += dx / len * sp * dt;
+            h.y += dy / len * sp * dt;
+
+            if(len < h.r * 1.5){
+                h.slam = .6;
+                sound(90, .35, "square", .06);
+                buzz([40, 30, 40]);
+            }
+
+        }
+
+    }
+
+    mimHands = mimHands.filter(h => h.life > 0);
+
+    /* ---- les rayons ---- */
+    for(const b of mimBeams){
+
+        b.life -= dt;
+        b.grow  = Math.min(1, b.grow + dt * 1.5);
+        b.a    += b.spin * dt;
+
+        if(b.grow >= .9 && player.invincible <= 0 && mim){
+
+            /* distance du joueur a la droite du rayon */
+            const dx = player.x - mim.x;
+            const dy = player.y - mim.y;
+
+            const along = dx * Math.cos(b.a) + dy * Math.sin(b.a);
+            const off   = Math.abs(-dx * Math.sin(b.a) + dy * Math.cos(b.a));
+
+            if(along > 0 && off < 13 * unit + player.r * .5){
+
+                loseLife(null);
+
+                mim.hp = Math.min(1, mim.hp + MIM_PUNCH);
+
+                b.life = 0;
+
+            }
+
+        }
+
+    }
+
+    mimBeams = mimBeams.filter(b => b.life > 0);
+
+    if(!mim){
+        return;
+    }
+
+    mim.t     += dt;
+    mim.shake  = Math.max(0, mim.shake - dt * 2.2);
+    mim.glitch = Math.max(0, mim.glitch - dt * 1.6);
+    mim.dark   = Math.max(0, mim.dark - dt * .5);
+
+    /* ---- il est brise ---- */
+    if(mim.dead > 0){
+
+        mim.dead -= dt;
+
+        if(mim.dead <= 0 && !mimCleared){
+
+            mimCleared = true;
+
+            pickupMessage("🚪 LE MIMIC EST BRISÉ", "#b06cff");
+
+            buzz([60, 80, 60, 80, 140]);
+
+            unlockExclusive("mimic");
+
+            mim = null;
+
+        }
+
+        return;
+
+    }
+
+    /* ---- l'usure : c'est le temps qui le ronge ---- */
+    mim.hp -= dt / MIM_TIME;
+
+    if(mim.hp <= 0){
+
+        mim.hp   = 0;
+        mim.dead = 2.4;
+
+        mimBeams = [];
+        mimHands = [];
+
+        for(let i = 0; i < 40; i++){
+            burst(mim.x, mim.y, 3, i % 2 ? "#ffffff" : "#c86aff");
+        }
+
+        sound(40, 1.6, "sawtooth", .09);
+
+        return;
+
+    }
+
+    const ph = mimPhase();
+
+    if(ph !== mim.phase){
+
+        mim.phase  = ph;
+        mim.shake  = 1;
+        mim.glitch = 1;
+
+        mimBeams = [];
+
+        pickupMessage("⚠️ " + MIM_PHASES[ph].name, MIM_PHASES[ph].col);
+
+        sound(105, .55, "square", .055);
+
+    }
+
+    /* ---- sa mecanique : guetter, foncer, recommencer ---- */
+    mim.timer -= dt;
+
+    if(mim.state === "attente"){
+
+        if(mim.timer <= 0){
+            mimPeek();
+        }
+
+    }else if(mim.state === "guette"){
+
+        /* il ouvre la porte pendant qu'il te vise */
+        const d = mimDoors[mim.door];
+
+        if(d){
+            d.open = Math.min(1, d.open + dt * 3);
+        }
+
+        if(mim.timer <= 0){
+            mimCharge();
+        }
+
+    }else if(mim.state === "charge"){
+
+        mim.x += mim.vx * dt;
+        mim.y += mim.vy * dt;
+
+        /* il rebondit sur les murs du couloir */
+        if(mim.x < a.x0 + mim.r * .5){ mim.x = a.x0 + mim.r * .5; mim.vx =  Math.abs(mim.vx); }
+        if(mim.x > a.x1 - mim.r * .5){ mim.x = a.x1 - mim.r * .5; mim.vx = -Math.abs(mim.vx); }
+        if(mim.y < a.y0 + mim.r * .5){ mim.y = a.y0 + mim.r * .5; mim.vy =  Math.abs(mim.vy); }
+        if(mim.y > a.y1 - mim.r * .5){ mim.y = a.y1 - mim.r * .5; mim.vy = -Math.abs(mim.vy); }
+
+        if(player.invincible <= 0 &&
+           Math.hypot(mim.x - player.x, mim.y - player.y) < mim.r * .72 + player.r){
+
+            loseLife(null);
+
+            mim.hp = Math.min(1, mim.hp + MIM_PUNCH);
+
+            mim.timer = Math.min(mim.timer, .2);
+
+        }
+
+        if(mim.timer <= 0){
+
+            /* la porte se referme derriere lui */
+            mimDoors.forEach(d => { d.open = Math.max(0, d.open - .5); });
+
+            mim.state = "attente";
+            mim.timer = ph === 2 ? .5 : ph === 1 ? .75 : 1.05;
+
+            /* a partir de la phase 2, il laisse une main derriere lui */
+            if(ph >= 1 && mimHands.length < (ph === 2 ? 3 : 2)){
+                mimSpawnHand();
+            }
+
+            /* en phase 3, il triche : il disparait et ressort ailleurs */
+            if(ph === 2){
+
+                mim.glitch = 1;
+
+                if(Math.random() < .55){
+                    mimFireBeams();
+                }
+
+                mim.dark = 1;
+
+            }
+
+        }
+
+    }
+
+}
+
+
+/* --------- LE DESSIN --------- */
+
+/* le couloir : des portes dans le noir */
+function paintCorridor(c){
+
+    c.fillStyle = "#0b0616";
+    c.fillRect(0, 0, W, H);
+
+    const a = playArea();
+
+    /* la lueur violette qui vient du fond */
+    const glow = c.createRadialGradient(
+        (a.x0 + a.x1) / 2, a.y0, 0,
+        (a.x0 + a.x1) / 2, a.y0, Math.max(W, H) * .8
+    );
+    glow.addColorStop(0,  "rgba(150,70,255,.30)");
+    glow.addColorStop(.5, "rgba(90,30,160,.10)");
+    glow.addColorStop(1,  "rgba(0,0,0,0)");
+
+    c.fillStyle = glow;
+    c.fillRect(0, 0, W, H);
+
+    /* les lattes du plancher, en fuite vers le fond */
+    c.strokeStyle = "rgba(180,120,255,.09)";
+    c.lineWidth   = 1.5 * unit;
+
+    for(let i = 1; i < 9; i++){
+
+        const y = a.y0 + (a.y1 - a.y0) * Math.pow(i / 9, 1.6);
+
+        c.beginPath();
+        c.moveTo(a.x0, y);
+        c.lineTo(a.x1, y);
+        c.stroke();
+
+    }
+
+    /* les portes */
+    mimDoors.forEach((d, i) => {
+
+        const w = 44 * unit;
+        const h = 78 * unit;
+
+        c.save();
+        c.translate(d.x, d.y + h * .35);
+
+        if(d.side === "gauche"){ c.rotate(-Math.PI / 2); }
+        if(d.side === "droite"){ c.rotate(Math.PI / 2); }
+
+        /* l'encadrement */
+        c.fillStyle = "#150a24";
+        c.fillRect(-w / 2 - 4 * unit, -h / 2 - 4 * unit, w + 8 * unit, h + 8 * unit);
+
+        /* le noir derriere : c'est de la que ca sort */
+        c.fillStyle = "#05020a";
+        c.fillRect(-w / 2, -h / 2, w, h);
+
+        /* le battant, entrouvert */
+        const op = d.open || 0;
+
+        c.save();
+        c.translate(-w / 2, 0);
+        c.scale(Math.max(.06, 1 - op * .92), 1);
+
+        const pan = c.createLinearGradient(0, 0, w, 0);
+        pan.addColorStop(0,  "#3a2450");
+        pan.addColorStop(.5, "#241436");
+        pan.addColorStop(1,  "#180c26");
+
+        c.fillStyle = pan;
+        c.fillRect(0, -h / 2, w, h);
+
+        /* les deux panneaux graves */
+        c.strokeStyle = "rgba(190,140,255,.22)";
+        c.lineWidth   = 1.6 * unit;
+
+        c.strokeRect(w * .16, -h * .40, w * .68, h * .32);
+        c.strokeRect(w * .16,  h * .06, w * .68, h * .32);
+
+        /* la poignee */
+        c.fillStyle = "#b58cf0";
+        c.beginPath();
+        c.arc(w * .82, 0, 4 * unit, 0, Math.PI * 2);
+        c.fill();
+
+        c.restore();
+
+        /* la fente lumineuse quand la porte s'entrouvre */
+        if(op > .02){
+
+            c.globalAlpha = Math.min(1, op * 1.4);
+            c.fillStyle   = "rgba(200,140,255,.5)";
+            c.shadowColor = "#c86aff";
+            c.shadowBlur  = 22;
+
+            c.fillRect(-w / 2 + Math.max(.06, 1 - op * .92) * w, -h / 2, 3 * unit, h);
+
+            c.shadowBlur  = 0;
+            c.globalAlpha = 1;
+
+        }
+
+        c.restore();
+
+    });
+
+}
+
+
+/*
+LE MIMIC. Une tete de metal sombre : le dome du haut, les
+deux grands yeux blancs, et la bouche fendue d'un bout a
+l'autre, pleine de dents triangulaires. Une main a cote,
+faite de capsules, comme si elle tenait le bord d'une porte.
+*/
+function paintMimicHead(c, x, y, r, t, glitch, col){
+
+    c.save();
+    c.translate(x, y);
+
+    /* le halo violet qui le precede */
+    const halo = c.createRadialGradient(0, 0, r * .4, 0, 0, r * 2.6);
+    halo.addColorStop(0,  hexA(col, .30));
+    halo.addColorStop(.5, hexA(col, .10));
+    halo.addColorStop(1,  hexA(col, 0));
+
+    c.fillStyle = halo;
+    c.beginPath();
+    c.arc(0, 0, r * 2.6, 0, Math.PI * 2);
+    c.fill();
+
+    /* le tremblement du glitch : trois copies decalees */
+    const gl = glitch || 0;
+
+    if(gl > .02){
+
+        for(let i = 0; i < 2; i++){
+
+            c.save();
+            c.globalAlpha = gl * .35;
+            c.translate((i ? 1 : -1) * r * .16 * gl, 0);
+            c.fillStyle = i ? "#ff3af0" : "#3affe0";
+
+            c.beginPath();
+            c.roundRect(-r * .72, -r * .95, r * 1.44, r * 1.7, r * .3);
+            c.fill();
+
+            c.restore();
+
+        }
+
+    }
+
+    /* --- le crane --- */
+    const body = c.createLinearGradient(0, -r, 0, r);
+    body.addColorStop(0,   "#4a3a58");
+    body.addColorStop(.28, "#2a2036");
+    body.addColorStop(1,   "#100a18");
+
+    c.fillStyle   = body;
+    c.shadowColor = "#000000";
+    c.shadowBlur  = 18;
+
+    c.beginPath();
+    c.roundRect(-r * .72, -r * .95, r * 1.44, r * 1.7, r * .3);
+    c.fill();
+
+    c.shadowBlur = 0;
+
+    /* le dome : la calotte du haut, plus claire */
+    const dome = c.createLinearGradient(0, -r * .95, 0, -r * .3);
+    dome.addColorStop(0,  "#6a5580");
+    dome.addColorStop(.6, "#3b2d4c");
+    dome.addColorStop(1,  "#241a30");
+
+    c.fillStyle = dome;
+
+    c.beginPath();
+    c.roundRect(-r * .70, -r * .93, r * 1.40, r * .62, [r * .28, r * .28, r * .06, r * .06]);
+    c.fill();
+
+    /* la couture qui separe le dome du visage */
+    c.strokeStyle = "rgba(0,0,0,.65)";
+    c.lineWidth   = r * .05;
+
+    c.beginPath();
+    c.moveTo(-r * .70, -r * .31);
+    c.lineTo( r * .70, -r * .31);
+    c.stroke();
+
+    /* le liseré violet sur l'arete gauche : la lumiere du couloir */
+    c.strokeStyle = hexA(col, .75);
+    c.lineWidth   = r * .045;
+    c.shadowColor = col;
+    c.shadowBlur  = 14;
+
+    c.beginPath();
+    c.moveTo(-r * .70, -r * .55);
+    c.lineTo(-r * .70,  r * .55);
+    c.stroke();
+
+    c.shadowBlur = 0;
+
+    /* --- les yeux : deux disques blancs qui brulent --- */
+    for(let i = 0; i < 2; i++){
+
+        const ex = (i ? 1 : -1) * r * .30;
+        const ey = -r * .06;
+
+        c.shadowColor = "#ffffff";
+        c.shadowBlur  = r * .55;
+
+        const ey2 = c.createRadialGradient(ex, ey, 0, ex, ey, r * .215);
+        ey2.addColorStop(0,  "#ffffff");
+        ey2.addColorStop(.6, "#f4ecff");
+        ey2.addColorStop(1,  "#c9b6e8");
+
+        c.fillStyle = ey2;
+
+        c.beginPath();
+        c.arc(ex, ey, r * .215, 0, Math.PI * 2);
+        c.fill();
+
+        c.shadowBlur = 0;
+
+    }
+
+    /* --- la bouche : une fente large, pleine de dents --- */
+    const my = r * .30;
+    const mw = r * .56;
+    const mh = r * .125;
+
+    /* les deux bords de la fente : elle s'incurve vers le bas */
+    const lipTop = u => my - mh + Math.sin(u * Math.PI) * mh * .55;
+    const lipBot = u => my + mh + Math.sin(u * Math.PI) * mh * 1.75;
+
+    /* le noir de la gueule */
+    c.fillStyle = "#04010a";
+
+    c.beginPath();
+
+    for(let k = 0; k <= 20; k++){
+        const u = k / 20;
+        const x = -mw + u * mw * 2;
+        if(k === 0){ c.moveTo(x, lipTop(u)); } else { c.lineTo(x, lipTop(u)); }
+    }
+
+    for(let k = 20; k >= 0; k--){
+        const u = k / 20;
+        c.lineTo(-mw + u * mw * 2, lipBot(u));
+    }
+
+    c.closePath();
+    c.fill();
+
+    /* les dents : deux rangees qui s'emboitent, bien pleines */
+    c.fillStyle = "#f8f5ff";
+
+    const N = 8;
+    const tw = mw / N;   /* demi-largeur d'une dent */
+
+    for(let i = 0; i < N; i++){
+
+        /* rangee du haut : la pointe descend */
+        const u  = (i + .5) / N;
+        const px = -mw + u * mw * 2;
+
+        const top = lipTop(u);
+        const bot = lipBot(u);
+        const gap = bot - top;
+
+        c.beginPath();
+        c.moveTo(px - tw, top - gap * .05);
+        c.lineTo(px + tw, top - gap * .05);
+        c.lineTo(px,      top + gap * .72);
+        c.closePath();
+        c.fill();
+
+        /* rangee du bas : decalee d'une demi-dent, la pointe remonte */
+        const u2 = (i + 1) / N;
+
+        if(i < N - 1 || true){
+
+            const px2 = -mw + u2 * mw * 2;
+            const t2  = lipTop(u2);
+            const b2  = lipBot(u2);
+            const g2  = b2 - t2;
+
+            c.beginPath();
+            c.moveTo(px2 - tw, b2 + g2 * .05);
+            c.lineTo(px2 + tw, b2 + g2 * .05);
+            c.lineTo(px2,      b2 - g2 * .62);
+            c.closePath();
+            c.fill();
+
+        }
+
+    }
+
+    /* le trait sombre qui souligne la fente */
+    c.strokeStyle = "rgba(0,0,0,.55)";
+    c.lineWidth   = r * .028;
+
+    c.beginPath();
+    for(let k = 0; k <= 20; k++){
+        const u = k / 20;
+        const x = -mw + u * mw * 2;
+        if(k === 0){ c.moveTo(x, lipTop(u)); } else { c.lineTo(x, lipTop(u)); }
+    }
+    c.stroke();
+
+    /* --- la main, comme si elle empoignait le bord d'une porte --- */
+    c.save();
+    c.translate(r * .96, r * .30);
+    c.rotate(.10 + Math.sin(t * 1.4) * .04);
+
+    /* la paume, derriere les doigts */
+    const palm = c.createLinearGradient(0, -r * .34, 0, r * .40);
+    palm.addColorStop(0, "#4a3a58");
+    palm.addColorStop(1, "#140d1c");
+
+    c.fillStyle   = palm;
+    c.strokeStyle = "rgba(0,0,0,.55)";
+    c.lineWidth   = r * .018;
+
+    c.beginPath();
+    c.roundRect(r * .02, -r * .36, r * .26, r * .78, r * .11);
+    c.fill();
+    c.stroke();
+
+    /*
+    Quatre doigts qui pointent vers LUI : c'est ce qui donne
+    la prise. Chacun fait deux phalanges, la seconde repliee.
+    */
+    for(let f = 0; f < 4; f++){
+
+        const fy = -r * .27 + f * r * .185;
+
+        c.save();
+        c.translate(r * .04, fy);
+        c.scale(-1, 1);                 /* les doigts partent vers la gauche */
+        c.rotate(-.10 + f * .05);
+
+        for(let seg = 0; seg < 2; seg++){
+
+            if(seg){
+                c.rotate(.55);          /* la phalange se replie */
+            }
+
+            const cap = c.createLinearGradient(0, -r * .075, 0, r * .075);
+            cap.addColorStop(0,  "#63506f");
+            cap.addColorStop(.45,"#33263c");
+            cap.addColorStop(1,  "#150e1e");
+
+            c.fillStyle   = cap;
+            c.strokeStyle = "rgba(0,0,0,.6)";
+            c.lineWidth   = r * .016;
+
+            c.beginPath();
+            c.roundRect(0, -r * .070, r * .21, r * .140, r * .066);
+            c.fill();
+            c.stroke();
+
+            /* le reflet sur le metal */
+            c.strokeStyle = "rgba(200,165,255,.22)";
+            c.lineWidth   = r * .013;
+
+            c.beginPath();
+            c.moveTo(r * .03, -r * .050);
+            c.lineTo(r * .17, -r * .050);
+            c.stroke();
+
+            c.translate(r * .195, 0);
+
+        }
+
+        c.restore();
+
+    }
+
+    c.restore();
+
+    c.restore();
+
+}
+
+
+function drawMimic(){
+
+    if(zone !== "couloir"){
+        return;
+    }
+
+    const col = MIM_PHASES[mimPhase()].col;
+
+    /* les rayons partis de ses yeux */
+    if(mim){
+
+        const reach = Math.hypot(W, H);
+
+        for(const b of mimBeams){
+
+            ctx.save();
+            ctx.translate(mim.x, mim.y);
+            ctx.rotate(b.a);
+
+            const on = b.grow >= .9;
+
+            const g = ctx.createLinearGradient(0, 0, reach, 0);
+            g.addColorStop(0,  hexA("#ffffff", on ? .95 : .30));
+            g.addColorStop(.5, hexA(col,       on ? .55 : .16));
+            g.addColorStop(1,  hexA(col, 0));
+
+            ctx.fillStyle   = g;
+            ctx.shadowColor = "#ffffff";
+            ctx.shadowBlur  = on ? 26 : 8;
+
+            const th = (on ? 13 : 3) * unit;
+
+            ctx.fillRect(0, -th / 2, reach, th);
+
+            ctx.shadowBlur = 0;
+            ctx.restore();
+
+        }
+
+    }
+
+    /* les mains qui rampent */
+    for(const h of mimHands){
+
+        ctx.save();
+        ctx.translate(h.x, h.y);
+
+        ctx.globalAlpha = Math.min(1, h.life);
+
+        /* l'onde de choc du coup de poing */
+        if(h.slam > 0 && h.slam < .35){
+
+            const k = 1 - h.slam / .35;
+
+            ctx.strokeStyle = "#ff3af0";
+            ctx.lineWidth   = 5 * unit;
+            ctx.shadowColor = "#ff3af0";
+            ctx.shadowBlur  = 20;
+
+            ctx.beginPath();
+            ctx.arc(0, 0, h.r * (1.2 + k * 2.2), 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.shadowBlur = 0;
+
+        }
+
+        /* la paume et les quatre doigts */
+        ctx.fillStyle = "#241a30";
+        ctx.strokeStyle = hexA(col, .8);
+        ctx.lineWidth = 2 * unit;
+
+        ctx.beginPath();
+        ctx.roundRect(-h.r * .8, -h.r * .6, h.r * 1.6, h.r * 1.2, h.r * .4);
+        ctx.fill();
+        ctx.stroke();
+
+        for(let f = 0; f < 4; f++){
+
+            const fx = -h.r * .6 + f * h.r * .4;
+            const wig = Math.sin(h.wave + f) * h.r * .16;
+
+            ctx.fillStyle = "#3a2b4c";
+
+            ctx.beginPath();
+            ctx.roundRect(fx - h.r * .14, -h.r * 1.15 + wig, h.r * .28, h.r * .62, h.r * .13);
+            ctx.fill();
+            ctx.stroke();
+
+        }
+
+        ctx.restore();
+
+    }
+
+    ctx.globalAlpha = 1;
+
+    if(!mim){
+        return;
+    }
+
+    /* il s'efface quand il est brise */
+    const fade = mim.dead > 0 ? Math.max(0, mim.dead / 2.4) : 1;
+
+    ctx.save();
+    ctx.globalAlpha = fade;
+
+    const sh = mim.shake * 5 * unit;
+
+    paintMimicHead(
+        ctx,
+        mim.x + (Math.random() - .5) * sh,
+        mim.y + (Math.random() - .5) * sh,
+        mim.r,
+        mim.t,
+        mim.glitch,
+        col
+    );
+
+    ctx.restore();
+
+    ctx.globalAlpha = 1;
+
+}
+
+
+/* la jauge : la meme que pour L'OEIL, mais a ses couleurs */
+function mimBar(){
+
+    const el = document.getElementById("bossBar");
+
+    if(!el || zone !== "couloir"){
+        return false;
+    }
+
+    if(!mim){
+        el.style.display = "none";
+        return true;
+    }
+
+    const ph = MIM_PHASES[mimPhase()];
+
+    el.style.display = "block";
+
+    document.getElementById("bossName").textContent  = "🚪 LE MIMIC";
+    document.getElementById("bossPhase").textContent = ph.name;
+    document.getElementById("bossPhase").style.color = ph.col;
+
+    const f = document.getElementById("bossFill");
+
+    f.style.width      = (mim.hp * 100).toFixed(1) + "%";
+    f.style.background = "linear-gradient(90deg,#1a0730," + ph.col + ")";
+
+    return true;
 
 }
 
@@ -8279,7 +9327,9 @@ function updateWarp(dt){
             /* on arrive par le portail : c'est ce qui debloque */
             byPortal = true;
 
-            if(warp.target === "horloge"){
+            if(warp.target === "couloir"){
+                enterCorridor();
+            }else if(warp.target === "horloge"){
                 enterClock();
             }else if(warp.target === "biblio"){
                 enterLibrary();

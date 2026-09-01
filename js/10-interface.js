@@ -789,6 +789,7 @@ function playWorld(zoneId){
     else if(zoneId === "forge"){ enterForge(); }
     else if(zoneId === "biblio"){ enterLibrary(); }
     else if(zoneId === "horloge"){ enterClock(); }
+    else if(zoneId === "couloir"){ enterCorridor(); }
 
 }
 

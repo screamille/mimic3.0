@@ -1009,6 +1009,7 @@ function update(dt){
     updatePortal(dt);
     updateGloutons(dt);
     updateBoss(dt);
+    updateMimic(dt);
     updateW69(dt);
     updateGuimauves(dt);
     updateAnguilles(dt);
@@ -1296,7 +1297,10 @@ function update(dt){
     }
 
     paintDashButton();
-    bossBar();
+    if(!mimBar()){
+        bossBar();
+    }
+
     lasBoard();
 
 }
@@ -2183,6 +2187,9 @@ function drawRaw(){
     if(laser.active){
         drawLaserPlayers();
     }
+
+    /* LE MIMIC, monde 10 */
+    drawMimic();
 
 
     /* LE LEURRE */
