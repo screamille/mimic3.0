@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "7.9";
+const VERSION = "8.0";
 
 (function(){
 

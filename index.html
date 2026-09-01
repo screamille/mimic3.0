@@ -10,7 +10,7 @@
 
 <title>MIMIC</title>
 
-<link rel="stylesheet" href="css/style.css?v=7.9">
+<link rel="stylesheet" href="css/style.css?v=8.0">
 </head>
 
 <body>
@@ -157,7 +157,7 @@
         <b id="bestScore">0</b>
     </div>
 
-    <div class="version" id="versionTag">V 7.9</div>
+    <div class="version" id="versionTag">V 8.0</div>
 
     <div id="errBanner" class="errBanner" style="display:none"></div>
 
@@ -814,10 +814,18 @@
         <p id="lasAgainState" class="hint" style="margin:14px 0 0"></p>
 
         <div class="menuButtons" style="margin-top:10px">
+
             <button class="primary" id="lasAgain">
                 <em id="lasAgainTxt" data-i18n="las.again">🔄 REJOUER</em>
             </button>
+
+            <!-- en classé : pas de revanche, on repart chercher un adversaire -->
+            <button class="primary" id="lasSearchAgain" style="display:none">
+                🔍 CHERCHER UNE PARTIE
+            </button>
+
             <button class="secondary" id="lasQuit" data-i18n="ui.menu">🏠 MENU</button>
+
         </div>
 
     </div>
@@ -1026,16 +1034,16 @@ fonctionne parfaitement même si aucun des deux ne répond.
 })();
 </script>
 
-<script src="js/01-moteur.js?v=7.9"></script>
-<script src="js/02-etat.js?v=7.9"></script>
-<script src="js/03-skins.js?v=7.9"></script>
-<script src="js/04-monde.js?v=7.9"></script>
-<script src="js/05-jeu.js?v=7.9"></script>
-<script src="js/06-boutique.js?v=7.9"></script>
-<script src="js/07-duel.js?v=7.9"></script>
-<script src="js/08-langues.js?v=7.9"></script>
-<script src="js/09-laser.js?v=7.9"></script>
-<script src="js/10-interface.js?v=7.9"></script>
+<script src="js/01-moteur.js?v=8.0"></script>
+<script src="js/02-etat.js?v=8.0"></script>
+<script src="js/03-skins.js?v=8.0"></script>
+<script src="js/04-monde.js?v=8.0"></script>
+<script src="js/05-jeu.js?v=8.0"></script>
+<script src="js/06-boutique.js?v=8.0"></script>
+<script src="js/07-duel.js?v=8.0"></script>
+<script src="js/08-langues.js?v=8.0"></script>
+<script src="js/09-laser.js?v=8.0"></script>
+<script src="js/10-interface.js?v=8.0"></script>
 
 </body>
 </html>

@@ -1072,6 +1072,26 @@ function lasAgainCheck(){
 
 };
 
+document.getElementById("lasSearchAgain").onclick = () => {
+
+    document.getElementById("lasResult").style.display = "none";
+
+    laser.queue = false;
+
+    clearQueueTimer();
+    lasCleanup();
+
+    openLaser();
+
+    /* on remet le mode classé en avant : il n'a qu'a relancer */
+    laser.ranked = true;
+
+    lasPaintModes();
+
+    sound(660, .1, "triangle", .05);
+
+};
+
 document.getElementById("lasQuit").onclick = () => {
     document.getElementById("lasResult").style.display = "none";
     closeLaser();

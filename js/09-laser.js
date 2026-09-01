@@ -1464,12 +1464,34 @@ function lasFinish(winner){
 
     document.getElementById("lasResult").style.display = "flex";
 
-    /* la revanche se decide a plusieurs : tout le monde voit le bouton */
+    /*
+    En AMICAL on peut se relancer entre soi. En CLASSÉ, non :
+    chaque partie se joue contre des adversaires tires au
+    sort, donc on repasse par la recherche.
+    */
     laser.again = [];
 
-    document.getElementById("lasAgain").style.display = "block";
+    const again  = document.getElementById("lasAgain");
+    const search = document.getElementById("lasSearchAgain");
+    const state  = document.getElementById("lasAgainState");
 
-    lasAgainPaint();
+    if(laser.ranked){
+
+        again.style.display  = "none";
+        search.style.display = "block";
+
+        if(state){
+            state.textContent = "En classé, on ne rejoue pas la même partie : relance une recherche.";
+        }
+
+    }else{
+
+        again.style.display  = "block";
+        search.style.display = "none";
+
+        lasAgainPaint();
+
+    }
 
     sound(won ? 720 : 220, .2, "sine", .05);
 
