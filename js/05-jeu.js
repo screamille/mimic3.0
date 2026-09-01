@@ -2552,7 +2552,7 @@ function setPaused(state){
         paused ? "none" : "block";
 
     document.getElementById("skillBar").style.display =
-        (paused || !anyAbility()) ? "none" : "flex";
+        (paused || lasOn() || !anyAbility()) ? "none" : "flex";
 
     if(paused){
         stickReset();
@@ -2617,8 +2617,9 @@ function startGame(seed){
 
     buildSkillBar();
 
+    /* le mode rayon se joue sans competences : la barre reste cachee */
     document.getElementById("skillBar").style.display =
-        anyAbility() ? "flex" : "none";
+        (anyAbility() && !lasOn()) ? "flex" : "none";
 
     if(inDuel){
         duelBegin();

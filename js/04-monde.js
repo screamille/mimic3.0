@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "6.4";
+const VERSION = "6.5";
 
 (function(){
 
@@ -221,7 +221,21 @@ function spendCharge(id){
 }
 
 
+/*
+Le mode rayon se joue sans competences. La variable "laser" vit
+dans un fichier charge plus tard : on la lit sous garde pour ne
+jamais casser l'ecran d'accueil.
+*/
+function lasOn(){
+    try{ return !!laser.active; }catch(e){ return false; }
+}
+
+
 function useSkill(id){
+
+    if(lasOn()){
+        return;
+    }
 
     if(id === "dash"){
         tryDash();
