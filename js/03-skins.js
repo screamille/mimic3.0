@@ -82,6 +82,9 @@ const SKINS = [
     {id:"miroir",    name:"MIROIR SLIME",    color:"#dfe9f7", color2:"#7a90ad", price:500,  effect:"miroir",    rarity:3},
     {id:"tornade",   name:"TORNADE SLIME",   color:"#9fb4c9", color2:"#2c3a4d", price:500,  effect:"tornade",   rarity:3},
     {id:"nova",      name:"NOVA SLIME",      color:"#ffd76a", color2:"#a8241a", price:500,  effect:"nova",      rarity:3},
+    {id:"eclipse",   name:"ÉCLIPSE SLIME",   color:"#1a0c24", color2:"#07030d", price:500,  effect:"eclipse",   rarity:3},
+    {id:"sablier",   name:"SABLIER SLIME",   color:"#ffcf4d", color2:"#0d0a1e", price:500,  effect:"sablier",   rarity:3},
+    {id:"kintsugi",  name:"KINTSUGI SLIME",  color:"#f0e6d8", color2:"#c9a13a", price:500,  effect:"kintsugi",  rarity:3},
 
     /* --- recompense : il ne s'achete pas --- */
     {id:"abyssal",   name:"ABYSSAL SLIME",   color:"#2fe0ff", color2:"#04243a", price:0,    effect:"abyssal",   rarity:4, exclusive:true},
@@ -616,6 +619,8 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
             aurore: ["#c8fff0", "#7ef0d0"],
             arcade: ["#5ffff0", "#5ffff0"],
             nova:   ["#fff6d0", "#ffd76a"],
+            eclipse:["#ffd76a", "#ff9a3d"],
+            sablier:["#ffe9a8", "#ffcf4d"],
             abyssal:["#5fe8ff", "#7bffca"],
             neant:  ["#ffc65a", "#ffc65a"],
             lampe:  ["#ffd0f5", "#ff6ad5"],
@@ -2025,6 +2030,105 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
 
     }
 
+
+
+    /* ECLIPSE : la couronne qui rayonne au-dela du corps */
+    if(skin.effect === "eclipse"){
+
+        c.save();
+
+        /* le halo large */
+        const halo = c.createRadialGradient(0, 0, r * .95, 0, 0, r * 2.6);
+        halo.addColorStop(0,   "rgba(255,180,90,0)");
+        halo.addColorStop(.06, "rgba(255,180,90,.26)");
+        halo.addColorStop(.45, "rgba(255,110,40,.10)");
+        halo.addColorStop(1,   "rgba(255,90,20,0)");
+
+        c.fillStyle = halo;
+        c.beginPath();
+        c.arc(0, 0, r * 2.6, 0, Math.PI * 2);
+        c.fill();
+
+        /* les filaments de la couronne */
+        c.strokeStyle = "#ffcf8a";
+        c.lineCap     = "round";
+        c.shadowColor = "#ff9a3d";
+        c.shadowBlur  = 14;
+
+        for(let i = 0; i < 40; i++){
+
+            const a  = (i / 40) * Math.PI * 2 + t * .12;
+            const ln = r * (.10 + Math.abs(Math.sin(i * 2.7 + t * .9)) * .42);
+
+            c.globalAlpha = .10 + .22 * Math.abs(Math.sin(i * 1.3 + t));
+            c.lineWidth   = r * .014;
+
+            c.beginPath();
+            c.moveTo(Math.cos(a) * r * 1.02, Math.sin(a) * r * 1.02);
+            c.lineTo(Math.cos(a) * (r * 1.02 + ln), Math.sin(a) * (r * 1.02 + ln));
+            c.stroke();
+
+        }
+
+        c.shadowBlur  = 0;
+        c.globalAlpha = 1;
+
+        c.restore();
+
+    }
+
+    /* SABLIER : les grains qui s'echappent du verre */
+    if(skin.effect === "sablier"){
+
+        for(let i = 0; i < 10; i++){
+
+            const kk = ((t * .5 + i / 10) % 1);
+            const a  = i * .628 + t * .2;
+
+            c.globalAlpha = (1 - kk) * .7;
+            c.fillStyle   = "#ffd76a";
+
+            c.beginPath();
+            c.arc(
+                Math.cos(a) * r * (1.05 + kk * .8),
+                Math.sin(a) * r * (1.05 + kk * .8) - kk * r * .4,
+                r * .03, 0, Math.PI * 2
+            );
+            c.fill();
+
+        }
+
+        c.globalAlpha = 1;
+
+    }
+
+    /* KINTSUGI : la poussiere d'or qui flotte autour */
+    if(skin.effect === "kintsugi"){
+
+        c.save();
+        c.shadowColor = "#ffd76a";
+        c.shadowBlur  = 8;
+
+        for(let i = 0; i < 12; i++){
+
+            const a  = i * .524 - t * .35;
+            const rr = r * (1.15 + Math.sin(t * 1.1 + i) * .18);
+
+            c.globalAlpha = .3 + .45 * Math.sin(t * 2 + i * .7);
+            c.fillStyle   = i % 3 ? "#ffe9a8" : "#e8b53d";
+
+            c.beginPath();
+            c.arc(Math.cos(a) * rr, Math.sin(a) * rr * .92, r * .022, 0, Math.PI * 2);
+            c.fill();
+
+        }
+
+        c.shadowBlur  = 0;
+        c.globalAlpha = 1;
+
+        c.restore();
+
+    }
 
     /* NÉANT : les anneaux de runes qui gravitent autour */
     if(skin.effect === "neant"){
@@ -4689,6 +4793,408 @@ function paintSkinInner(c, skin, w, h, r, t, f){
     }
 
 
+
+
+    /* ---------- ECLIPSE : le soleil noir et sa couronne ---------- */
+    if(e === "eclipse"){
+
+        /*
+        Le corps sert de decoupe : tout ce qui est peint ici est
+        rogne par la silhouette. Le rayon utile est donc la
+        demi-largeur du corps, pas r.
+        */
+        const R = Math.max(w, h) * 1.06;
+
+        /* le disque : un trou noir */
+        c.globalAlpha = 1;
+        c.fillStyle   = "#050208";
+        c.fillRect(-w * 1.4, -h * 1.5, w * 2.8, h * 3);
+
+        /* les etoiles que l'eclipse laisse voir */
+        for(let i = 0; i < 16; i++){
+
+            const a  = i * 2.39 + .4;
+            const rr = (.30 + (i % 5) * .14) * R;
+
+            c.globalAlpha = .12 + .22 * Math.sin(t * 2 + i) * Math.sin(t * 2 + i);
+            c.fillStyle   = "#ffffff";
+
+            c.beginPath();
+            c.arc(Math.cos(a) * rr, Math.sin(a * 1.3) * rr * .9, R * .018, 0, Math.PI * 2);
+            c.fill();
+
+        }
+
+        c.globalAlpha = 1;
+
+        /* la chromosphere : l'anneau de feu, sur le bord seulement */
+        c.strokeStyle = "rgba(255,130,40,.85)";
+        c.lineWidth   = R * .17;
+        c.shadowColor = "#ff5f1f";
+        c.shadowBlur  = 18;
+
+        c.beginPath();
+        c.arc(0, 0, R * .93, 0, Math.PI * 2);
+        c.stroke();
+
+        /* les protuberances : des boucles de feu sur le limbe */
+        c.globalAlpha = .9;
+        c.strokeStyle = "#ffb14a";
+        c.lineCap     = "round";
+
+        for(let i = 0; i < 6; i++){
+
+            const a  = i * 1.047 + t * .25;
+            const sz = .10 + Math.abs(Math.sin(t * .8 + i)) * .14;
+
+            c.lineWidth = R * .05;
+
+            c.beginPath();
+
+            for(let k = 0; k <= 12; k++){
+
+                const kk = k / 12;
+                const aa = a - sz + kk * sz * 2;
+                const rr = R * (.88 + Math.sin(kk * Math.PI) * sz * 1.4);
+
+                c.lineTo(Math.cos(aa) * rr, Math.sin(aa) * rr);
+
+            }
+
+            c.stroke();
+
+        }
+
+        c.shadowBlur = 0;
+
+        /* le croissant : la lumiere qui s'echappe d'un cote */
+        const slide = Math.sin(t * .35) * .6;
+
+        c.save();
+        c.rotate(-.6 + slide);
+
+        const cres = c.createLinearGradient(-R, 0, R, 0);
+        cres.addColorStop(0,   "rgba(255,220,140,0)");
+        cres.addColorStop(.6,  "rgba(255,200,90,.35)");
+        cres.addColorStop(1,   "rgba(255,252,235,1)");
+
+        c.globalAlpha = 1;
+        c.strokeStyle = cres;
+        c.lineWidth   = R * .19;
+        c.shadowColor = "#ffe9a8";
+        c.shadowBlur  = 34;
+
+        c.beginPath();
+        c.arc(0, 0, R * .93, -1.25, 1.25);
+        c.stroke();
+
+        /* la perle : le point le plus vif du croissant */
+        c.shadowBlur = 36;
+        c.fillStyle  = "#fffdf2";
+
+        c.beginPath();
+        c.arc(R * .93, 0, R * .085, 0, Math.PI * 2);
+        c.fill();
+
+        c.restore();
+
+        c.shadowBlur  = 0;
+        c.globalAlpha = 1;
+
+        return;
+
+    }
+
+
+    /* ---------- SABLIER : le temps qui s'ecoule dedans ---------- */
+    if(e === "sablier"){
+
+        /* le verre : un bleu de nuit tres sombre */
+        const glass = c.createLinearGradient(0, -h, 0, h);
+        glass.addColorStop(0,  "#1a1533");
+        glass.addColorStop(.5, "#0d0a1e");
+        glass.addColorStop(1,  "#1a1533");
+
+        c.fillStyle = glass;
+        c.fillRect(-w * 1.3, -h * 1.4, w * 2.6, h * 2.8);
+
+        /* le cycle : trois secondes de haut en bas */
+        const k = (t * .33) % 1;
+
+        const neck = h * .06;   /* la taille du col */
+
+        /* --- le sable du haut : il descend --- */
+        const topFill = 1 - k;
+
+        c.fillStyle = "#ffd76a";
+
+        c.beginPath();
+        c.moveTo(-w * .78, -h * .92);
+        c.lineTo(w * .78,  -h * .92);
+        c.lineTo(0, -neck);
+        c.closePath();
+        c.save();
+        c.clip();
+
+        const ty = -h * .92 + (1 - topFill) * (h * .92 - neck);
+
+        c.fillStyle = "#ffcf4d";
+        c.fillRect(-w, ty, w * 2, h * 2);
+
+        /* la surface se creuse au centre */
+        c.fillStyle = "#0d0a1e";
+        c.beginPath();
+        c.ellipse(0, ty, w * .34, h * .07, 0, 0, Math.PI * 2);
+        c.fill();
+
+        c.restore();
+
+        /* --- le sable du bas : il monte en tas --- */
+        c.beginPath();
+        c.moveTo(-w * .78, h * .92);
+        c.lineTo(w * .78,  h * .92);
+        c.lineTo(0, neck);
+        c.closePath();
+        c.save();
+        c.clip();
+
+        c.fillStyle = "#ffcf4d";
+
+        const pile = k * h * .86;
+
+        c.beginPath();
+        c.moveTo(-w, h * .95);
+        c.lineTo(w, h * .95);
+        c.lineTo(w, h * .92 - pile * .35);
+        c.quadraticCurveTo(0, h * .92 - pile * 1.25, -w, h * .92 - pile * .35);
+        c.closePath();
+        c.fill();
+
+        c.restore();
+
+        /* --- le filet qui tombe --- */
+        c.globalAlpha = .95;
+        c.strokeStyle = "#ffe9a8";
+        c.lineWidth   = r * .035;
+        c.lineCap     = "round";
+
+        c.beginPath();
+        c.moveTo(0, -neck);
+        c.lineTo(0, h * .9 - k * h * .8);
+        c.stroke();
+
+        /* les grains qui rebondissent */
+        c.fillStyle = "#fff4c2";
+
+        for(let i = 0; i < 7; i++){
+            const kk = ((t * 1.8 + i / 7) % 1);
+            c.globalAlpha = 1 - kk * .6;
+            c.beginPath();
+            c.arc(
+                Math.sin(kk * 9 + i) * r * .05,
+                -neck + kk * (h * .88 - k * h * .8),
+                r * .026, 0, Math.PI * 2
+            );
+            c.fill();
+        }
+
+        c.globalAlpha = 1;
+
+        /* --- les cerclages d'or --- */
+        c.strokeStyle = "#e0a93d";
+        c.lineWidth   = r * .08;
+        c.shadowColor = "#ffd76a";
+        c.shadowBlur  = 10;
+
+        [-.92, .92].forEach(sy => {
+            c.beginPath();
+            c.moveTo(-w * .86, h * sy);
+            c.lineTo(w * .86,  h * sy);
+            c.stroke();
+        });
+
+        /* le col, serti */
+        c.beginPath();
+        c.moveTo(-w * .22, -neck);
+        c.lineTo(w * .22,  -neck);
+        c.moveTo(-w * .22, neck);
+        c.lineTo(w * .22,  neck);
+        c.stroke();
+
+        /* les parois du verre */
+        c.shadowBlur  = 0;
+        c.globalAlpha = .55;
+        c.strokeStyle = "#9fb4e8";
+        c.lineWidth   = r * .05;
+
+        [-1, 1].forEach(sg => {
+            c.beginPath();
+            c.moveTo(sg * w * .78, -h * .92);
+            c.lineTo(sg * w * .2,  -neck);
+            c.lineTo(sg * w * .2,   neck);
+            c.lineTo(sg * w * .78,  h * .92);
+            c.stroke();
+        });
+
+        /* le reflet vertical sur le verre */
+        c.globalAlpha = .3;
+        c.fillStyle   = "#e8f0ff";
+        c.fillRect(-w * .58, -h * .85, w * .1, h * 1.7);
+
+        c.globalAlpha = 1;
+
+        return;
+
+    }
+
+
+    /* ---------- KINTSUGI : la ceramique reparee a l'or ---------- */
+    if(e === "kintsugi"){
+
+        /* la porcelaine : un blanc casse, tres legerement vert */
+        const glaze = c.createLinearGradient(-w * .5, -h, w * .5, h);
+        glaze.addColorStop(0,   "#fdfbf6");
+        glaze.addColorStop(.55, "#eee9df");
+        glaze.addColorStop(1,   "#cfd6cd");
+
+        c.fillStyle = glaze;
+        c.fillRect(-w * 1.3, -h * 1.4, w * 2.6, h * 2.8);
+
+        /* le tressaillage : le fin craquelé du vernis */
+        c.globalAlpha = .16;
+        c.strokeStyle = "#7a8a86";
+        c.lineWidth   = Math.max(.6, r * .012);
+
+        for(let i = 0; i < 16; i++){
+
+            const a = i * .393 + .2;
+
+            c.beginPath();
+            c.moveTo(Math.cos(a) * r * .15, Math.sin(a) * r * .15);
+
+            for(let k = 1; k <= 3; k++){
+                const kk = k / 3;
+                c.lineTo(
+                    Math.cos(a + Math.sin(k * 3.1 + i) * .5) * r * kk * 1.3,
+                    Math.sin(a + Math.sin(k * 3.1 + i) * .5) * r * kk * 1.3
+                );
+            }
+
+            c.stroke();
+
+        }
+
+        c.globalAlpha = 1;
+
+        /*
+        Les brisures : cinq veines d'or qui partent du centre.
+        Elles sont toujours au meme endroit — c'est une cassure,
+        pas une animation.
+        */
+        const seams = [
+            {a:-1.9, w:1.00},
+            {a:-.55, w:.86},
+            {a: .75, w:.94},
+            {a: 2.1, w:.78},
+            {a: 3.4, w:.90}
+        ];
+
+        for(const sm of seams){
+
+            /* l'ombre de la fissure, sous l'or */
+            c.strokeStyle = "rgba(90,80,60,.35)";
+            c.lineWidth   = r * .085;
+            c.lineCap     = "round";
+            c.lineJoin    = "round";
+
+            const draw = function(){
+
+                c.beginPath();
+                c.moveTo(0, 0);
+
+                for(let k = 1; k <= 5; k++){
+                    const kk = k / 5;
+                    const aa = sm.a + Math.sin(k * 2.2 + sm.a * 3) * .28;
+                    c.lineTo(
+                        Math.cos(aa) * r * kk * 1.35 * sm.w,
+                        Math.sin(aa) * r * kk * 1.35 * sm.w
+                    );
+                }
+
+                c.stroke();
+
+            };
+
+            draw();
+
+            /* l'or, par-dessus, un peu plus fin */
+            const gold = c.createLinearGradient(
+                0, 0,
+                Math.cos(sm.a) * r * 1.3,
+                Math.sin(sm.a) * r * 1.3
+            );
+            gold.addColorStop(0,   "#fff3c4");
+            gold.addColorStop(.45, "#e8b53d");
+            gold.addColorStop(1,   "#a8761a");
+
+            c.strokeStyle = gold;
+            c.lineWidth   = r * .055;
+            c.shadowColor = "#ffd76a";
+            c.shadowBlur  = 12;
+
+            draw();
+
+            c.shadowBlur = 0;
+
+            /* le liseré clair qui court sur l'arete de l'or */
+            c.strokeStyle = "rgba(255,250,220,.75)";
+            c.lineWidth   = r * .018;
+
+            draw();
+
+        }
+
+        /* les eclats de feuille d'or laisses par le potier */
+        for(let i = 0; i < 9; i++){
+
+            const a  = i * 1.4 + .6;
+            const rr = (.35 + (i % 4) * .2) * r;
+
+            c.globalAlpha = .5 + .4 * Math.sin(t * 1.5 + i);
+            c.fillStyle   = "#f0c44d";
+
+            c.save();
+            c.translate(Math.cos(a) * rr, Math.sin(a * 1.2) * rr * .85);
+            c.rotate(a);
+
+            c.beginPath();
+            c.moveTo(-r * .035, 0);
+            c.lineTo(0, -r * .022);
+            c.lineTo(r * .035, 0);
+            c.lineTo(0, r * .022);
+            c.closePath();
+            c.fill();
+
+            c.restore();
+
+        }
+
+        /* le vernis : une nappe de lumiere qui glisse */
+        c.globalAlpha = 1;
+
+        const sx = Math.sin(t * .55) * w * .55;
+
+        const sheen = c.createLinearGradient(sx - w * .35, -h, sx + w * .35, h);
+        sheen.addColorStop(0,  "rgba(255,255,255,0)");
+        sheen.addColorStop(.5, "rgba(255,255,255,.35)");
+        sheen.addColorStop(1,  "rgba(255,255,255,0)");
+
+        c.fillStyle = sheen;
+        c.fillRect(-w * 1.3, -h * 1.4, w * 2.6, h * 2.8);
+
+        return;
+
+    }
 
     /* ---------- NÉANT : le vide et son oeil ---------- */
     if(e === "neant"){
