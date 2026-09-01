@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "8.0";
+const VERSION = "8.1";
 
 (function(){
 
@@ -6054,7 +6054,7 @@ function clearW69(){
     mirages    = [];
     chaines    = []; fournaises = [];
     grimoires  = []; pages      = []; tomes = []; tomeTimer = 0;
-    engrenages = []; pendules   = [];
+    engrenages = []; pendules   = []; oiseaux = []; plumes = [];
     w69Timer = 0;
 }
 
@@ -6704,8 +6704,12 @@ function enterLibrary(){
     w69Enter("biblio", "📖", "#b06cff");
     for(let i = 0; i < MAX_GRIMOIRES; i++){ spawnGrimoire(); }
 
-    tomes     = [];
-    tomeTimer = 3;
+    tomes       = [];
+    tomeTimer   = 3;
+
+    oiseaux     = [];
+    plumes      = [];
+    oiseauTimer = 2.5;
 
 }
 
@@ -8062,12 +8066,26 @@ function updateW69(dt){
 
         updateGrimoires(dt);
         updateTomes(dt);
+        updateOiseaux(dt);
 
         tomeTimer -= dt;
 
         if(tomeTimer <= 0){
             tomeTimer = TOME_EVERY;
             spawnTome();
+        }
+
+        /* le vol suivant : toujours au meme rythme, lui aussi */
+        oiseauTimer -= dt;
+
+        if(oiseauTimer <= 0){
+
+            oiseauTimer = 4.5;
+
+            if(oiseaux.length + plumes.length < MAX_OISEAUX){
+                spawnPlume();
+            }
+
         }
 
         w69Timer -= dt;
@@ -8110,7 +8128,7 @@ function updateW69(dt){
     /* on n'est plus dans ces mondes : on range */
     if(mirages.length || chaines.length || fournaises.length ||
        grimoires.length || pages.length || tomes.length ||
-       engrenages.length || pendules.length){
+       engrenages.length || pendules.length || oiseaux.length){
         clearW69();
     }
 
@@ -8127,6 +8145,7 @@ function drawW69(){
     }else if(zone === "biblio"){
         drawTomes();
         drawGrimoires();
+        drawOiseaux();
     }else if(zone === "horloge"){
         drawEngrenages();
         drawPendules();
@@ -8136,10 +8155,264 @@ function drawW69(){
 
 
 /* toutes les creatures de ces mondes qui savent etre sonnees */
+/* =========================================================
+   MONDE 8 : LES OISEAUX DE PAPIER
+
+   Ils traversent la bibliotheque de DROITE a GAUCHE, et
+   toujours de la meme facon : vitesse constante, meme
+   ondulation, meme amplitude. Rien n'est laisse au hasard —
+   c'est une trajectoire qu'on apprend, pas qu'on subit.
+
+   Une plume apparait au bord droit avant chacun : elle dit
+   exactement a quelle hauteur il va passer.
+========================================================= */
+
+const MAX_OISEAUX  = 3;
+const OISEAU_SPEED = 250;    /* pixels par seconde, a l'echelle */
+const OISEAU_AMP   = 52;     /* hauteur de l'ondulation        */
+const OISEAU_FREQ  = 2.1;    /* battements par seconde         */
+
+let oiseaux     = [];   /* MONDE 8 : ceux qui traversent  */
+let oiseauTimer = 2.5;  /* le temps avant le prochain vol */
+let plumes  = [];   /* l'annonce, au bord droit       */
+
+
+/* la plume : elle previent, puis l'oiseau part */
+function spawnPlume(){
+
+    const a = playArea();
+
+    /* jamais tout en haut ni tout en bas : on doit pouvoir passer */
+    const y = a.y0 + (a.y1 - a.y0) * (.22 + rnd() * .56);
+
+    plumes.push({
+        x:a.x1 - 14 * unit,
+        y:y,
+        t:1.1,
+        wave:rnd() * 6.28
+    });
+
+    sound(520, .12, "sine", .03);
+
+}
+
+
+function spawnOiseau(y){
+
+    const a = playArea();
+
+    oiseaux.push({
+        x:a.x1 + 40 * unit,
+        y0:y,                 /* la hauteur de reference */
+        y:y,
+        r:21 * unit,
+        t:0,
+        flap:rnd() * 6.28,
+        stunned:0,
+        birth:0
+    });
+
+    sound(340, .18, "triangle", .035);
+
+}
+
+
+function updateOiseaux(dt){
+
+    const a = playArea();
+
+    /* les plumes comptent a rebours, puis lachent l'oiseau */
+    for(const pl of plumes){
+
+        pl.t    -= dt;
+        pl.wave += dt * 6;
+
+        if(pl.t <= 0 && !pl.done){
+            pl.done = true;
+            spawnOiseau(pl.y);
+        }
+
+    }
+
+    plumes = plumes.filter(pl => pl.t > -.3);
+
+    for(const o of oiseaux){
+
+        if(o.stunned > 0){
+            o.stunned -= dt;
+            continue;
+        }
+
+        o.t    += dt;
+        o.flap += dt * 11;
+
+        /*
+        La trajectoire, en toutes lettres : il avance vers la
+        gauche a vitesse constante, et il ondule autour de sa
+        hauteur de depart. Deux oiseaux lances a la meme
+        hauteur suivront exactement le meme chemin.
+        */
+        o.x -= OISEAU_SPEED * unit * dt;
+        o.y  = o.y0 + Math.sin(o.t * OISEAU_FREQ) * OISEAU_AMP * unit;
+
+        if(player.invincible <= 0 &&
+           Math.hypot(o.x - player.x, o.y - player.y) < o.r * .8 + player.r){
+
+            loseLife(null);
+
+            o.x = a.x0 - 100 * unit;   /* il file, il ne rebondit pas */
+
+        }
+
+    }
+
+    /* sortis par la gauche : on les oublie */
+    oiseaux = oiseaux.filter(o => o.x > a.x0 - 60 * unit);
+
+}
+
+
+function drawOiseaux(){
+
+    /* --- les plumes : l'annonce --- */
+    for(const pl of plumes){
+
+        const k = Math.max(0, Math.min(1, pl.t / 1.1));
+
+        ctx.save();
+        ctx.translate(pl.x, pl.y + Math.sin(pl.wave) * 4 * unit);
+
+        ctx.globalAlpha = .35 + .5 * (1 - k) * (Math.sin(pl.wave * 2) * .5 + .5);
+
+        /* la ligne pointillee qui montre la hauteur d'arrivee */
+        ctx.strokeStyle = "rgba(176,108,255,.5)";
+        ctx.lineWidth   = 1.6 * unit;
+        ctx.setLineDash([7 * unit, 9 * unit]);
+
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(-90 * unit, 0);
+        ctx.stroke();
+
+        ctx.setLineDash([]);
+
+        /* la plume elle-meme */
+        ctx.rotate(-.5 + Math.sin(pl.wave) * .25);
+
+        ctx.fillStyle   = "#e8dcff";
+        ctx.shadowColor = "#b06cff";
+        ctx.shadowBlur  = 12;
+
+        ctx.beginPath();
+        ctx.ellipse(0, 0, 9 * unit, 3.4 * unit, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+
+        ctx.strokeStyle = "#b06cff";
+        ctx.lineWidth   = 1.4 * unit;
+
+        ctx.beginPath();
+        ctx.moveTo(-9 * unit, 0);
+        ctx.lineTo( 9 * unit, 0);
+        ctx.stroke();
+
+        ctx.restore();
+
+    }
+
+    ctx.globalAlpha = 1;
+
+    /* --- les oiseaux : du papier plie --- */
+    for(const o of oiseaux){
+
+        ctx.save();
+        ctx.translate(o.x, o.y);
+
+        /* il pique du nez quand il descend, se cabre quand il monte */
+        const slope = Math.cos(o.t * OISEAU_FREQ) * OISEAU_FREQ * OISEAU_AMP * unit;
+
+        ctx.rotate(Math.atan2(slope, -OISEAU_SPEED * unit));
+
+        if(o.stunned > 0){
+            ctx.globalAlpha = .5;
+        }
+
+        const beat = Math.sin(o.flap);
+
+        /* les deux ailes : des feuilles pliees */
+        for(let w = -1; w <= 1; w += 2){
+
+            ctx.save();
+            ctx.scale(1, w);
+
+            const wing = ctx.createLinearGradient(0, 0, -o.r * .3, -o.r * 1.5);
+            wing.addColorStop(0,  "#f4ecd8");
+            wing.addColorStop(.6, "#cbb894");
+            wing.addColorStop(1,  "#8f7c5e");
+
+            ctx.fillStyle   = wing;
+            ctx.strokeStyle = "rgba(60,40,20,.5)";
+            ctx.lineWidth   = 1.2 * unit;
+
+            ctx.beginPath();
+            ctx.moveTo(o.r * .35, 0);
+            ctx.lineTo(-o.r * .55, -o.r * (.55 + Math.abs(beat) * .95));
+            ctx.lineTo(-o.r * .95, -o.r * .12);
+            ctx.closePath();
+            ctx.fill();
+            ctx.stroke();
+
+            /* le pli central de l'aile */
+            ctx.strokeStyle = "rgba(60,40,20,.28)";
+
+            ctx.beginPath();
+            ctx.moveTo(o.r * .3, 0);
+            ctx.lineTo(-o.r * .7, -o.r * (.3 + Math.abs(beat) * .5));
+            ctx.stroke();
+
+            ctx.restore();
+
+        }
+
+        /* le corps : une pointe de papier */
+        const body = ctx.createLinearGradient(-o.r * .6, 0, o.r * .8, 0);
+        body.addColorStop(0, "#b8a884");
+        body.addColorStop(1, "#f6efe0");
+
+        ctx.fillStyle   = body;
+        ctx.strokeStyle = "rgba(60,40,20,.55)";
+        ctx.lineWidth   = 1.3 * unit;
+
+        ctx.beginPath();
+        ctx.moveTo(-o.r * .75, 0);
+        ctx.lineTo( o.r * .10, -o.r * .30);
+        ctx.lineTo( o.r * .90,  0);
+        ctx.lineTo( o.r * .10,  o.r * .30);
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+
+        /* l'oeil d'encre */
+        ctx.fillStyle = "#241a12";
+
+        ctx.beginPath();
+        ctx.arc(o.r * .40, -o.r * .06, o.r * .10, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+
+    }
+
+    ctx.globalAlpha = 1;
+
+}
+
+
 function w69Creatures(){
     return [].concat(
         mirages, chaines, fournaises,
-        grimoires, engrenages, pendules
+        grimoires, engrenages, pendules, oiseaux
     );
 }
 
