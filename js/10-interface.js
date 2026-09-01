@@ -875,6 +875,85 @@ document.getElementById("lobbyModePick").onclick = () => {
 
 /* --- les boutons du mode laser --- */
 
+/* --- le profil et les rangs --- */
+
+document.getElementById("namePill").onclick = () => openHello(true);
+
+document.getElementById("profileButton").onclick = () => {
+    document.getElementById("settings").style.display = "none";
+    openHello(true);
+};
+
+document.getElementById("rankButton").onclick = () => {
+    document.getElementById("settings").style.display = "none";
+    openRank();
+};
+document.getElementById("rankPill").onclick = openRank;
+
+document.getElementById("rankClose").onclick = () => {
+    document.getElementById("rankScreen").style.display = "none";
+};
+
+document.getElementById("helloName").oninput = e => {
+    e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9ÀÂÄÉÈÊËÎÏÔÖÙÛÜÇ \-_]/g, "");
+};
+
+document.getElementById("helloNext").onclick = () => {
+
+    const typed = document.getElementById("helloName").value.trim();
+
+    if(typed.length < 2){
+        document.getElementById("helloNameWarn").textContent =
+            "Il faut au moins 2 caractères.";
+        return;
+    }
+
+    document.getElementById("helloNameWarn").textContent = "";
+
+    document.getElementById("helloStep1").className = "helloStep";
+    document.getElementById("helloStep2").className = "helloStep on";
+
+};
+
+document.getElementById("helloBack").onclick = () => {
+    document.getElementById("helloStep1").className = "helloStep on";
+    document.getElementById("helloStep2").className = "helloStep";
+};
+
+
+/* --- amical ou classe, dans le salon rayon --- */
+
+document.getElementById("lasModeFun").onclick = () => {
+
+    if(!laser.host){
+        return;
+    }
+
+    laser.ranked = false;
+
+    lasPaintModes();
+    lasSend({t:"room", players:lasRoster(), ranked:false});
+
+    sound(520, .08, "triangle", .05);
+
+};
+
+document.getElementById("lasModeRanked").onclick = () => {
+
+    if(!laser.host){
+        return;
+    }
+
+    laser.ranked = true;
+
+    lasPaintModes();
+    lasSend({t:"room", players:lasRoster(), ranked:true});
+
+    sound(760, .08, "triangle", .05);
+
+};
+
+
 document.getElementById("lasHost").onclick  = lasHostRoom;
 document.getElementById("lasJoin").onclick  = lasJoinRoom;
 document.getElementById("lasClose").onclick = closeLaser;
@@ -887,7 +966,7 @@ document.getElementById("lasStart").onclick = () => {
 
     laser.seed = Math.floor(Math.random() * 1e9) + 1;
 
-    lasSend({t:"go", seed:laser.seed});
+    lasSend({t:"go", seed:laser.seed, ranked:laser.ranked});
 
     lasBegin();
 
@@ -989,7 +1068,7 @@ function lasAgainCheck(){
 
     laser.seed = Math.floor(Math.random() * 1e9) + 1;
 
-    lasSend({t:"go", seed:laser.seed});
+    lasSend({t:"go", seed:laser.seed, ranked:laser.ranked});
 
     lasBegin();
 
@@ -1007,6 +1086,14 @@ document.getElementById("openShopStore").onclick = () => {
 };
 
 lobbySetMode("solo");
+
+paintRankPill();
+
+/* premier lancement : on demande le pseudo et l'age */
+if(!profile.name){
+    setTimeout(() => openHello(false), 400);
+}
+
 document.getElementById("retryButton").onclick     = () => startGame();
 /* le duel se lance par le selecteur du salon, plus par un onglet */
 const duelTab = document.getElementById("duelButton");

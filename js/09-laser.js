@@ -28,6 +28,7 @@ const LAS_LIVES   = 3;
 const LAS_COLORS = ["#4fd8ff", "#ffd24d", "#8dff6a", "#ff7ba8", "#c78cff"];
 
 const laser = {
+    ranked:false,      /* partie classee : des trophees sont en jeu */
     again:[],          /* qui a demande la revanche */
     againReady:0,      /* ce que l'hote annonce aux invites */
     againTotal:0,
@@ -564,6 +565,8 @@ function lasRefreshRoom(){
 
     lasPaintList("lasList", laser.players);
 
+    lasPaintModes();
+
     const start = document.getElementById("lasStart");
 
     start.style.display = laser.host ? "block" : "none";
@@ -597,12 +600,13 @@ function lasBind(conn, isHost){
 
             laser.players.push({
                 name:T("las.player") + " " + (laser.players.length + 1),
+                /* remplace des que l'invite annonce son pseudo */
                 skin:"cyber",
                 color:LAS_COLORS[laser.players.length % LAS_COLORS.length],
                 x:0, y:0, alive:true, lives:LAS_LIVES, time:0
             });
 
-            lasSend({t:"room", players:lasRoster()});
+            lasSend({t:"room", players:lasRoster(), ranked:laser.ranked});
             conn.send({t:"you", idx:conn.__idx});
 
             lasRefreshRoom();
@@ -611,7 +615,7 @@ function lasBind(conn, isHost){
 
         }else{
 
-            conn.send({t:"hello", skin:currentSkin});
+            conn.send({t:"hello", skin:currentSkin, name:playerName()});
             lasStatus(T("las.joined"));
 
         }
@@ -687,7 +691,13 @@ function lasMessage(d, conn, isHost){
         if(d.t === "hello"){
 
             if(laser.players[conn.__idx]){
+
                 laser.players[conn.__idx].skin = d.skin || "cyber";
+
+                if(d.name){
+                    laser.players[conn.__idx].name = String(d.name).slice(0, 12);
+                }
+
             }
 
             lasSend({t:"room", players:lasRoster()});
@@ -743,8 +753,15 @@ function lasMessage(d, conn, isHost){
     }
 
     if(d.t === "room"){
+
         laser.players = d.players;
+
+        if(typeof d.ranked === "boolean"){
+            laser.ranked = d.ranked;
+        }
+
         lasRefreshRoom();
+
         return;
     }
 
@@ -759,8 +776,15 @@ function lasMessage(d, conn, isHost){
     }
 
     if(d.t === "go"){
+
         laser.seed = d.seed;
+
+        if(typeof d.ranked === "boolean"){
+            laser.ranked = d.ranked;
+        }
+
         lasBegin();
+
         return;
     }
 
@@ -907,6 +931,81 @@ function lasCheckEnd(){
 }
 
 
+/*
+Les trophees ne bougent qu'en partie CLASSEE. La place au
+classement decide de tout : le premier monte, le dernier
+descend, et au milieu on bouge peu.
+*/
+function lasTrophies(order, won){
+
+    const box = document.getElementById("lasTrophy");
+
+    if(!box){
+        return;
+    }
+
+    if(!laser.ranked){
+        box.style.display = "none";
+        return;
+    }
+
+    const total = order.length;
+    const place = order.findIndex(x => x.i === laser.me) + 1;
+
+    if(place < 1){
+        box.style.display = "none";
+        return;
+    }
+
+    const d = trophyDelta(place, total);
+
+    rank.tr    = Math.max(0, rank.tr + d);
+    rank.best  = Math.max(rank.best, rank.tr);
+    rank.games = rank.games + 1;
+
+    if(won){
+        rank.wins = rank.wins + 1;
+    }
+
+    saveRank();
+    paintRankPill();
+
+    const r = rankOf(rank.tr);
+
+    box.style.display = "block";
+    box.className     = "troDelta " + (d >= 0 ? "up" : "down");
+
+    box.textContent =
+        (d >= 0 ? "+" : "") + d + " 🏆   ·   " +
+        place + (place === 1 ? "er" : "e") + " sur " + total +
+        "   ·   " + rank.tr + " (" + r.name + ")";
+
+}
+
+
+/* le salon : amical ou classe */
+function lasPaintModes(){
+
+    const fun = document.getElementById("lasModeFun");
+    const rkd = document.getElementById("lasModeRanked");
+
+    if(!fun || !rkd){
+        return;
+    }
+
+    fun.classList.toggle("on", !laser.ranked);
+    rkd.classList.toggle("on",  laser.ranked);
+
+    /* seul l'hote decide ; les autres voient juste le mode choisi */
+    fun.disabled = !laser.host;
+    rkd.disabled = !laser.host;
+
+    fun.style.opacity = laser.host || !laser.ranked ? "1" : ".45";
+    rkd.style.opacity = laser.host ||  laser.ranked ? "1" : ".45";
+
+}
+
+
 function lasFinish(winner){
 
     laser.active = false;
@@ -927,12 +1026,14 @@ function lasFinish(winner){
     v.style.color = won ? "#61ff83" : "#ff6b8a";
 
     /* classement : le plus longtemps debout en premier */
-    const rank = laser.players
+    const order = laser.players
         .map((p, i) => ({p:p, i:i}))
-        .sort((a, b) => (b.p.time || 0) - (a.p.time || 0))
-        .map(x => x.p);
+        .sort((a, b) => (b.p.time || 0) - (a.p.time || 0));
 
-    lasPaintList("lasRank", rank);
+    lasPaintList("lasRank", order.map(x => x.p));
+
+    /* en partie CLASSEE, la place decide des trophees */
+    lasTrophies(order, won);
 
     document.getElementById("lasResult").style.display = "flex";
 
@@ -1105,7 +1206,7 @@ function lasHostRoom(){
     laser.code = makeCode();
 
     laser.players = [{
-        name:T("las.player") + " 1",
+        name:playerName(),
         skin:currentSkin,
         color:LAS_COLORS[0],
         x:0, y:0, alive:true, lives:LAS_LIVES, time:0

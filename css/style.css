@@ -2018,6 +2018,318 @@ laisser un menu fige sans explication.
 .worldCard.locked em{ color:#5f6f97; }
 
 /* =========================================================
+   LE PROFIL ET LES TROPHEES
+
+   Deux pastilles dans le salon : le pseudo, et le rang
+   avec ses trophees. Plus l'echelle des rangs, et
+   l'ecran de bienvenue du tout premier lancement.
+========================================================= */
+
+.namePill,
+.rankPill{
+    display:flex;
+    align-items:center;
+
+    gap:6px;
+
+    height:30px;
+    padding:0 10px;
+
+    border-radius:99px;
+
+    border:1px solid rgba(120,150,220,.28);
+
+    background:rgba(10,14,30,.7);
+
+    color:#e6eeff;
+
+    font-size:11.5px;
+    font-weight:800;
+    letter-spacing:.04em;
+
+    cursor:pointer;
+}
+
+.namePill{ max-width:120px; }
+
+/*
+La barre du haut est deja chargee : sur un ecran etroit on
+retire la pastille du pseudo. Le profil reste accessible
+dans les parametres.
+*/
+@media (max-width:1000px){
+    .namePill{ display:none; }
+}
+
+.namePill b{
+    overflow:hidden;
+    text-overflow:ellipsis;
+    white-space:nowrap;
+}
+
+.rankPill{
+    border-color:rgba(255,215,106,.4);
+    background:linear-gradient(180deg, rgba(60,44,12,.8), rgba(12,16,34,.85));
+}
+
+.rankPill .tro{
+    font-size:13px;
+    filter:drop-shadow(0 1px 2px rgba(0,0,0,.6));
+}
+
+.rankPill b{ color:#ffe9a8; }
+
+/* --- l'ecran de bienvenue --- */
+
+.helloStep{ display:none; }
+.helloStep.on{ display:block; }
+
+.helloTitle{
+    margin:0 0 6px;
+
+    font-size:clamp(16px, 4vw, 24px);
+
+    background:linear-gradient(180deg,#fff6d8,#ffc65a);
+    -webkit-background-clip:text;
+    background-clip:text;
+    color:transparent;
+}
+
+.helloHint{
+    margin:0 0 14px;
+
+    font-size:11.5px;
+    color:#8fa0c8;
+}
+
+#helloName{
+    width:100%;
+
+    text-align:center;
+
+    font-size:18px;
+    letter-spacing:.08em;
+}
+
+/* les ages, en gros boutons */
+.ageGrid{
+    display:grid;
+
+    grid-template-columns:repeat(5, 1fr);
+
+    gap:8px;
+
+    margin-top:6px;
+}
+
+.ageBtn{
+    padding:10px 0;
+
+    border-radius:12px;
+
+    border:2px solid rgba(120,150,220,.28);
+
+    background:rgba(10,14,30,.7);
+
+    color:#e6eeff;
+
+    font-size:14px;
+    font-weight:900;
+
+    cursor:pointer;
+}
+
+.ageBtn:active,
+.ageBtn.on{
+    border-color:#ffd76a;
+    background:linear-gradient(180deg, rgba(70,52,16,.95), rgba(24,16,6,.95));
+    color:#ffe9a8;
+}
+
+/* --- l'echelle des rangs --- */
+
+.rankHero{
+    display:flex;
+    align-items:center;
+    justify-content:center;
+
+    flex-direction:column;
+
+    gap:2px;
+
+    padding:14px;
+
+    border-radius:16px;
+
+    border:1px solid rgba(255,215,106,.3);
+
+    background:linear-gradient(160deg, rgba(60,44,12,.6), rgba(12,16,34,.85));
+}
+
+.rankHero .big{
+    font-size:30px;
+    line-height:1;
+}
+
+.rankHero .nm{
+    font-size:15px;
+    font-weight:900;
+    letter-spacing:.1em;
+}
+
+.rankHero .tr{
+    font-size:12px;
+    color:#ffe9a8;
+}
+
+.rankNext{
+    height:10px;
+
+    margin-top:10px;
+
+    border-radius:99px;
+
+    background:rgba(6,9,20,.85);
+    border:1px solid rgba(120,150,220,.25);
+
+    overflow:hidden;
+}
+
+.rankNext i{
+    display:block;
+
+    width:0%;
+    height:100%;
+
+    border-radius:99px;
+
+    background:linear-gradient(90deg,#ffd76a,#ff9a3d);
+}
+
+@media (max-height:430px){
+
+    .rankHero{ padding:8px; }
+    .rankHero .big{ font-size:22px; }
+    .rankHero .nm{ font-size:13px; }
+    .rankHero .tr{ font-size:10.5px; }
+
+    .rankLadder{ max-height:30vh; }
+    .rankRow{ padding:5px 9px; }
+
+}
+
+.rankLadder{
+    position:relative;
+
+    display:flex;
+    flex-direction:column;
+
+    gap:6px;
+
+    max-height:38vh;
+    overflow-y:auto;
+
+    margin-top:12px;
+}
+
+.rankRow{
+    display:flex;
+    align-items:center;
+
+    gap:10px;
+
+    padding:7px 10px;
+
+    border-radius:11px;
+
+    border:1px solid rgba(120,150,220,.18);
+
+    background:rgba(10,14,30,.55);
+
+    text-align:left;
+}
+
+.rankRow.on{
+    border-color:#ffd76a;
+    background:linear-gradient(90deg, rgba(70,52,16,.9), rgba(12,16,34,.7));
+}
+
+.rankRow.done{ opacity:.6; }
+
+.rankRow .ic{ font-size:17px; }
+
+.rankRow b{
+    flex:1 1 auto;
+
+    font-size:12px;
+    letter-spacing:.06em;
+}
+
+.rankRow small{
+    font-size:10px;
+    color:#8fa0c8;
+}
+
+/* --- le choix amical / classe, dans le salon laser --- */
+
+.lasModes{
+    display:flex;
+
+    gap:8px;
+
+    margin:12px 0 4px;
+}
+
+.lasModeBtn{
+    flex:1 1 0;
+
+    padding:9px 6px;
+
+    border-radius:12px;
+
+    border:2px solid rgba(120,150,220,.28);
+
+    background:rgba(10,14,30,.7);
+
+    color:#a9b8dd;
+
+    font-size:11px;
+    font-weight:900;
+    letter-spacing:.06em;
+
+    cursor:pointer;
+}
+
+.lasModeBtn.on{
+    border-color:#ffd76a;
+    background:linear-gradient(180deg, rgba(70,52,16,.95), rgba(24,16,6,.95));
+    color:#ffe9a8;
+}
+
+.lasModeBtn small{
+    display:block;
+
+    margin-top:2px;
+
+    font-size:8.5px;
+    font-weight:700;
+    letter-spacing:.04em;
+    opacity:.75;
+}
+
+/* le gain ou la perte de trophees, en fin de manche */
+.troDelta{
+    margin:10px 0 0;
+
+    font-size:15px;
+    font-weight:900;
+    letter-spacing:.06em;
+}
+
+.troDelta.up{ color:#ffd76a; }
+.troDelta.down{ color:#ff8fa8; }
+
+/* =========================================================
    LA PASSE DE COMBAT
 
    Une route qui defile de gauche a droite, comme dans les

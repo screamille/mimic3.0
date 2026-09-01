@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "6.9";
+const VERSION = "7.0";
 
 (function(){
 
@@ -2859,6 +2859,339 @@ function renderMissions(){
 
 
 
+
+
+/* =========================================================
+   LE PROFIL DU JOUEUR
+
+   Au tout premier lancement on demande un pseudo et un age,
+   comme les gros jeux mobiles. Tout reste dans le telephone :
+   rien n'est envoye nulle part.
+========================================================= */
+
+let profile = loadJSON("mimicProfile", null);
+
+if(!profile || typeof profile !== "object"){
+    profile = {name:"", age:0};
+}
+
+if(typeof profile.name !== "string"){ profile.name = ""; }
+if(typeof profile.age  !== "number"){ profile.age  = 0;  }
+
+
+function saveProfile(){
+    try{ localStorage.setItem("mimicProfile", JSON.stringify(profile)); }catch(e){}
+}
+
+
+/* le nom affiche : le pseudo, ou un nom par defaut */
+function playerName(){
+    return profile.name || "JOUEUR";
+}
+
+
+/* =========================================================
+   LES TROPHEES ET LES RANGS
+
+   On ne gagne des trophees que dans les parties CLASSEES du
+   mode rayon. Le rang, lui, se lit dans le nombre de
+   trophees : pas de compteur cache.
+========================================================= */
+
+const RANKS = [
+    {tr:0,   name:"BOIS",     ic:"🪵", col:"#b98a5a"},
+    {tr:50,  name:"BRONZE",   ic:"🥉", col:"#d08b4a"},
+    {tr:120, name:"ARGENT",   ic:"🥈", col:"#cfd8e8"},
+    {tr:220, name:"OR",       ic:"🥇", col:"#ffd76a"},
+    {tr:350, name:"DIAMANT",  ic:"💎", col:"#7bf0ff"},
+    {tr:500, name:"MAÎTRE",   ic:"👑", col:"#c86aff"},
+    {tr:700, name:"LÉGENDE",  ic:"🔥", col:"#ff7a2a"}
+];
+
+let rank = loadJSON("mimicRank", null);
+
+if(!rank || typeof rank !== "object"){
+    rank = {tr:0, best:0, wins:0, games:0};
+}
+
+if(typeof rank.tr    !== "number"){ rank.tr    = 0; }
+if(typeof rank.best  !== "number"){ rank.best  = 0; }
+if(typeof rank.wins  !== "number"){ rank.wins  = 0; }
+if(typeof rank.games !== "number"){ rank.games = 0; }
+
+
+function saveRank(){
+    try{ localStorage.setItem("mimicRank", JSON.stringify(rank)); }catch(e){}
+}
+
+
+function rankOf(tr){
+
+    let out = RANKS[0];
+
+    for(const r of RANKS){
+        if(tr >= r.tr){ out = r; }
+    }
+
+    return out;
+
+}
+
+
+/* le rang juste au-dessus, ou null si on est au sommet */
+function rankNext(tr){
+
+    for(const r of RANKS){
+        if(tr < r.tr){ return r; }
+    }
+
+    return null;
+
+}
+
+
+/*
+Ce que rapporte une place. Le premier monte, le dernier
+descend, et au milieu on bouge peu. En dessous de 50
+trophees on ne perd presque rien : on apprend encore.
+*/
+function trophyDelta(place, total){
+
+    if(total < 2){
+        return 0;
+    }
+
+    const k = (total - place) / (total - 1);   /* 1 pour le premier, 0 pour le dernier */
+
+    let d = Math.round(-6 + k * 16);
+
+    if(d < 0 && rank.tr < 50){
+        d = Math.max(d, -2);
+    }
+
+    if(rank.tr + d < 0){
+        d = -rank.tr;
+    }
+
+    return d;
+
+}
+
+
+function paintRankPill(){
+
+    const pill = document.getElementById("rankPillTxt");
+    const ic   = document.getElementById("rankPillIcon");
+    const nm   = document.getElementById("namePillTxt");
+
+    const r = rankOf(rank.tr);
+
+    if(pill){ pill.textContent = rank.tr; }
+    if(ic){   ic.textContent   = r.ic;    }
+    if(nm){   nm.textContent   = playerName(); }
+
+}
+
+
+function renderRank(){
+
+    const r   = rankOf(rank.tr);
+    const nx  = rankNext(rank.tr);
+
+    const ic  = document.getElementById("rankBigIcon");
+    const nm  = document.getElementById("rankBigName");
+    const tr  = document.getElementById("rankBigTro");
+
+    if(ic){ ic.textContent = r.ic; }
+
+    if(nm){
+        nm.textContent = r.name;
+        nm.style.color = r.col;
+    }
+
+    if(tr){
+        tr.textContent =
+            rank.tr + " trophées   ·   record " + Math.max(rank.best, rank.tr) +
+            "   ·   " + rank.wins + " victoire" + (rank.wins > 1 ? "s" : "") +
+            " sur " + rank.games;
+    }
+
+    const fill = document.getElementById("rankNextFill");
+    const txt  = document.getElementById("rankNextTxt");
+
+    if(nx){
+
+        const span = nx.tr - r.tr;
+        const done = rank.tr - r.tr;
+
+        if(fill){ fill.style.width = (Math.max(0, Math.min(1, done / span)) * 100).toFixed(1) + "%"; }
+        if(txt){  txt.textContent  = (nx.tr - rank.tr) + " trophées avant " + nx.name; }
+
+    }else{
+
+        if(fill){ fill.style.width = "100%"; }
+        if(txt){  txt.textContent  = "Tu es au sommet. Bien joué."; }
+
+    }
+
+    const box = document.getElementById("rankLadder");
+
+    if(!box){
+        return;
+    }
+
+    box.innerHTML = "";
+
+    RANKS.forEach((rr, i) => {
+
+        const nxt = RANKS[i + 1];
+
+        const here = rank.tr >= rr.tr && (!nxt || rank.tr < nxt.tr);
+        const past = nxt && rank.tr >= nxt.tr;
+
+        const row = document.createElement("div");
+        row.className = "rankRow" + (here ? " on" : past ? " done" : "");
+
+        const em = document.createElement("span");
+        em.className   = "ic";
+        em.textContent = rr.ic;
+
+        const b = document.createElement("b");
+        b.textContent = rr.name;
+        b.style.color = rr.col;
+
+        const sm = document.createElement("small");
+        sm.textContent = nxt ? rr.tr + " – " + (nxt.tr - 1) : rr.tr + " et plus";
+
+        row.appendChild(em);
+        row.appendChild(b);
+        row.appendChild(sm);
+
+        box.appendChild(row);
+
+    });
+
+    /* on amene le rang courant sous les yeux */
+    setTimeout(function(){
+
+        const cur = box.querySelector(".rankRow.on");
+
+        if(cur){
+            try{ box.scrollTop = Math.max(0, cur.offsetTop - 10); }catch(e){}
+        }
+
+    }, 30);
+
+}
+
+
+function openRank(){
+    renderRank();
+    document.getElementById("rankScreen").style.display = "flex";
+}
+
+
+/* =========================================================
+   L'ECRAN DE BIENVENUE
+========================================================= */
+
+let helloAge = 0;
+
+
+function buildAgeGrid(){
+
+    const box = document.getElementById("ageGrid");
+
+    if(!box || box.children.length){
+        return;
+    }
+
+    /* de 5 a 17, puis "18 et plus" */
+    const list = [];
+
+    for(let a = 5; a <= 17; a++){
+        list.push(a);
+    }
+
+    list.push(18);
+
+    list.forEach(a => {
+
+        const b = document.createElement("button");
+
+        b.className   = "ageBtn";
+        b.textContent = a === 18 ? "18+" : a;
+
+        b.onclick = () => {
+
+            helloAge = a;
+
+            for(const c of box.children){
+                c.classList.remove("on");
+            }
+
+            b.classList.add("on");
+
+            sound(660, .08, "triangle", .05);
+
+            /* on ferme tout de suite : un choix, c'est fini */
+            setTimeout(finishHello, 220);
+
+        };
+
+        box.appendChild(b);
+
+    });
+
+}
+
+
+function openHello(edit){
+
+    buildAgeGrid();
+
+    const input = document.getElementById("helloName");
+
+    input.value = profile.name || "";
+
+    helloAge = profile.age || 0;
+
+    document.getElementById("helloNameWarn").textContent = "";
+
+    document.getElementById("helloStep1").className = "helloStep on";
+    document.getElementById("helloStep2").className = "helloStep";
+
+    /* quand on modifie son profil, l'age deja choisi est mis en avant */
+    const box = document.getElementById("ageGrid");
+
+    for(const c of box.children){
+        c.classList.toggle("on",
+            (helloAge === 18 && c.textContent === "18+") || c.textContent === String(helloAge));
+    }
+
+    document.getElementById("helloScreen").style.display = "flex";
+
+    setTimeout(() => { try{ input.focus(); }catch(e){} }, 120);
+
+}
+
+
+function finishHello(){
+
+    const typed = document.getElementById("helloName").value.trim();
+
+    profile.name = typed.slice(0, 12) || "JOUEUR";
+    profile.age  = helloAge || profile.age || 0;
+
+    saveProfile();
+
+    paintRankPill();
+
+    document.getElementById("helloScreen").style.display = "none";
+
+    sound(760, .16, "triangle", .05);
+
+}
 
 
 /* =========================================================

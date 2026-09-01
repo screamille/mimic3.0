@@ -10,7 +10,7 @@
 
 <title>MIMIC</title>
 
-<link rel="stylesheet" href="css/style.css?v=6.9">
+<link rel="stylesheet" href="css/style.css?v=7.0">
 </head>
 
 <body>
@@ -114,6 +114,14 @@
 
         <div class="lobbyRight">
 
+            <button class="namePill" id="namePill" title="Mon profil">
+                <span>🙂</span> <b id="namePillTxt">JOUEUR</b>
+            </button>
+
+            <button class="rankPill" id="rankPill" title="Mon rang">
+                <span class="tro" id="rankPillIcon">🏆</span> <b id="rankPillTxt">0</b>
+            </button>
+
             <div class="lvlPill">
                 <b>NIV <span id="lvlNum">1</span></b>
                 <i class="lvlTrack"><u id="lvlFill"></u></i>
@@ -165,7 +173,7 @@
         <b id="bestScore">0</b>
     </div>
 
-    <div class="version" id="versionTag">V 6.9</div>
+    <div class="version" id="versionTag">V 7.0</div>
 
     <div id="errBanner" class="errBanner" style="display:none"></div>
 
@@ -241,6 +249,28 @@
                 <span class="setRowText">
                     <b>📤 PARTAGER MON SCORE</b>
                     <small>Copie ton record et le lien du jeu</small>
+                </span>
+                <span class="setArrow">›</span>
+            </button>
+
+        </div>
+
+        <div class="setBlock">
+
+            <div class="setLabel">PROFIL</div>
+
+            <button class="setRow" id="profileButton">
+                <span class="setRowText">
+                    <b>🙂 MON PSEUDO</b>
+                    <small id="profileSub">Change ton nom et ton âge</small>
+                </span>
+                <span class="setArrow">›</span>
+            </button>
+
+            <button class="setRow" id="rankButton">
+                <span class="setRowText">
+                    <b>🏆 MON RANG</b>
+                    <small id="rankSub">Tes trophées et l'échelle des rangs</small>
                 </span>
                 <span class="setArrow">›</span>
             </button>
@@ -818,6 +848,20 @@
 
         <div id="lasRoom" style="display:none;margin-top:16px">
 
+            <div class="lasModes" id="lasModes">
+
+                <button class="lasModeBtn on" id="lasModeFun">
+                    🎈 AMICAL
+                    <small>pour s'amuser</small>
+                </button>
+
+                <button class="lasModeBtn" id="lasModeRanked">
+                    🏆 CLASSÉ
+                    <small>trophées en jeu</small>
+                </button>
+
+            </div>
+
             <div class="setLabel" data-i18n="las.players">JOUEURS</div>
             <div id="lasList" class="lasList"></div>
 
@@ -838,6 +882,70 @@
 </div>
 
 
+<!-- premier lancement : le pseudo et l'age -->
+<div id="helloScreen" class="overlay" style="display:none">
+
+    <div class="menu">
+
+        <div class="helloStep on" id="helloStep1">
+
+            <h1 class="helloTitle">BIENVENUE DANS MIMIC</h1>
+            <p class="helloHint">Choisis ton pseudo. C'est le nom que les autres verront en multijoueur.</p>
+
+            <input id="helloName" maxlength="12" placeholder="TON PSEUDO"
+                   autocomplete="off" autocapitalize="characters">
+
+            <p id="helloNameWarn" class="helloHint" style="color:#ff8fa8;margin-top:8px"></p>
+
+            <div class="menuButtons" style="margin-top:14px">
+                <button class="primary" id="helloNext" style="width:100%">SUIVANT →</button>
+            </div>
+
+        </div>
+
+        <div class="helloStep" id="helloStep2">
+
+            <h1 class="helloTitle">QUEL ÂGE AS-TU ?</h1>
+            <p class="helloHint">Ça reste sur ton téléphone : rien n'est envoyé nulle part.</p>
+
+            <div class="ageGrid" id="ageGrid"></div>
+
+            <div class="menuButtons" style="margin-top:14px">
+                <button class="secondary" id="helloBack" style="width:100%">← RETOUR</button>
+            </div>
+
+        </div>
+
+    </div>
+
+</div>
+
+
+<!-- l'echelle des rangs -->
+<div id="rankScreen" class="overlay" style="display:none">
+
+    <div class="menu">
+
+        <div class="rankHero">
+            <span class="big" id="rankBigIcon">🥉</span>
+            <span class="nm" id="rankBigName">BOIS</span>
+            <span class="tr" id="rankBigTro">0 trophées</span>
+        </div>
+
+        <div class="rankNext"><i id="rankNextFill"></i></div>
+        <p class="helloHint" id="rankNextTxt" style="margin-top:6px"></p>
+
+        <div id="rankLadder" class="rankLadder"></div>
+
+        <div class="menuButtons" style="margin-top:14px">
+            <button class="secondary" id="rankClose" data-i18n="ui.back">← RETOUR</button>
+        </div>
+
+    </div>
+
+</div>
+
+
 <!-- résultat du mode laser -->
 <div id="lasResult" class="overlay" style="display:none">
 
@@ -846,6 +954,8 @@
         <h1 id="lasVerdict" style="margin:0 0 8px">VICTOIRE</h1>
 
         <div id="lasRank" class="lasList" style="margin-top:14px"></div>
+
+        <p id="lasTrophy" class="troDelta" style="display:none"></p>
 
         <p id="lasAgainState" class="hint" style="margin:14px 0 0"></p>
 
@@ -1062,16 +1172,16 @@ fonctionne parfaitement même si aucun des deux ne répond.
 })();
 </script>
 
-<script src="js/01-moteur.js?v=6.9"></script>
-<script src="js/02-etat.js?v=6.9"></script>
-<script src="js/03-skins.js?v=6.9"></script>
-<script src="js/04-monde.js?v=6.9"></script>
-<script src="js/05-jeu.js?v=6.9"></script>
-<script src="js/06-boutique.js?v=6.9"></script>
-<script src="js/07-duel.js?v=6.9"></script>
-<script src="js/08-langues.js?v=6.9"></script>
-<script src="js/09-laser.js?v=6.9"></script>
-<script src="js/10-interface.js?v=6.9"></script>
+<script src="js/01-moteur.js?v=7.0"></script>
+<script src="js/02-etat.js?v=7.0"></script>
+<script src="js/03-skins.js?v=7.0"></script>
+<script src="js/04-monde.js?v=7.0"></script>
+<script src="js/05-jeu.js?v=7.0"></script>
+<script src="js/06-boutique.js?v=7.0"></script>
+<script src="js/07-duel.js?v=7.0"></script>
+<script src="js/08-langues.js?v=7.0"></script>
+<script src="js/09-laser.js?v=7.0"></script>
+<script src="js/10-interface.js?v=7.0"></script>
 
 </body>
 </html>
