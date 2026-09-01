@@ -499,6 +499,17 @@ function joinDuel(retry){
             return;
         }
 
+        /*
+        Les codes ne contiennent jamais O, 0, I ni 1 : quand on
+        dicte un code, ce sont exactement les caracteres qu'on
+        confond. Si le joueur en tape un, on le lui dit au lieu
+        de le laisser chercher une partie qui n'existe pas.
+        */
+        if(/[O0I1]/.test(typed)){
+            duelStatus("Un code ne contient jamais O, 0, I ni 1. Regarde bien : c'est sûrement un Q, un D, un J ou un L.");
+            return;
+        }
+
         duelServer = 0;
         duelCleanup();
         duel.code  = typed;
@@ -541,6 +552,34 @@ function joinDuel(retry){
         if(type === "peer-unavailable"){
 
             clearDuelTimer();
+
+            /*
+            Le code n'est pas forcement faux : l'hote a pu se
+            poser sur l'AUTRE serveur (le sien avait bronche).
+            On refait donc le tour des serveurs avec le meme
+            code avant de dire quoi que ce soit au joueur.
+            */
+            if(duelServer + 1 < DUEL_SERVERS.length){
+
+                if(duel.peer){
+                    try{ duel.peer.destroy(); }catch(e){}
+                    duel.peer = null;
+                }
+
+                duelServer++;
+
+                duelStatus(
+                    "Partie introuvable ici… essai du serveur " +
+                    (duelServer + 1) + "/" + DUEL_SERVERS.length + "…"
+                );
+
+                setTimeout(() => joinDuel(true), 300);
+
+                return;
+
+            }
+
+            duelServer = 0;
 
             duelStatus(
                 "❌ Aucune partie avec le code " + duel.code +
