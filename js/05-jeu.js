@@ -2236,9 +2236,13 @@ function drawRaw(){
 
         ctx.save();
 
-        ctx.fillStyle = warp.target === "bonbon"
-            ? "rgba(120,20,70," + (k * .92).toFixed(3) + ")"
-            : "rgba(16,48,20," + (k * .92).toFixed(3) + ")";
+        /*
+        Le voile prend la couleur du monde vise, pas celle du
+        marais : chaque portail annonce sa vraie destination.
+        */
+        const wDest = WORLDS.find(x => x.zone === warp.target);
+
+        ctx.fillStyle = hexA(WARP_VEIL[warp.target] || "#103014", k * .92);
         ctx.fillRect(0, 0, W, H);
 
         /* tourbillon au centre de l'écran */
@@ -2270,10 +2274,15 @@ function drawRaw(){
 
             ctx.save();
             ctx.globalAlpha = (k - .55) / .45;
-            ctx.fillStyle   = warp.target === "bonbon" ? "#ffd6ea" : "#d7ffa8";
+            ctx.fillStyle   = wDest ? wDest.col : "#d7ffa8";
             ctx.font        = "bold " + Math.round(30 * unit) + "px Arial";
             ctx.textAlign   = "center";
-            ctx.fillText(warp.target === "bonbon" ? "LE PAYS DES BONBONS" : "LE MARAIS", W / 2, H * .34);
+            ctx.fillText(wDest ? wDest.name : "", W / 2, H * .34);
+
+            ctx.globalAlpha *= .75;
+            ctx.fillStyle    = "#ffffff";
+            ctx.font         = "bold " + Math.round(13 * unit) + "px Arial";
+            ctx.fillText(wDest ? "MONDE " + wDest.n : "", W / 2, H * .34 - 44 * unit);
             ctx.restore();
 
         }

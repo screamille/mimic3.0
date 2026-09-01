@@ -108,6 +108,22 @@ const WORLDS = [
     {zone:"biblio",  n:8, name:"LA BIBLIOTHÈQUE",      from:BIBLIO_LEVEL, to:CLOCK_LEVEL,  col:"#b06cff"},
     {zone:"horloge", n:9, name:"L'HORLOGE",            from:CLOCK_LEVEL,  to:null,         col:"#9fe9ff"}
 ];
+
+
+/*
+La teinte du voile quand le portail t'aspire : une version
+tres sombre de la couleur du monde d'arrivee.
+*/
+const WARP_VEIL = {
+    marais:  "#103014",
+    bonbon:  "#781446",
+    abysse:  "#06283a",
+    neant:   "#1a0733",
+    desert:  "#3a2a08",
+    forge:   "#3a1405",
+    biblio:  "#24104a",
+    horloge: "#0b2436"
+};
 const MAX_BLOBS    = 4;     /* slimes du marais présents en même temps */
 const START_SOLIDS = 9;     /* blocs présents dès le début */
 const MAX_SOLIDS   = 18;    /* blocs au maximum sur le terrain */
