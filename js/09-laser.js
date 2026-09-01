@@ -353,44 +353,133 @@ function drawLaserBeams(){
    LES JOUEURS
 ========================================================= */
 
-/*
-Les adversaires restent invisibles : chacun joue son propre
-terrain, et l'on suit les autres au tableau des vies.
-Cette fonction ne dessine donc plus rien — on la garde pour
-que le reste du code n'ait pas a s'en soucier.
-*/
-function drawLaserPlayers(){
+/* =========================================================
+   LES AUTRES JOUEURS SUR LA MEME ARENE
 
-    if(true){
-        return;
-    }
+   Tout le monde joue le meme terrain : on dessine donc les
+   adversaires avec LEUR skin, a leur vraie place.
+
+   Les positions n'arrivent que 15 fois par seconde. Si on
+   les dessinait telles quelles, les autres avanceraient par
+   petits sauts. On garde donc une position AFFICHEE qui
+   court derriere la position RECUE : le mouvement redevient
+   lisse sans rien changer au reseau.
+========================================================= */
+
+function lasSmooth(dt){
 
     laser.players.forEach((pl, i) => {
 
-        if(i === laser.me || !pl.alive){
+        if(i === laser.me || !pl){
             return;
         }
 
-        /* les positions arrivent en 0..1 : on les ramene ici */
-        const q = lasPix(pl.x, pl.y);
+        if(typeof pl.dx !== "number" || typeof pl.dy !== "number"){
+            pl.dx = pl.x;
+            pl.dy = pl.y;
+            return;
+        }
+
+        /* on rattrape ~92 % de l'ecart par seconde */
+        const k = 1 - Math.pow(.0008, dt);
+
+        pl.dx += ((pl.x || 0) - pl.dx) * k;
+        pl.dy += ((pl.y || 0) - pl.dy) * k;
+
+        /* trop loin : on se teleporte plutot que de glisser */
+        if(Math.abs(pl.x - pl.dx) > .28 || Math.abs(pl.y - pl.dy) > .28){
+            pl.dx = pl.x;
+            pl.dy = pl.y;
+        }
+
+    });
+
+}
+
+
+function drawLaserPlayers(){
+
+    laser.players.forEach((pl, i) => {
+
+        if(i === laser.me || !pl){
+            return;
+        }
+
+        /* les positions arrivent en 0..1 : on les ramene en pixels */
+        const q = lasPix(
+            typeof pl.dx === "number" ? pl.dx : pl.x,
+            typeof pl.dy === "number" ? pl.dy : pl.y
+        );
+
+        if(!isFinite(q.x) || !isFinite(q.y)){
+            return;
+        }
+
+        const r = 15 * unit;
+
+        /* un joueur elimine reste visible, en fantome */
+        const gone = !pl.alive;
 
         ctx.save();
-        ctx.globalAlpha = .85;
-        ctx.translate(q.x, q.y);
+        ctx.globalAlpha = gone ? .22 : 1;
 
+        /* l'ombre au sol : elle ancre le slime sur l'arene */
+        ctx.globalAlpha *= .5;
+        ctx.fillStyle = "#000000";
+
+        ctx.beginPath();
+        ctx.ellipse(q.x, q.y + r * .92, r * .78, r * .26, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.globalAlpha = gone ? .22 : 1;
+
+        /* le cerceau de couleur : c'est ce qui dit QUI c'est */
+        ctx.strokeStyle = pl.color || "#ffffff";
+        ctx.lineWidth   = 2.4 * unit;
+        ctx.shadowColor = pl.color || "#ffffff";
+        ctx.shadowBlur  = 12;
+
+        ctx.beginPath();
+        ctx.ellipse(q.x, q.y + r * .9, r * .82, r * .3, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+
+        /* son skin a lui, avec le petit balancement de la course */
         const skin = SKINS.find(sk => sk.id === pl.skin) || SKINS[0];
 
-        paintSkinSlime(ctx, skin, 15 * unit, gameTime, false, {blink:1});
+        ctx.translate(q.x, q.y);
+
+        paintSkinSlime(ctx, skin, r, gameTime + i * .7, false, {blink:1});
 
         ctx.restore();
 
-        /* l'etiquette du joueur */
+        /* son pseudo, au-dessus */
         ctx.save();
-        ctx.globalAlpha = .9;
-        ctx.fillStyle   = pl.color;
+
+        ctx.globalAlpha = gone ? .3 : .95;
         ctx.font        = "bold " + Math.round(10 * unit) + "px Arial";
         ctx.textAlign   = "center";
-        ctx.fillText(pl.name, q.x, q.y - 26 * unit);
+
+        const label = (pl.name || "?") + (gone ? " ✕" : "");
+
+        /* un liseré noir : lisible sur n'importe quel fond */
+        ctx.lineWidth   = 3 * unit;
+        ctx.strokeStyle = "rgba(0,0,0,.75)";
+        ctx.strokeText(label, q.x, q.y - r * 2.05);
+
+        ctx.fillStyle = pl.color || "#ffffff";
+        ctx.fillText(label, q.x, q.y - r * 2.05);
+
+        /* ses coeurs, juste sous le pseudo */
+        if(!gone && pl.lives > 0){
+
+            ctx.font      = Math.round(8 * unit) + "px Arial";
+            ctx.fillStyle = "#ff6b8a";
+            ctx.fillText("♥".repeat(Math.min(5, pl.lives)), q.x, q.y - r * 2.05 + 9 * unit);
+
+        }
+
         ctx.restore();
 
     });
@@ -953,6 +1042,10 @@ function lasBegin(){
         p.time  = 0;
         p.x = .18 + i * .16;
         p.y = .5;
+
+        /* la position affichee part au meme endroit : pas de glissade au depart */
+        p.dx = p.x;
+        p.dy = p.y;
     });
 
     if(laser.players[laser.me]){
@@ -1143,6 +1236,7 @@ function lasUpdate(dt){
 
     laser.time += dt;
 
+    lasSmooth(dt);
     lasUpdateBeams(dt);
 
     const me = laser.players[laser.me];
