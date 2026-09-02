@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "8.3";
+const VERSION = "8.5";
 
 (function(){
 
@@ -5103,7 +5103,7 @@ function pupSwing(){
     mim.timer = 2.4 - mimPhase() * .45;
 
     pup.libre = false;
-    pup.amp   = .55 + mimPhase() * .18;
+    pup.amp   = .48 + mimPhase() * .12;
 
     sound(220, .3, "sine",     .04);
     sound(90,  .4, "sawtooth", .035);
@@ -5120,7 +5120,15 @@ droit sur toi avant d'etre rappelee vers le haut.
 function pupAim(){
 
     mim.state = "vise";
-    mim.timer = mimPhase() === 2 ? .48 : mimPhase() === 1 ? .62 : .80;
+    mim.timer = mimPhase() === 2 ? .82 : mimPhase() === 1 ? .92 : 1.05;
+
+    /*
+    Elle verrouille un POINT, pas toi. C'est toute la
+    difference : si elle te suivait pendant la visee, il n'y
+    aurait aucun moyen de sortir de dessous.
+    */
+    mim.aimX = player.x;
+    mim.aimY = player.y;
 
     mimSfx("regard");
 
@@ -5129,12 +5137,13 @@ function pupAim(){
 
 function pupDive(){
 
-    const dx = player.x - pup.x;
-    const dy = player.y - pup.y;
+    /* elle plonge sur le point verrouille, pas sur toi */
+    const dx = (mim.aimX != null ? mim.aimX : player.x) - pup.x;
+    const dy = (mim.aimY != null ? mim.aimY : player.y) - pup.y;
 
     const len = Math.max(1, Math.hypot(dx, dy));
 
-    const sp = (820 + mimPhase() * 260) * unit;
+    const sp = (640 + mimPhase() * 160) * unit;
 
     pup.vx = dx / len * sp;
     pup.vy = dy / len * sp;
@@ -5183,7 +5192,7 @@ function pupFree(){
 
     const len = Math.max(1, Math.hypot(dx, dy));
 
-    const sp = 640 * unit;
+    const sp = 470 * unit;
 
     pup.vx = dx / len * sp;
     pup.vy = dy / len * sp;
@@ -5222,7 +5231,12 @@ function mimHandAnchor(){
 /* elle pend au bout du fil et balance autour de l'accroche */
 function pupHang(anchor, amp, dt){
 
-    const len = mim.r * 2.3;
+    /*
+    Le fil est court exprès : le balancier ne descend jamais
+    jusqu'au bas du couloir. Il y a toujours une bande, en
+    bas, ou il ne peut pas t'atteindre.
+    */
+    const len = mim.r * 1.85;
 
     const a = Math.sin(pup.ang) * amp;
 
@@ -5274,13 +5288,20 @@ function mimFireBeams(){
 
     const base = Math.atan2(player.y - mim.y, player.x - mim.x);
 
-    /* deux rayons, un par oeil : ils s'ecartent puis se referment */
+    /*
+    Les deux rayons tournent dans LE MEME SENS. En sens
+    inverse ils se refermaient comme des ciseaux : il n'y
+    avait plus aucun passage. La, ils balaient ensemble et
+    laissent toujours le cote qu'ils viennent de quitter.
+    */
+    const sens = Math.random() < .5 ? -1 : 1;
+
     for(let i = 0; i < 2; i++){
         mimBeams.push({
-            a:base + (i ? .42 : -.42),
-            spin:(i ? -1 : 1) * .34,
+            a:base + (i ? .55 : -.55),
+            spin:sens * .26,
             grow:0,
-            life:2.5
+            life:2.0
         });
     }
 
@@ -5292,14 +5313,44 @@ function mimFireBeams(){
 /* --- L'ONDE : elle part du sol et s'ouvre en anneau --- */
 function mimRing(x, y, delay, col){
 
+    /*
+    Une onde pleine ne se dodge pas : elle finit toujours par
+    te passer dessus. Celle-ci a TROIS OUVERTURES, placees au
+    hasard mais fixes une fois lancees : il y a toujours un
+    passage, il faut juste le trouver a temps.
+    */
+    /* une onde chasse la precedente : deux cercles qui se
+       croisent ne laissent plus aucun passage */
+    mimRings = mimRings.filter(o => o.wait > 0);
+
     mimRings.push({
         x:x, y:y,
         r:0,
         max:Math.hypot(W, H) * .42,
         wait:delay || 0,
-        life:1.5,
+        life:1.9,
+        gap:Math.random() * 6.28,   /* ou commencent les trous */
         col:col || "#ff3af0"
     });
+
+}
+
+
+/* l'angle tombe-t-il dans une ouverture ? */
+function ringHole(rg, ang){
+
+    /* trois trous, un tiers de tour d'ecart, larges de 46 degres */
+    for(let i = 0; i < 3; i++){
+
+        let d = Math.abs(((ang - (rg.gap + i * 2.094)) + Math.PI * 3) % (Math.PI * 2) - Math.PI);
+
+        if(d < .58){
+            return true;
+        }
+
+    }
+
+    return false;
 
 }
 
@@ -5313,8 +5364,8 @@ function mimSlam(){
 
     mimSfx("poing");
 
-    for(let i = 0; i < 3; i++){
-        mimRing(mim.x, mim.y + mim.r * .8, i * .34, "#d64bff");
+    for(let i = 0; i < 2; i++){
+        mimRing(mim.x, mim.y + mim.r * .8, i * .55, "#d64bff");
     }
 
 }
@@ -5348,7 +5399,8 @@ function mimBite(){
                 dir:side ? -1 : 1,
                 h:0,
                 t:0,
-                life:2.6
+                warn:.7,        /* la marque avant de sortir */
+                life:3.3
             });
         });
 
@@ -5382,15 +5434,22 @@ function mimSpawnCopies(){
 
     mimCopies = [];
 
-    for(let i = 0; i < 3; i++){
+    /*
+    Deux copies, pas trois, et elles ne visent pas toutes le
+    meme point : sinon elles convergent sur toi et il n'y a
+    plus d'echappatoire.
+    */
+    for(let i = 0; i < 2; i++){
 
-        const y = a.y0 + (a.y1 - a.y0) * (.22 + i * .28);
+        const y = a.y0 + (a.y1 - a.y0) * (.30 + i * .34);
+
+        const ecart = (i ? 1 : -1) * (a.y1 - a.y0) * .18;
 
         const dx = player.x - (a.x1 + 60 * unit);
-        const dy = player.y - y;
+        const dy = (player.y + ecart) - y;
         const len = Math.max(1, Math.hypot(dx, dy));
 
-        const sp = 520 * unit;
+        const sp = 420 * unit;
 
         mimCopies.push({
             x:a.x1 + 60 * unit,
@@ -5436,14 +5495,16 @@ function updateMimic(dt){
         }
 
         rg.life -= dt;
-        rg.r    += dt * rg.max * .85;
+        rg.r    += dt * rg.max * .38;
 
-        /* l'anneau blesse, pas son interieur : on peut le laisser passer */
+        /* l'anneau blesse, sauf dans ses ouvertures */
         if(player.invincible <= 0){
 
             const d = Math.hypot(rg.x - player.x, rg.y - player.y);
 
-            if(Math.abs(d - rg.r) < 15 * unit + player.r * .4){
+            const ang = Math.atan2(player.y - rg.y, player.x - rg.x);
+
+            if(Math.abs(d - rg.r) < 10 * unit + player.r * .35 && !ringHole(rg, ang)){
 
                 loseLife(null);
 
@@ -5465,7 +5526,19 @@ function updateMimic(dt){
     for(const sp of mimSpikes){
 
         sp.life -= dt;
-        sp.t    += dt;
+
+        /*
+        Elles previennent d'abord : une marque lumineuse a
+        l'endroit exact ou elles vont percer. Tant que la
+        marque clignote, rien ne blesse.
+        */
+        if(sp.warn > 0){
+            sp.warn -= dt;
+            sp.h = 0;
+            continue;
+        }
+
+        sp.t += dt;
 
         /* elles sortent, restent, puis rentrent */
         const up = Math.min(1, sp.t / .45);
@@ -5475,7 +5548,7 @@ function updateMimic(dt){
 
         if(sp.h > .6 && player.invincible <= 0){
 
-            const len = (a.y1 - a.y0) * .26 * sp.h;
+            const len = (a.y1 - a.y0) * .21 * sp.h;
 
             const near = Math.abs(player.x - sp.x) < 15 * unit + player.r * .6;
             const deep = sp.dir > 0
@@ -5534,12 +5607,12 @@ function updateMimic(dt){
 
             h.slam -= dt;
 
-            /* l'onde de choc : large mais breve */
-            if(h.slam < .35 && h.slam > .1 && player.invincible <= 0){
+            /* l'onde de choc : elle ne part qu'apres l'annonce */
+            if(h.slam < .30 && h.slam > .08 && player.invincible <= 0){
 
                 const d = Math.hypot(h.x - player.x, h.y - player.y);
 
-                if(d < h.r * 3.4 && d > h.r * 1.2){
+                if(d < h.r * 2.8 && d > h.r * 1.3){
 
                     loseLife(null);
 
@@ -5563,8 +5636,8 @@ function updateMimic(dt){
             h.x += dx / len * sp * dt;
             h.y += dy / len * sp * dt;
 
-            if(len < h.r * 1.5){
-                h.slam = .6;
+            if(len < h.r * 1.8){
+                h.slam = .85;      /* l'annonce dure plus longtemps */
                 mimSfx("poing");
             }
 
@@ -5578,7 +5651,7 @@ function updateMimic(dt){
     for(const b of mimBeams){
 
         b.life -= dt;
-        b.grow  = Math.min(1, b.grow + dt * 1.5);
+        b.grow  = Math.min(1, b.grow + dt * 1.15);
         b.a    += b.spin * dt;
 
         if(b.grow >= .9 && player.invincible <= 0 && mim){
@@ -5751,8 +5824,8 @@ function updateMimic(dt){
 
     }else if(mim.state === "vise"){
 
-        /* elle se fige au-dessus de toi, les fils tendus */
-        pup.x += (player.x - pup.x) * Math.min(1, dt * 2.6);
+        /* elle se place au-dessus du point vise, et l'y attend */
+        pup.x += (mim.aimX - pup.x) * Math.min(1, dt * 2.6);
         pup.y += (anchor.y + mim.r * 1.9 - pup.y) * Math.min(1, dt * 3);
 
         if(mim.timer <= 0){
@@ -5766,19 +5839,37 @@ function updateMimic(dt){
 
         pupBounds(a);
 
+        /* elle ralentit : la plongee a une fin, elle ne te suit pas */
+        pup.vx *= Math.pow(.22, dt);
+        pup.vy *= Math.pow(.22, dt);
+
         if(mim.timer <= 0){
 
-            /* le fil la rappelle vers le haut */
+            /* le fil la rappelle vers le haut : le temps de souffler */
+            mim.state = "retour";
+            mim.timer = .55;
+
+        }
+
+    }else if(mim.state === "retour"){
+
+        /*
+        Le fil la remonte. Pendant ce temps elle ne blesse
+        pas : on te laisse le temps de te replacer.
+        */
+        const an2 = mimHandAnchor();
+
+        pup.x += (an2.x - pup.x) * Math.min(1, dt * 4);
+        pup.y += (an2.y + mim.r * 2.3 - pup.y) * Math.min(1, dt * 4);
+
+        if(mim.timer <= 0){
+
             mim.state = "attente";
             mim.timer = ph === 2 ? .5 : ph === 1 ? .75 : 1.0;
 
             mimSfx("impact");
 
-            if(ph >= 1){
-                mimRing(pup.x, pup.y, 0, "#b06cff");
-            }
-
-            if(ph >= 1 && mimHands.length < (ph === 2 ? 3 : 2)){
+            if(ph >= 1 && mimHands.length < 2){
                 mimSpawnHand();
             }
 
@@ -5791,12 +5882,16 @@ function updateMimic(dt){
 
         const k = 1 - Math.max(0, mim.timer) / 3.0;
 
-        const reach = (mim.r * 1.6) + k * (a.y1 - a.y0) * .55;
+        /*
+        Le cercle grandit, mais il s'arrete avant de couvrir
+        tout le couloir : le bas de l'arene reste toujours
+        libre. Et on ne la coince PLUS contre les murs — elle
+        sort du cadre, ce qui ouvre les cotes.
+        */
+        const reach = (mim.r * 1.5) + k * (a.y1 - a.y0) * .38;
 
         pup.x = mim.x + Math.cos(pup.spin) * reach;
-        pup.y = mim.y + Math.sin(pup.spin) * reach * .62 + mim.r * 1.2;
-
-        pupBounds(a);
+        pup.y = mim.y + Math.sin(pup.spin) * reach * .55 + mim.r * 1.2;
 
         if(mim.timer <= 0){
 
@@ -5818,6 +5913,10 @@ function updateMimic(dt){
         if(pup.x > a.x1 - pup.r){ pup.x = a.x1 - pup.r; pup.vx = -Math.abs(pup.vx); mimSfx("impact"); }
         if(pup.y < a.y0 + pup.r){ pup.y = a.y0 + pup.r; pup.vy =  Math.abs(pup.vy); mimSfx("impact"); }
         if(pup.y > a.y1 - pup.r){ pup.y = a.y1 - pup.r; pup.vy = -Math.abs(pup.vy); mimSfx("impact"); }
+
+        /* elle s'essouffle : la fin de l'attaque est un repit */
+        pup.vx *= Math.pow(.68, dt);
+        pup.vy *= Math.pow(.68, dt);
 
         pup.spin += dt * 5;
 
@@ -5846,15 +5945,21 @@ function updateMimic(dt){
 
         pupHang(anchor, .3, dt);
 
+        /*
+        Meme dans le noir on ne frappe pas sans prevenir : la
+        marionnette passe par la visee, et ses yeux brillent
+        assez pour qu'on la situe.
+        */
         if(mim.timer <= 0){
-            pupDive();
-            mim.timer = 1.2;
+            pupAim();
+            mim.timer = Math.max(mim.timer, .55);
         }
 
     }
 
-    /* ---- la marionnette blesse, toujours ---- */
-    if(player.invincible <= 0 &&
+    /* ---- la marionnette blesse, sauf quand le fil la remonte ---- */
+    if(mim.state !== "retour" &&
+       player.invincible <= 0 &&
        Math.hypot(pup.x - player.x, pup.y - player.y) < pup.r * .78 + player.r){
 
         loseLife(null);
@@ -6531,7 +6636,40 @@ function drawMimic(){
     /* --- les dents du couloir --- */
     for(const sp of mimSpikes){
 
-        const len = (a.y1 - a.y0) * .26 * sp.h;
+        /* la marque d'avertissement */
+        if(sp.warn > 0){
+
+            ctx.save();
+
+            ctx.globalAlpha = .35 + .45 * Math.abs(Math.sin(sp.warn * 18));
+            ctx.strokeStyle = col;
+            ctx.lineWidth   = 3 * unit;
+            ctx.shadowColor = col;
+            ctx.shadowBlur  = 14;
+
+            ctx.beginPath();
+            ctx.moveTo(sp.x - 15 * unit, sp.y);
+            ctx.lineTo(sp.x + 15 * unit, sp.y);
+            ctx.stroke();
+
+            /* une petite pointe qui perce deja */
+            ctx.globalAlpha *= .5;
+            ctx.beginPath();
+            ctx.moveTo(sp.x - 8 * unit, sp.y);
+            ctx.lineTo(sp.x + 8 * unit, sp.y);
+            ctx.lineTo(sp.x, sp.y + sp.dir * 18 * unit);
+            ctx.closePath();
+            ctx.fillStyle = col;
+            ctx.fill();
+
+            ctx.shadowBlur = 0;
+            ctx.restore();
+
+            continue;
+
+        }
+
+        const len = (a.y1 - a.y0) * .21 * sp.h;
 
         if(len < 1){
             continue;
@@ -6581,17 +6719,31 @@ function drawMimic(){
         ctx.shadowColor = rg.col;
         ctx.shadowBlur  = 24;
 
-        ctx.beginPath();
-        ctx.arc(rg.x, rg.y, rg.r, 0, Math.PI * 2);
-        ctx.stroke();
+        /* on dessine trois arcs : les trous se voient comme du jour */
+        for(let i = 0; i < 3; i++){
 
-        /* un second trait, plus fin, juste derriere */
+            const a0 = rg.gap + i * 2.094 + .58;
+            const a1 = rg.gap + (i + 1) * 2.094 - .58;
+
+            ctx.beginPath();
+            ctx.arc(rg.x, rg.y, rg.r, a0, a1);
+            ctx.stroke();
+
+        }
+
         ctx.globalAlpha *= .5;
         ctx.lineWidth    = 2.4 * unit;
 
-        ctx.beginPath();
-        ctx.arc(rg.x, rg.y, Math.max(0, rg.r - 12 * unit), 0, Math.PI * 2);
-        ctx.stroke();
+        for(let i = 0; i < 3; i++){
+
+            const a0 = rg.gap + i * 2.094 + .58;
+            const a1 = rg.gap + (i + 1) * 2.094 - .58;
+
+            ctx.beginPath();
+            ctx.arc(rg.x, rg.y, Math.max(0, rg.r - 11 * unit), a0, a1);
+            ctx.stroke();
+
+        }
 
         ctx.shadowBlur = 0;
         ctx.restore();
@@ -6611,6 +6763,37 @@ function drawMimic(){
     }
 
     ctx.globalAlpha = 1;
+
+    /* la marque au sol : la ou elle va frapper */
+    if(mim && mim.state === "vise" && mim.aimX != null){
+
+        ctx.save();
+
+        const k = .4 + .6 * Math.abs(Math.sin(mim.t * 14));
+
+        ctx.globalAlpha = k;
+        ctx.strokeStyle = "#ffffff";
+        ctx.lineWidth   = 3 * unit;
+        ctx.shadowColor = col;
+        ctx.shadowBlur  = 16;
+
+        ctx.beginPath();
+        ctx.arc(mim.aimX, mim.aimY, 30 * unit, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.globalAlpha = k * .5;
+
+        ctx.beginPath();
+        ctx.moveTo(mim.aimX - 16 * unit, mim.aimY);
+        ctx.lineTo(mim.aimX + 16 * unit, mim.aimY);
+        ctx.moveTo(mim.aimX, mim.aimY - 16 * unit);
+        ctx.lineTo(mim.aimX, mim.aimY + 16 * unit);
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+        ctx.restore();
+
+    }
 
     /* --- LES FILS ET LA MARIONNETTE --- */
     if(mim && pup){
@@ -6716,10 +6899,29 @@ function drawMimic(){
 
         ctx.globalAlpha = Math.min(1, h.life);
 
-        /* l'onde de choc du coup de poing */
-        if(h.slam > 0 && h.slam < .35){
+        /* l'annonce : le cercle se resserre avant que ca parte */
+        if(h.slam >= .30){
 
-            const k = 1 - h.slam / .35;
+            const w = (h.slam - .30) / .55;
+
+            ctx.globalAlpha = (1 - w) * .8;
+            ctx.strokeStyle = "#ff3af0";
+            ctx.lineWidth   = 2.4 * unit;
+            ctx.setLineDash([6 * unit, 6 * unit]);
+
+            ctx.beginPath();
+            ctx.arc(0, 0, h.r * (1.3 + w * 1.5), 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+            ctx.globalAlpha = Math.min(1, h.life);
+
+        }
+
+        /* l'onde de choc du coup de poing */
+        if(h.slam > 0 && h.slam < .30){
+
+            const k = 1 - h.slam / .30;
 
             ctx.strokeStyle = "#ff3af0";
             ctx.lineWidth   = 5 * unit;
@@ -6727,7 +6929,7 @@ function drawMimic(){
             ctx.shadowBlur  = 20;
 
             ctx.beginPath();
-            ctx.arc(0, 0, h.r * (1.2 + k * 2.2), 0, Math.PI * 2);
+            ctx.arc(0, 0, h.r * (1.3 + k * 1.5), 0, Math.PI * 2);
             ctx.stroke();
 
             ctx.shadowBlur = 0;
@@ -6829,6 +7031,43 @@ function drawMimic(){
 
         ctx.globalCompositeOperation = "source-over";
         ctx.restore();
+
+    }
+
+    /*
+    Les rayons repassent PAR-DESSUS le voile : dans le noir
+    ils sont la seule chose qui reste visible, et il n'est
+    pas question de se faire couper par un trait invisible.
+    */
+    if(mimBlack > 0 && mim && mimBeams.length){
+
+        const reach2 = Math.hypot(W, H);
+
+        for(const b of mimBeams){
+
+            ctx.save();
+            ctx.translate(mim.x, mim.y);
+            ctx.rotate(b.a);
+
+            const on = b.grow >= .9;
+
+            const g2 = ctx.createLinearGradient(0, 0, reach2, 0);
+            g2.addColorStop(0,  hexA("#ffffff", on ? .95 : .40));
+            g2.addColorStop(.5, hexA(col,       on ? .60 : .20));
+            g2.addColorStop(1,  hexA(col, 0));
+
+            ctx.fillStyle   = g2;
+            ctx.shadowColor = "#ffffff";
+            ctx.shadowBlur  = on ? 26 : 10;
+
+            const th2 = (on ? 13 : 3) * unit;
+
+            ctx.fillRect(0, -th2 / 2, reach2, th2);
+
+            ctx.shadowBlur = 0;
+            ctx.restore();
+
+        }
 
     }
 
