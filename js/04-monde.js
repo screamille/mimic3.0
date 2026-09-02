@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "8.5";
+const VERSION = "8.7";
 
 (function(){
 
@@ -4874,7 +4874,6 @@ let mimCopies   = [];     /* ses fausses copies      */
 let mimSpikes   = [];     /* les dents du couloir    */
 let mimBlack    = 0;      /* le couloir s'eteint     */
 let pup         = null;   /* LA MARIONNETTE          */
-let mimHands    = [];     /* les mains qui rampent   */
 let mimBeams    = [];     /* les rayons de ses yeux  */
 let mimCleared  = false;  /* l'a-t-on deja brise ?   */
 
@@ -5035,7 +5034,6 @@ function enterCorridor(){
 
     player.invincible = 3;
 
-    mimHands   = [];
     mimBeams   = [];
     mimRings   = [];
     mimCopies  = [];
@@ -5264,22 +5262,6 @@ function pupBounds(a){
 
 
 /* une main se detache et rampe vers toi *//* une main se detache et rampe vers toi */
-function mimSpawnHand(){
-
-    const a = playArea();
-
-    mimHands.push({
-        x:mim.x,
-        y:mim.y + mim.r * .5,
-        r:16 * unit,
-        life:7,
-        slam:0,
-        wave:0
-    });
-
-    mimSfx("poing");
-
-}
 
 
 function mimFireBeams(){
@@ -5399,7 +5381,7 @@ function mimBite(){
                 dir:side ? -1 : 1,
                 h:0,
                 t:0,
-                warn:.7,        /* la marque avant de sortir */
+                warn:.95,       /* la marque avant de sortir */
                 life:3.3
             });
         });
@@ -5456,9 +5438,12 @@ function mimSpawnCopies(){
             y:y,
             vx:dx / len * sp,
             vy:dy / len * sp,
-            r:mim.r * .8,
+            r:pup.r * .92,
             life:3.2,
-            t:0
+            t:0,
+            spin:0,
+            libre:true,
+            tint:"#3affe0"      /* le vert : c'est a ca qu'on voit les fausses */
         });
 
     }
@@ -5472,9 +5457,9 @@ function updateMimic(dt){
 
     if(zone !== "couloir"){
 
-        if(mim || mimHands.length || mimBeams.length){
-            mim = null;
-            mimHands = [];
+        if(mim || mimBeams.length){
+            mim      = null;
+            pup      = null;
             mimBeams = [];
         }
 
@@ -5548,7 +5533,7 @@ function updateMimic(dt){
 
         if(sp.h > .6 && player.invincible <= 0){
 
-            const len = (a.y1 - a.y0) * .21 * sp.h;
+            const len = (a.y1 - a.y0) * .175 * sp.h;
 
             const near = Math.abs(player.x - sp.x) < 15 * unit + player.r * .6;
             const deep = sp.dir > 0
@@ -5581,7 +5566,7 @@ function updateMimic(dt){
         cp.y += cp.vy * dt;
 
         if(player.invincible <= 0 &&
-           Math.hypot(cp.x - player.x, cp.y - player.y) < cp.r * .62 + player.r){
+           Math.hypot(cp.x - player.x, cp.y - player.y) < cp.r * .72 + player.r){
 
             loseLife(null);
 
@@ -5596,56 +5581,6 @@ function updateMimic(dt){
     }
 
     mimCopies = mimCopies.filter(cp => cp.life > 0);
-
-    /* ---- les mains vivent meme apres sa mort ---- */
-    for(const h of mimHands){
-
-        h.life -= dt;
-        h.wave += dt * 7;
-
-        if(h.slam > 0){
-
-            h.slam -= dt;
-
-            /* l'onde de choc : elle ne part qu'apres l'annonce */
-            if(h.slam < .30 && h.slam > .08 && player.invincible <= 0){
-
-                const d = Math.hypot(h.x - player.x, h.y - player.y);
-
-                if(d < h.r * 2.8 && d > h.r * 1.3){
-
-                    loseLife(null);
-
-                    if(mim){
-                        mim.hp = Math.min(1, mim.hp + MIM_PUNCH);
-                    }
-
-                }
-
-            }
-
-        }else{
-
-            /* elle rampe, doucement mais sans jamais s'arreter */
-            const dx = player.x - h.x;
-            const dy = player.y - h.y;
-            const len = Math.max(1, Math.hypot(dx, dy));
-
-            const sp = 118 * unit;
-
-            h.x += dx / len * sp * dt;
-            h.y += dy / len * sp * dt;
-
-            if(len < h.r * 1.8){
-                h.slam = .85;      /* l'annonce dure plus longtemps */
-                mimSfx("poing");
-            }
-
-        }
-
-    }
-
-    mimHands = mimHands.filter(h => h.life > 0);
 
     /* ---- les rayons ---- */
     for(const b of mimBeams){
@@ -5693,6 +5628,39 @@ function updateMimic(dt){
 
         mim.dead -= dt;
 
+        /*
+        Il ne s'effondre pas : il RECULE. Il remonte dans le
+        noir du couloir, lentement, et il abandonne sa
+        marionnette derriere lui. C'est elle qui reste.
+        */
+        mim.y -= dt * (a.y1 - a.y0) * .45;
+
+        /* la marionnette, elle, tombe et s'immobilise au sol */
+        pup.vy = Math.min((pup.vy || 0) + dt * 900 * unit, 900 * unit);
+        pup.vx = (pup.vx || 0) * Math.pow(.4, dt);
+
+        pup.x += pup.vx * dt;
+        pup.y += pup.vy * dt;
+
+        pup.libre = true;
+
+        const sol = a.y1 - pup.r * .8;
+
+        if(pup.y >= sol){
+
+            pup.y  = sol;
+            pup.vy = 0;
+            pup.vx *= .3;
+
+            /* elle finit couchee sur le flanc */
+            pup.spin += (1.35 - pup.spin) * Math.min(1, dt * 3);
+
+        }else{
+
+            pup.spin += dt * 2.2;
+
+        }
+
         if(mim.dead <= 0 && !mimCleared){
 
             mimCleared = true;
@@ -5703,6 +5671,10 @@ function updateMimic(dt){
 
             unlockExclusive("mimic");
 
+            /*
+            Lui disparait pour de bon. La marionnette reste au
+            sol, immobile : la seule chose qu'il laisse.
+            */
             mim = null;
 
         }
@@ -5720,7 +5692,6 @@ function updateMimic(dt){
         mim.dead = 2.4;
 
         mimBeams = [];
-        mimHands = [];
 
         for(let i = 0; i < 40; i++){
             burst(mim.x, mim.y, 3, i % 2 ? "#ffffff" : "#c86aff");
@@ -5869,10 +5840,6 @@ function updateMimic(dt){
 
             mimSfx("impact");
 
-            if(ph >= 1 && mimHands.length < 2){
-                mimSpawnHand();
-            }
-
         }
 
     }else if(mim.state === "balayage"){
@@ -5957,8 +5924,9 @@ function updateMimic(dt){
 
     }
 
-    /* ---- la marionnette blesse, sauf quand le fil la remonte ---- */
-    if(mim.state !== "retour" &&
+    /* ---- elle blesse, sauf quand le fil la remonte ou qu'il est brise ---- */
+    if(mim.dead <= 0 &&
+       mim.state !== "retour" &&
        player.invincible <= 0 &&
        Math.hypot(pup.x - player.x, pup.y - player.y) < pup.r * .78 + player.r){
 
@@ -6471,7 +6439,7 @@ function drawPuppet(q, col, tendu){
     const r = q.r;
 
     /* le halo : rouge quand elle est lachee, violet sinon */
-    const glow = q.libre ? "#ff3af0" : col;
+    const glow = q.tint ? q.tint : (q.libre ? "#ff3af0" : col);
 
     const halo = ctx.createRadialGradient(0, 0, r * .3, 0, 0, r * 2.2);
     halo.addColorStop(0, hexA(glow, q.libre ? .38 : .22));
@@ -6629,6 +6597,24 @@ function drawMimic(){
         return;
     }
 
+    /* il est parti : il ne reste que le pantin, par terre */
+    if(!mim){
+
+        if(pup){
+
+            ctx.save();
+            ctx.globalAlpha = .9;
+
+            drawPuppet(pup, "#5a4a70", false);
+
+            ctx.restore();
+
+        }
+
+        return;
+
+    }
+
     const col = MIM_PHASES[mimPhase()].col;
 
     const a = playArea();
@@ -6669,7 +6655,7 @@ function drawMimic(){
 
         }
 
-        const len = (a.y1 - a.y0) * .21 * sp.h;
+        const len = (a.y1 - a.y0) * .175 * sp.h;
 
         if(len < 1){
             continue;
@@ -6750,13 +6736,19 @@ function drawMimic(){
 
     }
 
-    /* --- ses fausses copies : elles n'ont pas son liseré --- */
+    /*
+    Ses fausses copies : d'autres pantins, laches sans fil.
+    Elles sont plus pales que la vraie, et leur halo tire sur
+    le vert : c'est a ca qu'on les reconnait.
+    */
     for(const cp of mimCopies){
 
         ctx.save();
-        ctx.globalAlpha = Math.min(1, cp.life) * .75;
+        ctx.globalAlpha = Math.min(1, cp.life) * .8;
 
-        paintMimicHead(ctx, cp.x, cp.y, cp.r, cp.t, 1, "#3affe0", 1);
+        cp.spin = (cp.spin || 0) + .04;
+
+        drawPuppet(cp, "#3affe0", false);
 
         ctx.restore();
 
@@ -6791,6 +6783,18 @@ function drawMimic(){
         ctx.stroke();
 
         ctx.shadowBlur = 0;
+        ctx.restore();
+
+    }
+
+    /* --- LA MARIONNETTE SEULE, une fois qu'il est parti --- */
+    if(!mim && pup){
+
+        ctx.save();
+        ctx.globalAlpha = .9;
+
+        drawPuppet(pup, "#5a4a70", false);
+
         ctx.restore();
 
     }
@@ -6888,79 +6892,6 @@ function drawMimic(){
             ctx.restore();
 
         }
-
-    }
-
-    /* les mains qui rampent */
-    for(const h of mimHands){
-
-        ctx.save();
-        ctx.translate(h.x, h.y);
-
-        ctx.globalAlpha = Math.min(1, h.life);
-
-        /* l'annonce : le cercle se resserre avant que ca parte */
-        if(h.slam >= .30){
-
-            const w = (h.slam - .30) / .55;
-
-            ctx.globalAlpha = (1 - w) * .8;
-            ctx.strokeStyle = "#ff3af0";
-            ctx.lineWidth   = 2.4 * unit;
-            ctx.setLineDash([6 * unit, 6 * unit]);
-
-            ctx.beginPath();
-            ctx.arc(0, 0, h.r * (1.3 + w * 1.5), 0, Math.PI * 2);
-            ctx.stroke();
-
-            ctx.setLineDash([]);
-            ctx.globalAlpha = Math.min(1, h.life);
-
-        }
-
-        /* l'onde de choc du coup de poing */
-        if(h.slam > 0 && h.slam < .30){
-
-            const k = 1 - h.slam / .30;
-
-            ctx.strokeStyle = "#ff3af0";
-            ctx.lineWidth   = 5 * unit;
-            ctx.shadowColor = "#ff3af0";
-            ctx.shadowBlur  = 20;
-
-            ctx.beginPath();
-            ctx.arc(0, 0, h.r * (1.3 + k * 1.5), 0, Math.PI * 2);
-            ctx.stroke();
-
-            ctx.shadowBlur = 0;
-
-        }
-
-        /* la paume et les quatre doigts */
-        ctx.fillStyle = "#241a30";
-        ctx.strokeStyle = hexA(col, .8);
-        ctx.lineWidth = 2 * unit;
-
-        ctx.beginPath();
-        ctx.roundRect(-h.r * .8, -h.r * .6, h.r * 1.6, h.r * 1.2, h.r * .4);
-        ctx.fill();
-        ctx.stroke();
-
-        for(let f = 0; f < 4; f++){
-
-            const fx = -h.r * .6 + f * h.r * .4;
-            const wig = Math.sin(h.wave + f) * h.r * .16;
-
-            ctx.fillStyle = "#3a2b4c";
-
-            ctx.beginPath();
-            ctx.roundRect(fx - h.r * .14, -h.r * 1.15 + wig, h.r * .28, h.r * .62, h.r * .13);
-            ctx.fill();
-            ctx.stroke();
-
-        }
-
-        ctx.restore();
 
     }
 

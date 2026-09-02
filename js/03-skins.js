@@ -89,7 +89,8 @@ const SKINS = [
     /* --- recompense : il ne s'achete pas --- */
     {id:"abyssal",   name:"ABYSSAL SLIME",   color:"#2fe0ff", color2:"#04243a", price:0,    effect:"abyssal",   rarity:4, exclusive:true},
     {id:"neant",     name:"NÉANT SLIME",     color:"#c86aff", color2:"#100322", price:0,    effect:"neant",     rarity:4, exclusive:true},
-    {id:"mimic",     name:"MIMIC SLIME",     color:"#1b1424", color2:"#c86aff", price:0,    effect:"mimic",     rarity:4, exclusive:true}
+    {id:"mimic",     name:"MIMIC SLIME",     color:"#1b1424", color2:"#c86aff", price:0,    effect:"mimic",     rarity:4, exclusive:true},
+    {id:"pantin",    name:"MARIONNETTE",     color:"#2b2038", color2:"#b06cff", price:600,  effect:"pantin",    rarity:3}
 ];
 
 
@@ -625,6 +626,7 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
             abyssal:["#5fe8ff", "#7bffca"],
             neant:  ["#ffc65a", "#ffc65a"],
             mimic:  ["#ffffff", "#c86aff"],
+            pantin: ["#e8dcff", "#b06cff"],
             lampe:  ["#ffd0f5", "#ff6ad5"],
             holo:   ["#d8feff", "#5fe8ff"],
             requin: ["#eef4fa", "#eef4fa"],
@@ -4811,6 +4813,51 @@ function paintSkinInner(c, skin, w, h, r, t, f){
         }
 
         c.globalAlpha = 1;
+        return;
+
+    }
+
+
+    /* ---------- MARIONNETTE : sa tete, et rien d'autre ---------- */
+    if(e === "pantin"){
+
+        /* le bois sombre et verni de son crane */
+        const wood = c.createRadialGradient(-w * .25, -h * .35, 0, 0, 0, w * 1.15);
+        wood.addColorStop(0,   "#6a5480");
+        wood.addColorStop(.45, "#33263f");
+        wood.addColorStop(1,   "#140d1e");
+
+        c.fillStyle = wood;
+        c.fillRect(-w * 1.3, -h * 1.4, w * 2.6, h * 2.8);
+
+        /* la petite rangee de dents, sous les yeux */
+        c.fillStyle = "#f6f2ff";
+
+        for(let i = 0; i < 6; i++){
+
+            const px = -w * .30 + i * w * .12;
+
+            c.beginPath();
+            c.moveTo(px - w * .045, h * .34);
+            c.lineTo(px + w * .045, h * .34);
+            c.lineTo(px,            h * .50);
+            c.closePath();
+            c.fill();
+
+        }
+
+        /* l'anneau du fil, sur le sommet du crane */
+        c.strokeStyle = "#b06cff";
+        c.lineWidth   = h * .07;
+        c.shadowColor = "#b06cff";
+        c.shadowBlur  = 12;
+
+        c.beginPath();
+        c.arc(0, -h * .84, h * .15, 0, Math.PI * 2);
+        c.stroke();
+
+        c.shadowBlur = 0;
+
         return;
 
     }
