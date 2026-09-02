@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "9.0";
+const VERSION = "9.1";
 
 (function(){
 
@@ -617,8 +617,16 @@ function findSpot(radius, minFromPlayer, gen){
 
 function addSolid(){
 
-    /* le mode laser et LE COULOIR se jouent dans une arene vide */
-    if(laser.active || zone === "couloir"){
+    /*
+    Les blocs ne poussent que dans les quatre premiers mondes.
+    A partir du DESERT chaque monde a son propre mobilier —
+    les pics, les rondins, les contrepoids, les machines du
+    theatre — et une planete perdue au milieu n'aurait aucun
+    sens. Le mode laser, lui, se joue dans une arene vide.
+    */
+    const AVEC_BLOCS = ["cyber", "marais", "bonbon", "abysse"];
+
+    if(laser.active || AVEC_BLOCS.indexOf(zone) < 0){
         return;
     }
 
