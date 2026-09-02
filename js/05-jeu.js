@@ -672,9 +672,10 @@ function update(dt){
     if(gameTime > 6  && mimics.length < 1) createMimic();
     if(gameTime > 22 && mimics.length < 2) createMimic();
 
-    if(level >= 5  && mimics.length < 3) createMimic();
-    if(level >= 8  && mimics.length < 4) createMimic();
-    if(level >= 11 && mimics.length < 5) createMimic();
+    /* le rythme suit les nouveaux mondes de deux minutes */
+    if(level >= 3 && mimics.length < 3) createMimic();
+    if(level >= 5 && mimics.length < 4) createMimic();
+    if(level >= 7 && mimics.length < 5) createMimic();
 
     /* l'élite, au niveau 25 */
     if(level >= ELITE_LEVEL && !mimics.some(m => m.type.elite)){

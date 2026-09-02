@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "9.1";
+const VERSION = "9.2";
 
 (function(){
 
@@ -7469,6 +7469,56 @@ function updateBackstage(dt){
             loseLife(null);
         }
 
+    }
+
+    /*
+    Deux pantins ne peuvent pas occuper la meme place. Sans
+    ca, ceux qui rampent finissent tous empiles au meme
+    endroit et on ne distingue plus rien.
+    */
+    for(let i = 0; i < pendus.length; i++){
+
+        for(let j = i + 1; j < pendus.length; j++){
+
+            const p1 = pendus[i];
+            const p2 = pendus[j];
+
+            const dx = p2.x - p1.x;
+            const dy = p2.y - p1.y;
+
+            const min = (p1.r + p2.r) * .95;
+            const d   = Math.hypot(dx, dy);
+
+            if(d >= min || d < .0001){
+                continue;
+            }
+
+            /* on les ecarte a parts egales, le long de leur axe */
+            const push = (min - d) / 2;
+
+            const ux = dx / d;
+            const uy = dy / d;
+
+            /* celui qui pend ne bouge que sur les cotes : son fil le tient */
+            const libre1 = p1.state === "tombe" || p1.state === "rampe";
+            const libre2 = p2.state === "tombe" || p2.state === "rampe";
+
+            p1.x -= ux * push;
+            p2.x += ux * push;
+
+            if(libre1){ p1.y -= uy * push * .5; }
+            if(libre2){ p2.y += uy * push * .5; }
+
+            /* et on garde leur point d'accroche sous eux */
+            if(!libre1){ p1.top = p1.top; }
+
+        }
+
+    }
+
+    /* jamais hors du couloir */
+    for(const q of pendus){
+        q.x = Math.max(a.x0 + q.r, Math.min(a.x1 - q.r, q.x));
     }
 
     for(const rd of rideaux){

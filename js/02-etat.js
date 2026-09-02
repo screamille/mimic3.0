@@ -82,23 +82,30 @@ const TRACE_STEP = 7;       /* espacement minimum entre 2 points de trace */
 const TRACE_KEEP = 3400;    /* longueur de trace conservée, en px */
 const INVINCIBLE  = 1.3;    /* secondes d'invincibilité après un coup */
 const MAX_MIMICS  = 5;      /* ennemis simultanés au maximum */
-const ELITE_LEVEL  = 25;    /* niveau d'apparition du TRAQUEUR NOIR */
-const PORTAL_LEVEL = 20;    /* portail vers LE MARAIS */
-const CANDY_LEVEL  = 40;    /* portail vers LE PAYS DES BONBONS */
+/*
+Un niveau dure 12 secondes. Dix niveaux par monde, c'est
+donc DEUX MINUTES chacun — de quoi voir tout ce qu'un monde
+a a offrir sans que ca traine. Les deux mondes a boss, eux,
+gardent leur duree : c'est l'usure du boss qui commande, et
+le compte de niveaux ne sert que de filet de securite.
+*/
+const ELITE_LEVEL  = 8;     /* niveau d'apparition du TRAQUEUR NOIR */
+const PORTAL_LEVEL = 10;    /* portail vers LE MARAIS */
+const CANDY_LEVEL  = 20;    /* portail vers LE PAYS DES BONBONS */
 const MAX_GLOUTONS = 2;     /* gloutons présents en même temps */
 const MAX_GUIMAUVES = 2;    /* guimauves présentes en même temps */
-const ABYSS_LEVEL   = 60;   /* portail vers LES ABYSSES */
-const VOID_LEVEL    = 80;   /* portail vers LE NÉANT */
-const DESERT_LEVEL  = 100;  /* portail vers LE DÉSERT DE VERRE */
-const FORGE_LEVEL   = 120;  /* portail vers LA FORGE */
-const BIBLIO_LEVEL  = 140;  /* portail vers LA BIBLIOTHÈQUE */
-const CLOCK_LEVEL   = 160;  /* portail vers L'HORLOGE */
-const MIMIC_LEVEL   = 200;  /* portail vers LE COULOIR : LE MIMIC t'attend */
-const BACK_LEVEL    = 240;  /* portail vers LES COULISSES      */
-const SCENE_LEVEL   = 280;  /* portail vers LA SCÈNE           */
-const ATELIER_LEVEL = 320;  /* portail vers L'ATELIER          */
-const GRENIER_LEVEL = 360;  /* portail vers LE GRENIER         */
-const OMBRE_LEVEL   = 400;  /* portail vers LE THÉÂTRE D'OMBRES */
+const ABYSS_LEVEL   = 30;   /* portail vers LES ABYSSES */
+const VOID_LEVEL    = 40;   /* portail vers LE NÉANT */
+const DESERT_LEVEL  = 55;  /* portail vers LE DÉSERT DE VERRE */
+const FORGE_LEVEL   = 65;  /* portail vers LA FORGE */
+const BIBLIO_LEVEL  = 75;  /* portail vers LA BIBLIOTHÈQUE */
+const CLOCK_LEVEL   = 85;  /* portail vers L'HORLOGE */
+const MIMIC_LEVEL   = 95;  /* portail vers LE COULOIR : LE MIMIC t'attend */
+const BACK_LEVEL    = 115;  /* portail vers LES COULISSES      */
+const SCENE_LEVEL   = 125;  /* portail vers LA SCÈNE           */
+const ATELIER_LEVEL = 135;  /* portail vers L'ATELIER          */
+const GRENIER_LEVEL = 145;  /* portail vers LE GRENIER         */
+const OMBRE_LEVEL   = 155;  /* portail vers LE THÉÂTRE D'OMBRES */
 const MAX_ANGUILLES = 3;    /* anguilles simultanées */
 const MAX_LANTERNES = 3;    /* lanternes simultanées */
 
@@ -145,7 +152,7 @@ const WARP_VEIL = {
 const MAX_BLOBS    = 4;     /* slimes du marais présents en même temps */
 const START_SOLIDS = 9;     /* blocs présents dès le début */
 const MAX_SOLIDS   = 18;    /* blocs au maximum sur le terrain */
-const WALL_LEVEL   = 30;    /* à partir d'ici, le terrain se referme encore */
+const WALL_LEVEL   = 15;    /* à partir d'ici, le terrain se referme encore */
 const MAX_SOLIDS_2 = 27;    /* blocs au maximum après le niveau 30 */
 
 const ARCHER_LEVEL    = 15; /* niveau d'apparition des archers */
