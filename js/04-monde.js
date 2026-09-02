@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "8.2";
+const VERSION = "8.3";
 
 (function(){
 
@@ -4863,9 +4863,9 @@ const MIM_TIME   = 105;   /* secondes pour l'user entierement */
 const MIM_PUNCH  = .06;   /* ce qu'il regagne quand il te touche */
 
 const MIM_PHASES = [
-    {name:"LES PORTES", col:"#b06cff"},
-    {name:"LA POIGNE",  col:"#d64bff"},
-    {name:"GLITCH",     col:"#ff3af0"}
+    {name:"LES FILS",    col:"#b06cff"},
+    {name:"LA DANSE",    col:"#d64bff"},
+    {name:"FILS COUPÉS", col:"#ff3af0"}
 ];
 
 let mim         = null;   /* LE MIMIC lui-meme       */
@@ -4873,7 +4873,7 @@ let mimRings    = [];     /* les ondes de choc       */
 let mimCopies   = [];     /* ses fausses copies      */
 let mimSpikes   = [];     /* les dents du couloir    */
 let mimBlack    = 0;      /* le couloir s'eteint     */
-let mimDoors    = [];     /* les portes du couloir   */
+let pup         = null;   /* LA MARIONNETTE          */
 let mimHands    = [];     /* les mains qui rampent   */
 let mimBeams    = [];     /* les rayons de ses yeux  */
 let mimCleared  = false;  /* l'a-t-on deja brise ?   */
@@ -5009,48 +5009,6 @@ function mimPhase(){
 }
 
 
-/* les portes : le long des trois murs, jamais dans les coins */
-function mimBuildDoors(){
-
-    const a = playArea();
-
-    mimDoors = [];
-
-    const w = (a.x1 - a.x0);
-    const h = (a.y1 - a.y0);
-
-    /* le mur du fond */
-    for(let i = 0; i < 4; i++){
-        mimDoors.push({
-            x:a.x0 + w * (.18 + i * .215),
-            y:a.y0 + 26 * unit,
-            side:"haut",
-            open:0
-        });
-    }
-
-    /* les deux murs lateraux */
-    for(let i = 0; i < 2; i++){
-
-        mimDoors.push({
-            x:a.x0 + 6 * unit,
-            y:a.y0 + h * (.35 + i * .3),
-            side:"gauche",
-            open:0
-        });
-
-        mimDoors.push({
-            x:a.x1 - 6 * unit,
-            y:a.y0 + h * (.35 + i * .3),
-            side:"droite",
-            open:0
-        });
-
-    }
-
-}
-
-
 function enterCorridor(){
 
     zone = "couloir";
@@ -5073,11 +5031,9 @@ function enterCorridor(){
     const a = playArea();
 
     player.x = (a.x0 + a.x1) / 2;
-    player.y = (a.y0 + a.y1) * .78;
+    player.y = (a.y0 + a.y1) * .80;
 
     player.invincible = 3;
-
-    mimBuildDoors();
 
     mimHands   = [];
     mimBeams   = [];
@@ -5087,31 +5043,44 @@ function enterCorridor(){
     mimBlack   = 0;
     mimCleared = false;
 
+    /*
+    LE MIMIC ne descend jamais. Il reste en haut du couloir,
+    accroche a son fil, et c'est SA MARIONNETTE qu'il envoie.
+    Ses bras suivent les fils : quand la marionnette part a
+    gauche, ses mains partent a gauche.
+    */
     mim = {
         x:(a.x0 + a.x1) / 2,
-        y:a.y0 + (a.y1 - a.y0) * .22,
-        r:Math.min(W, H) * .17,
+        y:a.y0 + (a.y1 - a.y0) * .20,
+        r:Math.min(W, H) * .15,
         hp:1,
         phase:0,
         t:0,
         state:"attente",
-        timer:2.2,
-        door:0,
-        aim:0,
-        vx:0,
-        vy:0,
+        timer:2.4,
         glitch:0,
         shake:0,
-        bump:0,
-        combo:0,
-        dark:0,
         dead:0,
-        smile:1
+        sway:0
+    };
+
+    /* la marionnette : c'est elle qui frappe */
+    pup = {
+        x:mim.x,
+        y:mim.y + mim.r * 2.6,
+        vx:0, vy:0,
+        r:Math.min(W, H) * .09,
+        ang:0,           /* l'angle du pendule       */
+        amp:.5,          /* l'ampleur du balancement */
+        spin:0,          /* la rotation du corps     */
+        libre:false,     /* les fils sont-ils coupes */
+        t:0,
+        limbs:0
     };
 
     noteWorld("couloir");
 
-    worldBanner("couloir", "🚪");
+    worldBanner("couloir", "🎭");
 
     sound(52, 1.6, "sine",     .09);
     sound(88, 1.1, "sawtooth", .05);
@@ -5121,72 +5090,166 @@ function enterCorridor(){
 
 /* --------- LES ATTAQUES --------- */
 
-/* il choisit une porte et s'y montre */
-function mimPeek(){
+/*
+--- LE PENDULE ---
 
-    if(!mimDoors.length){
-        mimBuildDoors();
-    }
+Il lance la marionnette en balancier. Elle passe et repasse
+au-dessus de toi, de plus en plus large : c'est le moment de
+choisir son cote.
+*/
+function pupSwing(){
 
-    /* jamais deux fois la meme, et plutot loin de toi : on doit courir */
-    let best = 0;
-    let bestScore = -1;
+    mim.state = "pendule";
+    mim.timer = 2.4 - mimPhase() * .45;
 
-    mimDoors.forEach((d, i) => {
+    pup.libre = false;
+    pup.amp   = .55 + mimPhase() * .18;
 
-        if(i === mim.door){
-            return;
-        }
-
-        const far = Math.hypot(d.x - player.x, d.y - player.y);
-        const sc  = far * (.7 + Math.random() * .6);
-
-        if(sc > bestScore){
-            bestScore = sc;
-            best = i;
-        }
-
-    });
-
-    mim.door  = best;
-    mim.state = "guette";
-    /* il te vise de moins en moins longtemps */
-    mim.timer = mimPhase() === 2 ? .48 : mimPhase() === 1 ? .64 : .82;
-
-    const d = mimDoors[best];
-
-    mim.x = d.x;
-    mim.y = d.y;
-
-    mimSfx("porte");
-    setTimeout(() => { if(mim){ mimSfx("regard"); } }, 260);
+    sound(220, .3, "sine",     .04);
+    sound(90,  .4, "sawtooth", .035);
 
 }
 
 
-/* il traverse le couloir d'un trait, droit sur toi */
-function mimCharge(){
+/*
+--- LA PLONGEE ---
 
-    const dx = player.x - mim.x;
-    const dy = player.y - mim.y;
+Les fils se tendent, la marionnette te vise, puis elle tombe
+droit sur toi avant d'etre rappelee vers le haut.
+*/
+function pupAim(){
+
+    mim.state = "vise";
+    mim.timer = mimPhase() === 2 ? .48 : mimPhase() === 1 ? .62 : .80;
+
+    mimSfx("regard");
+
+}
+
+
+function pupDive(){
+
+    const dx = player.x - pup.x;
+    const dy = player.y - pup.y;
 
     const len = Math.max(1, Math.hypot(dx, dy));
 
-    const sp = (760 + mimPhase() * 240) * unit;
+    const sp = (820 + mimPhase() * 260) * unit;
 
-    mim.vx = dx / len * sp;
-    mim.vy = dy / len * sp;
+    pup.vx = dx / len * sp;
+    pup.vy = dy / len * sp;
 
-    mim.state = "charge";
-    mim.timer = 1.35;
-    mim.shake = 1;
+    mim.state = "plonge";
+    mim.timer = 1.1;
+    mim.shake = .8;
 
     mimSfx("charge");
 
 }
 
 
-/* une main se detache et rampe vers toi */
+/*
+--- LE BALAYAGE ---
+
+Il fait tourner la marionnette autour de lui, au bout du fil,
+de plus en plus loin. Il faut rester dans le dos du cercle.
+*/
+function pupSweep(){
+
+    mim.state = "balayage";
+    mim.timer = 3.0;
+
+    pup.libre = false;
+    pup.spin  = 0;
+
+    sound(140, .5, "sawtooth", .05);
+    setTimeout(() => sound(260, .3, "square", .04), 200);
+
+    buzz([30, 40, 30]);
+
+}
+
+
+/*
+--- LES FILS COUPES ---
+
+En phase 3 il lache tout : la marionnette part seule, rebondit
+sur les murs, et lui ne fait plus que la regarder.
+*/
+function pupFree(){
+
+    const dx = player.x - pup.x;
+    const dy = player.y - pup.y;
+
+    const len = Math.max(1, Math.hypot(dx, dy));
+
+    const sp = 640 * unit;
+
+    pup.vx = dx / len * sp;
+    pup.vy = dy / len * sp;
+
+    pup.libre = true;
+
+    mim.state  = "libre";
+    mim.timer  = 3.4;
+    mim.glitch = 1;
+
+    /* le claquement sec des fils tranches */
+    sound(900, .08, "square",   .045);
+    setTimeout(() => sound(520, .10, "square", .04), 70);
+    setTimeout(() => sound(70,  .40, "sawtooth", .06), 150);
+
+    buzz([50, 30, 50]);
+
+}
+
+
+/*
+Le point d'accroche : le milieu de ses deux mains. C'est de
+la que partent les fils, et c'est autour de ca que la
+marionnette balance.
+*/
+function mimHandAnchor(){
+
+    return {
+        x:mim.x,
+        y:mim.y + mim.r * 1.85
+    };
+
+}
+
+
+/* elle pend au bout du fil et balance autour de l'accroche */
+function pupHang(anchor, amp, dt){
+
+    const len = mim.r * 2.3;
+
+    const a = Math.sin(pup.ang) * amp;
+
+    const tx = anchor.x + Math.sin(a) * len;
+    const ty = anchor.y + Math.cos(a) * len;
+
+    /* elle rejoint sa place au fil, jamais d'un coup */
+    const k = Math.min(1, dt * 7);
+
+    pup.x += (tx - pup.x) * k;
+    pup.y += (ty - pup.y) * k;
+
+    pup.spin = a * .8;
+
+}
+
+
+/* elle ne sort jamais du couloir */
+function pupBounds(a){
+
+    pup.x = Math.max(a.x0 + pup.r * .6, Math.min(a.x1 - pup.r * .6, pup.x));
+    pup.y = Math.max(a.y0 + pup.r * .6, Math.min(a.y1 - pup.r * .6, pup.y));
+
+}
+
+
+/* une main se detache et rampe vers toi *//* une main se detache et rampe vers toi */
 function mimSpawnHand(){
 
     const a = playArea();
@@ -5620,176 +5683,190 @@ function updateMimic(dt){
     /*
     ---- sa mecanique ----
 
-    attente : il choisit sa porte
-    guette  : il te vise, la porte s'ouvre
-    charge  : il traverse
-    poing   : il claque le sol, trois ondes partent
-    noir    : le couloir s'eteint, on ne voit que ses yeux
+    Lui ne bouge pas : il se balance en haut, accroche a son
+    fil. Tout passe par LA MARIONNETTE.
 
-    Plus il s'use, plus il enchaine, et plus il triche.
+    pendule  : elle balaie au-dessus de toi
+    vise     : les fils se tendent, elle te pointe
+    plonge   : elle tombe sur toi, puis remonte
+    balayage : elle tourne autour de lui, de plus en plus loin
+    libre    : les fils sont coupes, elle rebondit toute seule
+    poing    : il claque le sol, les ondes partent
+    noir     : le couloir s'eteint
     */
+
+    mim.sway += dt * 1.1;
+    mim.x     = (a.x0 + a.x1) / 2 + Math.sin(mim.sway) * 30 * unit;
+    mim.y     = a.y0 + (a.y1 - a.y0) * .20 + Math.sin(mim.sway * .7) * 8 * unit;
+
+    pup.t += dt;
+
+    const anchor = mimHandAnchor();
+
     mim.timer -= dt;
 
     if(mim.state === "attente"){
 
-        if(mim.timer <= 0){
-            mimPeek();
-        }
+        /* elle se balance doucement sous lui */
+        pup.ang += dt * 1.4;
 
-    }else if(mim.state === "guette"){
-
-        const d = mimDoors[mim.door];
-
-        if(d){
-            d.open = Math.min(1, d.open + dt * 3);
-        }
+        pupHang(anchor, .22, dt);
 
         if(mim.timer <= 0){
-            mimCharge();
+
+            /* ce qu'il choisit depend de son usure */
+            if(ph === 0){
+
+                pupSwing();
+
+            }else if(ph === 1){
+
+                Math.random() < .45 ? pupSweep() : pupSwing();
+
+            }else{
+
+                const roll = Math.random();
+
+                if(roll < .24){        mimFireBeams(); mim.timer = .7; }
+                else if(roll < .44){   mimBite();      mim.timer = .8; }
+                else if(roll < .60){   mimSpawnCopies(); mim.timer = 1.0; }
+                else if(roll < .74){   mimBlackout(); }
+                else if(roll < .88){   pupFree(); }
+                else {                 pupSweep(); }
+
+            }
+
         }
 
-    }else if(mim.state === "poing"){
+    }else if(mim.state === "pendule"){
+
+        /* le balancier : une trajectoire large, lisible, implacable */
+        pup.ang += dt * (2.0 + ph * .5);
+
+        pupHang(anchor, pup.amp, dt);
 
         if(mim.timer <= 0){
+            pupAim();
+        }
+
+    }else if(mim.state === "vise"){
+
+        /* elle se fige au-dessus de toi, les fils tendus */
+        pup.x += (player.x - pup.x) * Math.min(1, dt * 2.6);
+        pup.y += (anchor.y + mim.r * 1.9 - pup.y) * Math.min(1, dt * 3);
+
+        if(mim.timer <= 0){
+            pupDive();
+        }
+
+    }else if(mim.state === "plonge"){
+
+        pup.x += pup.vx * dt;
+        pup.y += pup.vy * dt;
+
+        pupBounds(a);
+
+        if(mim.timer <= 0){
+
+            /* le fil la rappelle vers le haut */
             mim.state = "attente";
-            mim.timer = .35;
-        }
-
-    }else if(mim.state === "noir"){
-
-        /* il attend dans le noir, puis fonce sans prevenir */
-        if(mim.timer <= 0){
-            mimCharge();
-            mim.timer = 1.5;
-        }
-
-    }else if(mim.state === "charge"){
-
-        mim.x += mim.vx * dt;
-        mim.y += mim.vy * dt;
-
-        let cogne = false;
-
-        if(mim.x < a.x0 + mim.r * .5){ mim.x = a.x0 + mim.r * .5; mim.vx =  Math.abs(mim.vx); cogne = true; }
-        if(mim.x > a.x1 - mim.r * .5){ mim.x = a.x1 - mim.r * .5; mim.vx = -Math.abs(mim.vx); cogne = true; }
-        if(mim.y < a.y0 + mim.r * .5){ mim.y = a.y0 + mim.r * .5; mim.vy =  Math.abs(mim.vy); cogne = true; }
-        if(mim.y > a.y1 - mim.r * .5){ mim.y = a.y1 - mim.r * .5; mim.vy = -Math.abs(mim.vy); cogne = true; }
-
-        /* il percute le mur : le couloir tremble, et une onde part */
-        if(cogne && mim.bump <= 0){
-
-            mim.bump  = .4;
-            mim.shake = 1;
+            mim.timer = ph === 2 ? .5 : ph === 1 ? .75 : 1.0;
 
             mimSfx("impact");
 
             if(ph >= 1){
-                mimRing(mim.x, mim.y, 0, "#b06cff");
+                mimRing(pup.x, pup.y, 0, "#b06cff");
+            }
+
+            if(ph >= 1 && mimHands.length < (ph === 2 ? 3 : 2)){
+                mimSpawnHand();
             }
 
         }
 
-        mim.bump = Math.max(0, (mim.bump || 0) - dt);
+    }else if(mim.state === "balayage"){
 
-        if(player.invincible <= 0 &&
-           Math.hypot(mim.x - player.x, mim.y - player.y) < mim.r * .72 + player.r){
+        /* le tour de piste : le rayon grandit, la vitesse aussi */
+        pup.spin += dt * (2.2 + ph * .6);
 
-            loseLife(null);
+        const k = 1 - Math.max(0, mim.timer) / 3.0;
 
-            mim.hp = Math.min(1, mim.hp + MIM_PUNCH);
+        const reach = (mim.r * 1.6) + k * (a.y1 - a.y0) * .55;
 
-            mim.timer = Math.min(mim.timer, .2);
+        pup.x = mim.x + Math.cos(pup.spin) * reach;
+        pup.y = mim.y + Math.sin(pup.spin) * reach * .62 + mim.r * 1.2;
 
-        }
+        pupBounds(a);
 
         if(mim.timer <= 0){
 
-            mimDoors.forEach(d => { d.open = Math.max(0, d.open - .5); });
+            mim.state = "attente";
+            mim.timer = .6;
 
-            /* --- ce qu'il fait juste apres avoir traverse --- */
+            mimSfx("impact");
+            mimRing(pup.x, pup.y, 0, "#d64bff");
 
-            mim.combo = (mim.combo || 0) + 1;
+        }
 
-            if(ph === 0){
+    }else if(mim.state === "libre"){
 
-                /* phase 1 : il repart guetter, sans plus */
-                mim.state = "attente";
-                mim.timer = .95;
-                mim.combo = 0;
+        /* les fils coupes : elle rebondit et ne s'arrete plus */
+        pup.x += pup.vx * dt;
+        pup.y += pup.vy * dt;
 
-            }else if(ph === 1){
+        if(pup.x < a.x0 + pup.r){ pup.x = a.x0 + pup.r; pup.vx =  Math.abs(pup.vx); mimSfx("impact"); }
+        if(pup.x > a.x1 - pup.r){ pup.x = a.x1 - pup.r; pup.vx = -Math.abs(pup.vx); mimSfx("impact"); }
+        if(pup.y < a.y0 + pup.r){ pup.y = a.y0 + pup.r; pup.vy =  Math.abs(pup.vy); mimSfx("impact"); }
+        if(pup.y > a.y1 - pup.r){ pup.y = a.y1 - pup.r; pup.vy = -Math.abs(pup.vy); mimSfx("impact"); }
 
-                /*
-                Phase 2 : il enchaine DEUX passages, puis frappe
-                le sol. Entre-temps il seme des mains.
-                */
-                if(mimHands.length < 2){
-                    mimSpawnHand();
-                }
+        pup.spin += dt * 5;
 
-                if(mim.combo >= 2){
+        if(mim.timer <= 0){
 
-                    mim.combo = 0;
-                    mimSlam();
+            pup.libre = false;
 
-                }else{
+            mim.state = "attente";
+            mim.timer = .7;
 
-                    /* le second passage part tout de suite : pas de repit */
-                    mim.state = "guette";
-                    mim.timer = .34;
+            /* il la ramene au bout de son fil */
+            sound(300, .25, "sine", .04);
 
-                    const d2 = mimDoors[mim.door];
+        }
 
-                    if(d2){
-                        d2.open = 1;
-                    }
+    }else if(mim.state === "poing"){
 
-                    mimSfx("regard");
+        pupHang(anchor, .2, dt);
 
-                }
+        if(mim.timer <= 0){
+            mim.state = "attente";
+            mim.timer = .4;
+        }
 
-            }else{
+    }else if(mim.state === "noir"){
 
-                /* phase 3 : il triche a chaque fois, et jamais pareil */
-                if(mimHands.length < 3){
-                    mimSpawnHand();
-                }
+        pupHang(anchor, .3, dt);
 
-                mim.glitch = 1;
+        if(mim.timer <= 0){
+            pupDive();
+            mim.timer = 1.2;
+        }
 
-                mimSfx("glitch");
+    }
 
-                const roll = Math.random();
+    /* ---- la marionnette blesse, toujours ---- */
+    if(player.invincible <= 0 &&
+       Math.hypot(pup.x - player.x, pup.y - player.y) < pup.r * .78 + player.r){
 
-                if(roll < .30){
+        loseLife(null);
 
-                    mimFireBeams();
+        mim.hp = Math.min(1, mim.hp + MIM_PUNCH);
 
-                    mim.state = "attente";
-                    mim.timer = .45;
+        /* elle recule d'un coup : on n'enchaine pas deux pertes */
+        pup.x -= (player.x - pup.x) * .6;
+        pup.y -= (player.y - pup.y) * .6;
 
-                }else if(roll < .55){
-
-                    mimBite();
-
-                    mim.state = "attente";
-                    mim.timer = .55;
-
-                }else if(roll < .78){
-
-                    mimSpawnCopies();
-
-                    mim.state = "attente";
-                    mim.timer = .8;
-
-                }else{
-
-                    mimBlackout();
-
-                }
-
-            }
-
+        if(mim.state === "plonge"){
+            mim.timer = Math.min(mim.timer, .15);
         }
 
     }
@@ -5834,74 +5911,27 @@ function paintCorridor(c){
 
     }
 
-    /* les portes */
-    mimDoors.forEach((d, i) => {
+    /* les fils qui pendent du plafond, vides : le decor de sa scene */
+    ctx.strokeStyle = "rgba(190,150,255,.10)";
+    ctx.lineWidth   = 1.2 * unit;
 
-        const w = 44 * unit;
-        const h = 78 * unit;
+    for(let i = 0; i < 14; i++){
 
-        c.save();
-        c.translate(d.x, d.y + h * .35);
+        const x = a.x0 + (a.x1 - a.x0) * ((i + .5) / 14);
+        const h = (a.y1 - a.y0) * (.10 + ((i * 37) % 23) / 60);
 
-        if(d.side === "gauche"){ c.rotate(-Math.PI / 2); }
-        if(d.side === "droite"){ c.rotate(Math.PI / 2); }
-
-        /* l'encadrement */
-        c.fillStyle = "#150a24";
-        c.fillRect(-w / 2 - 4 * unit, -h / 2 - 4 * unit, w + 8 * unit, h + 8 * unit);
-
-        /* le noir derriere : c'est de la que ca sort */
-        c.fillStyle = "#05020a";
-        c.fillRect(-w / 2, -h / 2, w, h);
-
-        /* le battant, entrouvert */
-        const op = d.open || 0;
-
-        c.save();
-        c.translate(-w / 2, 0);
-        c.scale(Math.max(.06, 1 - op * .92), 1);
-
-        const pan = c.createLinearGradient(0, 0, w, 0);
-        pan.addColorStop(0,  "#3a2450");
-        pan.addColorStop(.5, "#241436");
-        pan.addColorStop(1,  "#180c26");
-
-        c.fillStyle = pan;
-        c.fillRect(0, -h / 2, w, h);
-
-        /* les deux panneaux graves */
-        c.strokeStyle = "rgba(190,140,255,.22)";
-        c.lineWidth   = 1.6 * unit;
-
-        c.strokeRect(w * .16, -h * .40, w * .68, h * .32);
-        c.strokeRect(w * .16,  h * .06, w * .68, h * .32);
-
-        /* la poignee */
-        c.fillStyle = "#b58cf0";
         c.beginPath();
-        c.arc(w * .82, 0, 4 * unit, 0, Math.PI * 2);
+        c.moveTo(x, a.y0);
+        c.lineTo(x + Math.sin(i * 1.7) * 6 * unit, a.y0 + h);
+        c.stroke();
+
+        /* le crochet, au bout */
+        c.fillStyle = "rgba(190,150,255,.14)";
+        c.beginPath();
+        c.arc(x + Math.sin(i * 1.7) * 6 * unit, a.y0 + h, 2.6 * unit, 0, Math.PI * 2);
         c.fill();
 
-        c.restore();
-
-        /* la fente lumineuse quand la porte s'entrouvre */
-        if(op > .02){
-
-            c.globalAlpha = Math.min(1, op * 1.4);
-            c.fillStyle   = "rgba(200,140,255,.5)";
-            c.shadowColor = "#c86aff";
-            c.shadowBlur  = 22;
-
-            c.fillRect(-w / 2 + Math.max(.06, 1 - op * .92) * w, -h / 2, 3 * unit, h);
-
-            c.shadowBlur  = 0;
-            c.globalAlpha = 1;
-
-        }
-
-        c.restore();
-
-    });
+    }
 
 }
 
@@ -6321,6 +6351,173 @@ function paintMimicHead(c, x, y, r, t, glitch, col, reach){
 }
 
 
+/*
+LA MARIONNETTE. Du bois sombre et du metal : une tete ronde
+avec deux yeux qui brillent, un corps articule, quatre
+membres pendus a leurs axes. Elle ne tient a rien d'autre
+qu'aux fils — et quand ils sont coupes, elle devient folle.
+*/
+function drawPuppet(q, col, tendu){
+
+    ctx.save();
+    ctx.translate(q.x, q.y);
+    ctx.rotate(q.spin * .6);
+
+    const r = q.r;
+
+    /* le halo : rouge quand elle est lachee, violet sinon */
+    const glow = q.libre ? "#ff3af0" : col;
+
+    const halo = ctx.createRadialGradient(0, 0, r * .3, 0, 0, r * 2.2);
+    halo.addColorStop(0, hexA(glow, q.libre ? .38 : .22));
+    halo.addColorStop(1, hexA(glow, 0));
+
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(0, 0, r * 2.2, 0, Math.PI * 2);
+    ctx.fill();
+
+    /* --- les quatre membres, pendus a leurs axes --- */
+    const swingA = Math.sin(q.t * (q.libre ? 9 : 3.4)) * (q.libre ? .8 : .35);
+
+    for(let i = 0; i < 4; i++){
+
+        const bras = i < 2;
+        const sg   = i % 2 ? 1 : -1;
+
+        ctx.save();
+        ctx.translate(sg * r * (bras ? .52 : .26), bras ? -r * .10 : r * .48);
+        ctx.rotate(sg * (bras ? .5 : .18) + swingA * (bras ? 1 : .5));
+
+        for(let seg = 0; seg < 2; seg++){
+
+            if(seg){
+                ctx.translate(0, r * .40);
+                ctx.rotate(sg * .3 + swingA * .4);
+            }
+
+            const wood = ctx.createLinearGradient(-r * .09, 0, r * .09, 0);
+            wood.addColorStop(0,  "#3a2b46");
+            wood.addColorStop(.5, "#5c476c");
+            wood.addColorStop(1,  "#241a30");
+
+            ctx.fillStyle   = wood;
+            ctx.strokeStyle = "rgba(0,0,0,.55)";
+            ctx.lineWidth   = r * .03;
+
+            ctx.beginPath();
+            ctx.roundRect(-r * .085, 0, r * .17, r * .40, r * .07);
+            ctx.fill();
+            ctx.stroke();
+
+            /* l'axe de l'articulation */
+            ctx.fillStyle = hexA(glow, .8);
+            ctx.beginPath();
+            ctx.arc(0, 0, r * .055, 0, Math.PI * 2);
+            ctx.fill();
+
+        }
+
+        ctx.restore();
+
+    }
+
+    /* --- le corps --- */
+    const body = ctx.createLinearGradient(0, -r * .3, 0, r * .7);
+    body.addColorStop(0,   "#4e3c5c");
+    body.addColorStop(.45, "#2d2138");
+    body.addColorStop(1,   "#160f1f");
+
+    ctx.fillStyle   = body;
+    ctx.strokeStyle = "rgba(0,0,0,.6)";
+    ctx.lineWidth   = r * .04;
+    ctx.shadowColor = "#000000";
+    ctx.shadowBlur  = 12;
+
+    ctx.beginPath();
+    ctx.roundRect(-r * .34, -r * .18, r * .68, r * .78, r * .16);
+    ctx.fill();
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+
+    /* la fente lumineuse du torse */
+    ctx.strokeStyle = hexA(glow, .85);
+    ctx.lineWidth   = r * .06;
+    ctx.shadowColor = glow;
+    ctx.shadowBlur  = 12;
+
+    ctx.beginPath();
+    ctx.moveTo(0, -r * .06);
+    ctx.lineTo(0,  r * .40);
+    ctx.stroke();
+
+    ctx.shadowBlur = 0;
+
+    /* --- la tete : ronde, avec deux yeux --- */
+    const head = ctx.createRadialGradient(-r * .1, -r * .5, 0, 0, -r * .42, r * .42);
+    head.addColorStop(0,  "#5e4a6e");
+    head.addColorStop(.6, "#2f2340");
+    head.addColorStop(1,  "#150e1e");
+
+    ctx.fillStyle = head;
+
+    ctx.beginPath();
+    ctx.arc(0, -r * .42, r * .38, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(0,0,0,.55)";
+    ctx.lineWidth   = r * .04;
+    ctx.stroke();
+
+    /* les yeux : deux fentes qui brillent, comme les siens */
+    for(let e = -1; e <= 1; e += 2){
+
+        ctx.shadowColor = "#ffffff";
+        ctx.shadowBlur  = r * .5;
+        ctx.fillStyle   = tendu || q.libre ? "#ffffff" : "#e8dcff";
+
+        ctx.beginPath();
+        ctx.ellipse(e * r * .14, -r * .45, r * .075, r * .105, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+    }
+
+    ctx.shadowBlur = 0;
+
+    /* la bouche : un trait de dents, en tout petit */
+    ctx.fillStyle = "#f6f2ff";
+
+    for(let i = 0; i < 5; i++){
+
+        const px = -r * .16 + i * r * .08;
+
+        ctx.beginPath();
+        ctx.moveTo(px - r * .035, -r * .24);
+        ctx.lineTo(px + r * .035, -r * .24);
+        ctx.lineTo(px,            -r * .16);
+        ctx.closePath();
+        ctx.fill();
+
+    }
+
+    /* l'anneau du fil, sur le crane */
+    if(!q.libre){
+
+        ctx.strokeStyle = hexA(glow, .7);
+        ctx.lineWidth   = r * .05;
+
+        ctx.beginPath();
+        ctx.arc(0, -r * .82, r * .10, 0, Math.PI * 2);
+        ctx.stroke();
+
+    }
+
+    ctx.restore();
+
+}
+
+
 function drawMimic(){
 
     if(zone !== "couloir"){
@@ -6414,6 +6611,69 @@ function drawMimic(){
     }
 
     ctx.globalAlpha = 1;
+
+    /* --- LES FILS ET LA MARIONNETTE --- */
+    if(mim && pup){
+
+        const an = mimHandAnchor();
+
+        /* les fils : tendus quand il vise, laches sinon */
+        const tendu = mim.state === "vise" || mim.state === "plonge";
+
+        if(!pup.libre){
+
+            ctx.save();
+
+            ctx.strokeStyle = tendu ? hexA("#ffffff", .8) : "rgba(200,170,255,.35)";
+            ctx.lineWidth   = (tendu ? 2.2 : 1.4) * unit;
+
+            if(tendu){
+                ctx.shadowColor = "#ffffff";
+                ctx.shadowBlur  = 10;
+            }
+
+            /* trois fils : la tete et les deux bras */
+            [[0, -pup.r * .7], [-pup.r * .7, 0], [pup.r * .7, 0]].forEach((o, i) => {
+
+                const hx = an.x + (i === 1 ? -mim.r * .95 : i === 2 ? mim.r * .95 : 0);
+
+                ctx.beginPath();
+                ctx.moveTo(hx, an.y);
+
+                /* le fil ploie un peu quand il est lache */
+                const mx = (hx + pup.x + o[0]) / 2 + (tendu ? 0 : Math.sin(pup.t * 2 + i) * 8 * unit);
+                const my = (an.y + pup.y + o[1]) / 2 + (tendu ? 0 : 14 * unit);
+
+                ctx.quadraticCurveTo(mx, my, pup.x + o[0], pup.y + o[1]);
+                ctx.stroke();
+
+            });
+
+            ctx.shadowBlur = 0;
+            ctx.restore();
+
+        }else{
+
+            /* les fils coupes : deux bouts qui flottent encore */
+            ctx.save();
+            ctx.strokeStyle = "rgba(200,170,255,.3)";
+            ctx.lineWidth   = 1.4 * unit;
+
+            [-1, 1].forEach(sg => {
+                ctx.beginPath();
+                ctx.moveTo(an.x + sg * mim.r * .95, an.y);
+                ctx.lineTo(an.x + sg * mim.r * .95 + Math.sin(pup.t * 3 + sg) * 14 * unit,
+                           an.y + mim.r * 1.1);
+                ctx.stroke();
+            });
+
+            ctx.restore();
+
+        }
+
+        drawPuppet(pup, col, tendu);
+
+    }
 
     /* les rayons partis de ses yeux */
     if(mim){
