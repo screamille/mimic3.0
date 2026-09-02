@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "8.7";
+const VERSION = "9.0";
 
 (function(){
 
@@ -198,7 +198,7 @@ function skillTick(dt){
 function stunnableCreatures(){
     return [].concat(
         mimics, blobs, gloutons, guimauves, anguilles, lanternes,
-        w69Creatures()
+        w69Creatures(), theatreCreatures()
     );
 }
 
@@ -1433,6 +1433,16 @@ function buildFloor(){
         paintClock(c);
     }else if(zone === "couloir"){
         paintCorridor(c);
+    }else if(zone === "coulisses"){
+        paintBackstage(c);
+    }else if(zone === "scene"){
+        paintStage(c);
+    }else if(zone === "atelier"){
+        paintWorkshop(c);
+    }else if(zone === "grenier"){
+        paintAttic(c);
+    }else if(zone === "ombres"){
+        paintShadows(c);
     }else{
         paintGalaxy(c);
     }
@@ -1967,6 +1977,14 @@ function portalTarget(){
     if(zone === "forge"  && level >= BIBLIO_LEVEL){ return "biblio"; }
     if(zone === "biblio" && level >= CLOCK_LEVEL) { return "horloge"; }
     if(zone === "horloge" && level >= MIMIC_LEVEL){ return "couloir"; }
+
+    /* LE COULOIR ne s'ouvre que quand LE MIMIC est brise */
+    if(zone === "couloir"   && (mimCleared || level >= BACK_LEVEL)){ return "coulisses"; }
+
+    if(zone === "coulisses" && level >= SCENE_LEVEL)  { return "scene";   }
+    if(zone === "scene"     && level >= ATELIER_LEVEL){ return "atelier"; }
+    if(zone === "atelier"   && level >= GRENIER_LEVEL){ return "grenier"; }
+    if(zone === "grenier"   && level >= OMBRE_LEVEL)  { return "ombres";  }
 
     return null;
 
@@ -7037,6 +7055,1652 @@ function drawMimic(){
 }
 
 
+/* --- les decors du theatre --- */
+
+function theatreFloor(c, haut, bas, ligne){
+
+    const a = playArea();
+
+    const g = c.createLinearGradient(0, 0, 0, H);
+    g.addColorStop(0, haut);
+    g.addColorStop(1, bas);
+
+    c.fillStyle = g;
+    c.fillRect(0, 0, W, H);
+
+    c.strokeStyle = ligne;
+    c.lineWidth   = 1.4 * unit;
+
+    for(let i = 1; i < 9; i++){
+        const y = a.y0 + (a.y1 - a.y0) * Math.pow(i / 9, 1.5);
+        c.beginPath();
+        c.moveTo(a.x0, y);
+        c.lineTo(a.x1, y);
+        c.stroke();
+    }
+
+}
+
+
+/* MONDE 11 : les coulisses, vues de derriere le decor */
+function paintBackstage(c){
+
+    theatreFloor(c, "#180d2c", "#0a0616", "rgba(160,120,255,.08)");
+
+    const a = playArea();
+
+    /* le gril, en haut : la poutre ou tout est accroche */
+    c.fillStyle = "#241634";
+    c.fillRect(0, a.y0 - 4 * unit, W, 14 * unit);
+
+    c.strokeStyle = "rgba(190,150,255,.18)";
+    c.lineWidth   = 1.6 * unit;
+
+    for(let i = 0; i < 22; i++){
+        const x = (i + .5) / 22 * W;
+        c.beginPath();
+        c.moveTo(x, a.y0 + 10 * unit);
+        c.lineTo(x, a.y0 + 10 * unit + ((i * 53) % 40 + 12) * unit);
+        c.stroke();
+    }
+
+    /* les panneaux de decor, ranges contre les murs */
+    c.fillStyle = "rgba(60,30,90,.35)";
+
+    [0, 1].forEach(sg => {
+        for(let i = 0; i < 3; i++){
+            const x = sg ? a.x1 - (i + 1) * 26 * unit : a.x0 + i * 26 * unit;
+            c.fillRect(x, a.y0 + 40 * unit, 20 * unit, (a.y1 - a.y0) * .8);
+        }
+    });
+
+}
+
+
+/* MONDE 12 : la scene, vue du public */
+function paintStage(c){
+
+    theatreFloor(c, "#2a1e08", "#0d0904", "rgba(255,215,106,.08)");
+
+    const a = playArea();
+
+    /* les planches du plateau */
+    c.strokeStyle = "rgba(255,215,106,.07)";
+    c.lineWidth   = 1.4 * unit;
+
+    for(let i = 1; i < 16; i++){
+        const x = a.x0 + (a.x1 - a.x0) * (i / 16);
+        c.beginPath();
+        c.moveTo(x, a.y0);
+        c.lineTo(x, a.y1);
+        c.stroke();
+    }
+
+    /* la rampe de feux, en bas */
+    for(let i = 0; i < 12; i++){
+
+        const x = a.x0 + (a.x1 - a.x0) * ((i + .5) / 12);
+
+        const g = c.createRadialGradient(x, a.y1, 0, x, a.y1, 60 * unit);
+        g.addColorStop(0, "rgba(255,215,106,.22)");
+        g.addColorStop(1, "rgba(255,215,106,0)");
+
+        c.fillStyle = g;
+        c.beginPath();
+        c.arc(x, a.y1, 60 * unit, Math.PI, Math.PI * 2);
+        c.fill();
+
+    }
+
+}
+
+
+/* MONDE 13 : l'atelier, ou il repare ses pantins */
+function paintWorkshop(c){
+
+    theatreFloor(c, "#06202c", "#030e16", "rgba(106,208,255,.08)");
+
+    const a = playArea();
+
+    /* l'etabli : des outils accroches au mur du fond */
+    c.strokeStyle = "rgba(106,208,255,.14)";
+    c.lineWidth   = 2 * unit;
+
+    for(let i = 0; i < 9; i++){
+
+        const x = a.x0 + (a.x1 - a.x0) * ((i + .5) / 9);
+        const h = ((i * 31) % 26 + 16) * unit;
+
+        c.beginPath();
+        c.moveTo(x, a.y0 + 6 * unit);
+        c.lineTo(x, a.y0 + 6 * unit + h);
+        c.stroke();
+
+        c.beginPath();
+        c.arc(x, a.y0 + 6 * unit + h, 4 * unit, 0, Math.PI * 2);
+        c.stroke();
+
+    }
+
+}
+
+
+/* MONDE 14 : le grenier, ou dorment les jouets */
+function paintAttic(c){
+
+    theatreFloor(c, "#241206", "#0e0703", "rgba(255,154,92,.08)");
+
+    const a = playArea();
+
+    /* la charpente : deux poutres en biais */
+    c.strokeStyle = "rgba(255,154,92,.10)";
+    c.lineWidth   = 12 * unit;
+
+    [[a.x0, a.y0, a.x1 * .45, a.y1], [a.x1, a.y0, a.x1 * .55, a.y1]].forEach(l => {
+        c.beginPath();
+        c.moveTo(l[0], l[1]);
+        c.lineTo(l[2], l[3]);
+        c.stroke();
+    });
+
+    /* la poussiere qui tombe dans le rai de lumiere */
+    c.fillStyle = "rgba(255,220,180,.16)";
+
+    for(let i = 0; i < 26; i++){
+        const x = ((i * 97) % 100) / 100 * W;
+        const y = ((i * 57 + gameTime * 14) % 100) / 100 * H;
+        c.beginPath();
+        c.arc(x, y, 1.6 * unit, 0, Math.PI * 2);
+        c.fill();
+    }
+
+}
+
+
+/* MONDE 15 : le mur blanc, et la bougie */
+function paintShadows(c){
+
+    const a = playArea();
+
+    /* le drap tendu, eclaire par le milieu */
+    const g = c.createRadialGradient(
+        (a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2, 0,
+        (a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2, Math.max(W, H) * .75
+    );
+    g.addColorStop(0,  "#3a2450");
+    g.addColorStop(.55,"#1a0e28");
+    g.addColorStop(1,  "#080412");
+
+    c.fillStyle = g;
+    c.fillRect(0, 0, W, H);
+
+    /* la trame du tissu */
+    c.strokeStyle = "rgba(200,106,255,.05)";
+    c.lineWidth   = 1.2 * unit;
+
+    for(let i = 1; i < 20; i++){
+        const x = a.x0 + (a.x1 - a.x0) * (i / 20);
+        c.beginPath();
+        c.moveTo(x, a.y0);
+        c.lineTo(x, a.y1);
+        c.stroke();
+    }
+
+    /* la flamme de la bougie, en bas au milieu */
+    const fx = (a.x0 + a.x1) / 2;
+    const fy = a.y1 - 6 * unit;
+
+    const fl = c.createRadialGradient(fx, fy, 0, fx, fy, 46 * unit);
+    fl.addColorStop(0, "rgba(255,225,150,.55)");
+    fl.addColorStop(1, "rgba(255,180,90,0)");
+
+    c.fillStyle = fl;
+    c.beginPath();
+    c.arc(fx, fy, 46 * unit, 0, Math.PI * 2);
+    c.fill();
+
+    c.fillStyle = "#ffe9a8";
+    c.beginPath();
+    c.ellipse(fx, fy - 4 * unit, 4 * unit, 9 * unit + Math.sin(gameTime * 9) * 2 * unit, 0, 0, Math.PI * 2);
+    c.fill();
+
+}
+
+
+/* =========================================================
+   MONDES 11 A 15 : LE THEATRE
+
+   Apres LE COULOIR, on ne quitte plus son theatre. Les
+   coulisses, la scene, son atelier, son grenier, et pour
+   finir le mur ou il fait jouer les ombres.
+
+   Aucun boss : rien que ses machines et ses jouets.
+========================================================= */
+
+let pendus   = [];   /* 11 : les pantins pendus au gril   */
+let rideaux  = [];   /* 11 : les rideaux qui balaient     */
+let projos   = [];   /* 12 : les projecteurs qui cherchent */
+let trappes  = [];   /* 12 : les trappes de la scene      */
+let aiguilles= [];   /* 13 : les aiguilles qui piquent    */
+let bobines  = [];   /* 13 : les bobines qui roulent      */
+let jouets   = [];   /* 14 : les jouets remontes          */
+let boites   = [];   /* 14 : les boites a surprise        */
+let ombres   = [];   /* 15 : ton ombre, a l'envers        */
+let griffes  = [];   /* 15 : la main d'ombre              */
+
+let theatreTimer = 0;
+
+
+function clearTheatre(){
+    pendus = []; rideaux = []; projos = []; trappes = [];
+    aiguilles = []; bobines = []; jouets = []; boites = [];
+    ombres = []; griffes = [];
+    theatreTimer = 0;
+}
+
+
+/* l'entree commune a ces cinq mondes */
+function theatreEnter(zoneId, icon){
+
+    zone = zoneId;
+
+    portal = null;
+
+    solids = []; orbs = []; coins = []; hearts = [];
+    balls  = []; slimes = []; trails = []; mimics = [];
+    archers = []; blobs = []; puddles = []; logs = [];
+    crawlers = []; drips = []; candies = []; gloutons = [];
+    guimauves = []; anguilles = []; lanternes = []; bulles = [];
+
+    boss = null; bossShots = []; bossBeams = [];
+    mim  = null; pup = null;
+    mimBeams = []; mimRings = []; mimCopies = []; mimSpikes = []; mimBlack = 0;
+
+    clearW69();
+    clearTheatre();
+
+    trace = [];
+    traceLength = 0;
+
+    const a = playArea();
+
+    player.x = (a.x0 + a.x1) / 2;
+    player.y = (a.y0 + a.y1) / 2;
+
+    player.invincible = 2.4;
+
+    addCoin();
+    addOrb();
+
+    noteWorld(zoneId);
+    worldBanner(zoneId, icon);
+
+    sound(200, .7, "triangle", .05);
+
+}
+
+
+/* =========== MONDE 11 : LES COULISSES =========== */
+
+function enterBackstage(){
+
+    theatreEnter("coulisses", "🎪");
+
+    for(let i = 0; i < 4; i++){ spawnPendu(); }
+
+    spawnRideau();
+
+}
+
+
+/* --- LE PANTIN PENDU : il tombe quand tu passes dessous --- */
+function spawnPendu(){
+
+    const a = playArea();
+
+    pendus.push({
+        x:a.x0 + (a.x1 - a.x0) * (.12 + rnd() * .76),
+        y:a.y0 + 30 * unit,
+        r:19 * unit,
+        top:a.y0 + 30 * unit,
+        state:"pend",      /* pend | tremble | tombe | rampe | remonte */
+        timer:0,
+        sway:rnd() * 6.28,
+        stunned:0
+    });
+
+}
+
+
+function spawnRideau(){
+
+    const a = playArea();
+
+    rideaux.push({
+        x:a.x0 - 60 * unit,
+        dir:1,
+        w:52 * unit,
+        hole:.25 + rnd() * .5,   /* la hauteur du passage */
+        wait:1.6,
+        t:0
+    });
+
+}
+
+
+function updateBackstage(dt){
+
+    const a = playArea();
+
+    for(const q of pendus){
+
+        if(q.stunned > 0){ q.stunned -= dt; continue; }
+
+        q.sway += dt * 1.6;
+
+        if(q.state === "pend"){
+
+            q.y = q.top;
+
+            /* tu passes dessous : il se met a trembler */
+            if(Math.abs(player.x - q.x) < 46 * unit){
+                q.state = "tremble";
+                q.timer = .7;
+                sound(300, .18, "square", .03);
+            }
+
+        }else if(q.state === "tremble"){
+
+            q.timer -= dt;
+
+            if(q.timer <= 0){
+                q.state = "tombe";
+                q.vy    = 0;
+                sound(120, .3, "sawtooth", .05);
+            }
+
+        }else if(q.state === "tombe"){
+
+            q.vy = Math.min((q.vy || 0) + dt * 2100 * unit, 1300 * unit);
+            q.y += q.vy * dt;
+
+            if(q.y >= a.y1 - q.r){
+                q.y = a.y1 - q.r;
+                q.state = "rampe";
+                q.timer = 4.5;
+                sound(90, .25, "square", .05);
+                buzz([35]);
+            }
+
+        }else if(q.state === "rampe"){
+
+            /* au sol il te suit, mais lentement */
+            const dx = player.x - q.x;
+
+            q.x += Math.sign(dx) * Math.min(Math.abs(dx), 78 * unit * dt);
+
+            q.timer -= dt;
+
+            if(q.timer <= 0){
+                q.state = "remonte";
+            }
+
+        }else{
+
+            q.y -= dt * 250 * unit;
+
+            if(q.y <= q.top){
+                q.y = q.top;
+                q.state = "pend";
+            }
+
+        }
+
+        if(player.invincible <= 0 && q.state !== "remonte" &&
+           Math.hypot(q.x - player.x, q.y - player.y) < q.r * .8 + player.r){
+            loseLife(null);
+        }
+
+    }
+
+    for(const rd of rideaux){
+
+        if(rd.wait > 0){ rd.wait -= dt; continue; }
+
+        rd.t += dt;
+        rd.x += rd.dir * 150 * unit * dt;
+
+        if(rd.x > a.x1 + 80 * unit){ rd.x = a.x0 - 80 * unit; rd.hole = .2 + rnd() * .6; rd.wait = 1.8; }
+
+        const hy = a.y0 + (a.y1 - a.y0) * rd.hole;
+
+        if(player.invincible <= 0 &&
+           Math.abs(player.x - rd.x) < rd.w * .5 + player.r * .6 &&
+           Math.abs(player.y - hy) > 62 * unit){
+            loseLife(null);
+        }
+
+    }
+
+}
+
+
+function drawBackstage(){
+
+    const a = playArea();
+
+    /* les rideaux : un pan de velours avec un passage */
+    for(const rd of rideaux){
+
+        if(rd.wait > 0){ continue; }
+
+        const hy = a.y0 + (a.y1 - a.y0) * rd.hole;
+
+        ctx.save();
+
+        const vel = ctx.createLinearGradient(rd.x - rd.w / 2, 0, rd.x + rd.w / 2, 0);
+        vel.addColorStop(0,  "#2a0f22");
+        vel.addColorStop(.5, "#6b1c44");
+        vel.addColorStop(1,  "#2a0f22");
+
+        ctx.fillStyle = vel;
+
+        [[a.y0, hy - 62 * unit], [hy + 62 * unit, a.y1]].forEach(seg => {
+
+            ctx.beginPath();
+            ctx.rect(rd.x - rd.w / 2, seg[0], rd.w, Math.max(0, seg[1] - seg[0]));
+            ctx.fill();
+
+            /* les plis */
+            ctx.strokeStyle = "rgba(0,0,0,.35)";
+            ctx.lineWidth   = 2 * unit;
+
+            for(let i = 1; i < 4; i++){
+                const px = rd.x - rd.w / 2 + rd.w * (i / 4);
+                ctx.beginPath();
+                ctx.moveTo(px, seg[0]);
+                ctx.lineTo(px + Math.sin(rd.t * 2 + i) * 3 * unit, seg[1]);
+                ctx.stroke();
+            }
+
+        });
+
+        /* le galon dore qui borde le passage */
+        ctx.strokeStyle = "#e8c46a";
+        ctx.lineWidth   = 3 * unit;
+
+        [hy - 62 * unit, hy + 62 * unit].forEach(y => {
+            ctx.beginPath();
+            ctx.moveTo(rd.x - rd.w / 2, y);
+            ctx.lineTo(rd.x + rd.w / 2, y);
+            ctx.stroke();
+        });
+
+        ctx.restore();
+
+    }
+
+    /* les pantins pendus */
+    for(const q of pendus){
+
+        ctx.save();
+
+        /* son fil, jusqu'au gril */
+        ctx.strokeStyle = "rgba(220,205,255,.35)";
+        ctx.lineWidth   = 1.6 * unit;
+
+        ctx.beginPath();
+        ctx.moveTo(q.x, a.y0);
+        ctx.lineTo(q.x, q.y - q.r);
+        ctx.stroke();
+
+        ctx.translate(q.x, q.y);
+
+        const shake = q.state === "tremble" ? (Math.random() - .5) * 6 * unit : 0;
+
+        ctx.translate(shake, 0);
+        ctx.rotate(Math.sin(q.sway) * (q.state === "pend" ? .2 : .05));
+
+        if(q.stunned > 0){ ctx.globalAlpha = .5; }
+
+        drawPuppet(
+            {x:0, y:0, r:q.r * 1.5, t:q.sway, spin:0,
+             libre:q.state === "tombe" || q.state === "rampe",
+             tint:q.state === "tremble" ? "#ff3af0" : "#8f6cff"},
+            "#8f6cff", false
+        );
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* =========== MONDE 12 : LA SCENE =========== */
+
+function enterStage(){
+
+    theatreEnter("scene", "🎬");
+
+    for(let i = 0; i < 2; i++){ spawnProjo(i); }
+    for(let i = 0; i < 3; i++){ spawnTrappe(); }
+
+}
+
+
+function spawnProjo(i){
+
+    const a = playArea();
+
+    projos.push({
+        x:a.x0 + (a.x1 - a.x0) * (i ? .72 : .28),
+        y:a.y0 + 8 * unit,
+        ang:Math.PI / 2 + (i ? .4 : -.4),
+        dir:i ? -1 : 1,
+        heat:0,          /* 0 : cherche — 1 : brule */
+        t:rnd() * 6.28
+    });
+
+}
+
+
+function spawnTrappe(){
+
+    const a = playArea();
+
+    trappes.push({
+        x:a.x0 + (a.x1 - a.x0) * (.15 + rnd() * .7),
+        y:a.y0 + (a.y1 - a.y0) * (.25 + rnd() * .55),
+        r:34 * unit,
+        state:"fermee",
+        timer:2 + rnd() * 3
+    });
+
+}
+
+
+function updateStage(dt){
+
+    const a = playArea();
+
+    for(const pj of projos){
+
+        pj.t += dt;
+
+        /* il balaie lentement, puis se fixe et chauffe */
+        if(pj.heat <= 0){
+
+            pj.ang += pj.dir * .42 * dt;
+
+            if(pj.ang > Math.PI / 2 + .95){ pj.dir = -1; }
+            if(pj.ang < Math.PI / 2 - .95){ pj.dir =  1; }
+
+            /* il t'a dans son cone : il chauffe */
+            const aim = Math.atan2(player.y - pj.y, player.x - pj.x);
+            let d = Math.abs(((aim - pj.ang) + Math.PI * 3) % (Math.PI * 2) - Math.PI);
+
+            if(d < .22){
+                pj.heat = .01;
+                sound(520, .2, "sine", .035);
+            }
+
+        }else{
+
+            pj.heat += dt;
+
+            /* une seconde d'avertissement, puis ca brule */
+            if(pj.heat > 1 && pj.heat < 1.7 && player.invincible <= 0){
+
+                const aim = Math.atan2(player.y - pj.y, player.x - pj.x);
+                let d = Math.abs(((aim - pj.ang) + Math.PI * 3) % (Math.PI * 2) - Math.PI);
+
+                if(d < .24){
+                    loseLife(null);
+                }
+
+            }
+
+            if(pj.heat > 1.9){
+                pj.heat = 0;
+            }
+
+        }
+
+    }
+
+    for(const tr of trappes){
+
+        tr.timer -= dt;
+
+        if(tr.state === "fermee" && tr.timer <= 0){
+            tr.state = "ouvre";
+            tr.timer = .8;
+            sound(180, .25, "square", .04);
+        }else if(tr.state === "ouvre" && tr.timer <= 0){
+            tr.state = "ouverte";
+            tr.timer = 1.9;
+        }else if(tr.state === "ouverte"){
+
+            if(player.invincible <= 0 &&
+               Math.hypot(tr.x - player.x, tr.y - player.y) < tr.r * .82){
+                loseLife(null);
+            }
+
+            if(tr.timer <= 0){
+                tr.state = "fermee";
+                tr.timer = 3 + rnd() * 3;
+                tr.x = a.x0 + (a.x1 - a.x0) * (.15 + rnd() * .7);
+                tr.y = a.y0 + (a.y1 - a.y0) * (.25 + rnd() * .55);
+            }
+
+        }
+
+    }
+
+}
+
+
+function drawStage(){
+
+    const reach = Math.hypot(W, H);
+
+    /* les trappes */
+    for(const tr of trappes){
+
+        ctx.save();
+        ctx.translate(tr.x, tr.y);
+
+        if(tr.state === "fermee"){
+
+            ctx.globalAlpha = .35;
+            ctx.strokeStyle = "#e8c46a";
+            ctx.lineWidth   = 2 * unit;
+            ctx.setLineDash([5 * unit, 6 * unit]);
+
+            ctx.beginPath();
+            ctx.arc(0, 0, tr.r, 0, Math.PI * 2);
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+
+        }else{
+
+            const k = tr.state === "ouvre" ? 1 - tr.timer / .8 : 1;
+
+            /* le trou noir */
+            ctx.globalAlpha = 1;
+            ctx.fillStyle   = "#05030a";
+
+            ctx.beginPath();
+            ctx.ellipse(0, 0, tr.r * k, tr.r * k, 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.strokeStyle = "#e8c46a";
+            ctx.lineWidth   = 3 * unit;
+            ctx.shadowColor = "#e8c46a";
+            ctx.shadowBlur  = 12;
+            ctx.stroke();
+
+            ctx.shadowBlur = 0;
+
+            /* les deux battants rabattus */
+            ctx.fillStyle = "#3a2a12";
+
+            [-1, 1].forEach(sg => {
+                ctx.beginPath();
+                ctx.ellipse(sg * tr.r * 1.1, 0, tr.r * .3, tr.r * k, 0, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+        }
+
+        ctx.restore();
+
+    }
+
+    /* les projecteurs */
+    for(const pj of projos){
+
+        ctx.save();
+        ctx.translate(pj.x, pj.y);
+        ctx.rotate(pj.ang);
+
+        const chaud = pj.heat > 1;
+
+        const g = ctx.createLinearGradient(0, 0, reach, 0);
+        g.addColorStop(0,  hexA(chaud ? "#ff5f3a" : "#fff3c0", chaud ? .5 : .22));
+        g.addColorStop(.6, hexA(chaud ? "#ff3a2a" : "#ffd76a", chaud ? .22 : .08));
+        g.addColorStop(1,  "rgba(0,0,0,0)");
+
+        ctx.fillStyle = g;
+
+        /* le cone */
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(reach, -Math.tan(.24) * reach);
+        ctx.lineTo(reach,  Math.tan(.24) * reach);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
+
+        /* la lanterne */
+        ctx.save();
+        ctx.translate(pj.x, pj.y);
+        ctx.rotate(pj.ang - Math.PI / 2);
+
+        ctx.fillStyle   = "#2b2436";
+        ctx.strokeStyle = "#e8c46a";
+        ctx.lineWidth   = 2 * unit;
+
+        ctx.beginPath();
+        ctx.roundRect(-13 * unit, -6 * unit, 26 * unit, 26 * unit, 5 * unit);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.fillStyle   = chaud ? "#ff9a5c" : "#fff3c0";
+        ctx.shadowColor = chaud ? "#ff5f3a" : "#ffd76a";
+        ctx.shadowBlur  = 18;
+
+        ctx.beginPath();
+        ctx.arc(0, 18 * unit, 7 * unit, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+        ctx.restore();
+
+    }
+
+}
+
+
+/* =========== MONDE 13 : L'ATELIER =========== */
+
+function enterWorkshop(){
+
+    theatreEnter("atelier", "🧵");
+
+    for(let i = 0; i < 3; i++){ spawnAiguille(); }
+    for(let i = 0; i < 2; i++){ spawnBobine(); }
+
+}
+
+
+function spawnAiguille(){
+
+    const a = playArea();
+
+    const vert = rnd() < .5;
+
+    aiguilles.push({
+        vert:vert,
+        pos:vert
+            ? a.x0 + (a.x1 - a.x0) * (.15 + rnd() * .7)
+            : a.y0 + (a.y1 - a.y0) * (.2 + rnd() * .6),
+        side:rnd() < .5 ? 0 : 1,
+        t:rnd() * 3,
+        out:0,
+        stunned:0
+    });
+
+}
+
+
+function spawnBobine(){
+
+    const a = playArea();
+
+    const ang = rnd() * 6.28;
+
+    bobines.push({
+        x:a.x0 + (a.x1 - a.x0) * (.25 + rnd() * .5),
+        y:a.y0 + (a.y1 - a.y0) * (.25 + rnd() * .5),
+        vx:Math.cos(ang) * 190 * unit,
+        vy:Math.sin(ang) * 190 * unit,
+        r:20 * unit,
+        spin:0,
+        fil:[],
+        stunned:0
+    });
+
+}
+
+
+function updateWorkshop(dt){
+
+    const a = playArea();
+
+    for(const ai of aiguilles){
+
+        if(ai.stunned > 0){ ai.stunned -= dt; continue; }
+
+        ai.t += dt;
+
+        /* elle pique : dehors une seconde, dedans une seconde */
+        const cycle = (ai.t % 2.4) / 2.4;
+
+        ai.out = cycle < .18 ? cycle / .18
+               : cycle < .55 ? 1
+               : cycle < .72 ? 1 - (cycle - .55) / .17
+               : 0;
+
+        if(ai.out > .55 && player.invincible <= 0){
+
+            const len = (ai.vert ? (a.y1 - a.y0) : (a.x1 - a.x0)) * .42 * ai.out;
+
+            if(ai.vert){
+
+                const y0 = ai.side ? a.y1 : a.y0;
+                const dedans = ai.side ? player.y > y0 - len : player.y < y0 + len;
+
+                if(Math.abs(player.x - ai.pos) < 9 * unit + player.r * .5 && dedans){
+                    loseLife(null);
+                }
+
+            }else{
+
+                const x0 = ai.side ? a.x1 : a.x0;
+                const dedans = ai.side ? player.x > x0 - len : player.x < x0 + len;
+
+                if(Math.abs(player.y - ai.pos) < 9 * unit + player.r * .5 && dedans){
+                    loseLife(null);
+                }
+
+            }
+
+        }
+
+    }
+
+    for(const bo of bobines){
+
+        if(bo.stunned > 0){ bo.stunned -= dt; continue; }
+
+        bo.x += bo.vx * dt;
+        bo.y += bo.vy * dt;
+
+        bo.spin += dt * 7;
+
+        if(bo.x < a.x0 + bo.r){ bo.x = a.x0 + bo.r; bo.vx =  Math.abs(bo.vx); }
+        if(bo.x > a.x1 - bo.r){ bo.x = a.x1 - bo.r; bo.vx = -Math.abs(bo.vx); }
+        if(bo.y < a.y0 + bo.r){ bo.y = a.y0 + bo.r; bo.vy =  Math.abs(bo.vy); }
+        if(bo.y > a.y1 - bo.r){ bo.y = a.y1 - bo.r; bo.vy = -Math.abs(bo.vy); }
+
+        /* elle laisse son fil derriere elle */
+        bo.fil.push({x:bo.x, y:bo.y, life:1.6});
+
+        for(const f of bo.fil){ f.life -= dt; }
+
+        bo.fil = bo.fil.filter(f => f.life > 0);
+
+        if(bo.fil.length > 90){ bo.fil.shift(); }
+
+        if(player.invincible <= 0 &&
+           Math.hypot(bo.x - player.x, bo.y - player.y) < bo.r * .8 + player.r){
+            loseLife(null);
+        }
+
+    }
+
+}
+
+
+function drawWorkshop(){
+
+    const a = playArea();
+
+    /* le fil laisse par les bobines */
+    for(const bo of bobines){
+
+        ctx.save();
+        ctx.strokeStyle = "rgba(120,220,255,.35)";
+        ctx.lineWidth   = 2 * unit;
+        ctx.lineJoin    = "round";
+
+        ctx.beginPath();
+
+        bo.fil.forEach((f, i) => {
+            if(i === 0){ ctx.moveTo(f.x, f.y); } else { ctx.lineTo(f.x, f.y); }
+        });
+
+        ctx.stroke();
+        ctx.restore();
+
+    }
+
+    /* les aiguilles */
+    for(const ai of aiguilles){
+
+        if(ai.out <= .02){ continue; }
+
+        const len = (ai.vert ? (a.y1 - a.y0) : (a.x1 - a.x0)) * .42 * ai.out;
+
+        ctx.save();
+
+        if(ai.vert){
+            ctx.translate(ai.pos, ai.side ? a.y1 : a.y0);
+            ctx.rotate(ai.side ? Math.PI : 0);
+        }else{
+            ctx.translate(ai.side ? a.x1 : a.x0, ai.pos);
+            ctx.rotate(ai.side ? -Math.PI / 2 : Math.PI / 2);
+        }
+
+        const steel = ctx.createLinearGradient(-6 * unit, 0, 6 * unit, 0);
+        steel.addColorStop(0,  "#5b7a8c");
+        steel.addColorStop(.4, "#d8f0ff");
+        steel.addColorStop(1,  "#40606f");
+
+        ctx.fillStyle   = steel;
+        ctx.shadowColor = "#6ad0ff";
+        ctx.shadowBlur  = 10;
+
+        ctx.beginPath();
+        ctx.moveTo(-6 * unit, 0);
+        ctx.lineTo( 6 * unit, 0);
+        ctx.lineTo( 2 * unit, len);
+        ctx.lineTo(-2 * unit, len);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+
+        /* le chas, avec son fil */
+        ctx.strokeStyle = "#0d2430";
+        ctx.lineWidth   = 2 * unit;
+
+        ctx.beginPath();
+        ctx.ellipse(0, 12 * unit, 2.4 * unit, 5 * unit, 0, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.restore();
+
+    }
+
+    /* les bobines */
+    for(const bo of bobines){
+
+        ctx.save();
+        ctx.translate(bo.x, bo.y);
+        ctx.rotate(bo.spin);
+
+        if(bo.stunned > 0){ ctx.globalAlpha = .5; }
+
+        /* les deux joues de bois */
+        ctx.fillStyle   = "#8a6f4a";
+        ctx.strokeStyle = "rgba(0,0,0,.5)";
+        ctx.lineWidth   = 2 * unit;
+
+        ctx.beginPath();
+        ctx.arc(0, 0, bo.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.stroke();
+
+        /* le fil enroule */
+        ctx.fillStyle = "#6ad0ff";
+
+        ctx.beginPath();
+        ctx.arc(0, 0, bo.r * .62, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.strokeStyle = "rgba(0,40,60,.35)";
+        ctx.lineWidth   = 1.6 * unit;
+
+        for(let i = -2; i <= 2; i++){
+            ctx.beginPath();
+            ctx.moveTo(-bo.r * .6, i * bo.r * .22);
+            ctx.lineTo( bo.r * .6, i * bo.r * .22);
+            ctx.stroke();
+        }
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* =========== MONDE 14 : LE GRENIER =========== */
+
+function enterAttic(){
+
+    theatreEnter("grenier", "🧸");
+
+    for(let i = 0; i < 3; i++){ spawnJouet(); }
+    for(let i = 0; i < 3; i++){ spawnBoite(); }
+
+}
+
+
+function spawnJouet(){
+
+    const a = playArea();
+
+    const dirs = [[1,0], [-1,0], [0,1], [0,-1]];
+    const d = dirs[Math.floor(rnd() * 4)];
+
+    jouets.push({
+        x:a.x0 + (a.x1 - a.x0) * (.2 + rnd() * .6),
+        y:a.y0 + (a.y1 - a.y0) * (.2 + rnd() * .6),
+        dx:d[0], dy:d[1],
+        r:17 * unit,
+        step:0,
+        cle:0,
+        stunned:0
+    });
+
+}
+
+
+function spawnBoite(){
+
+    const a = playArea();
+
+    boites.push({
+        x:a.x0 + (a.x1 - a.x0) * (.15 + rnd() * .7),
+        y:a.y0 + (a.y1 - a.y0) * (.15 + rnd() * .7),
+        r:24 * unit,
+        state:"fermee",
+        timer:0,
+        hx:0, hy:0, hv:0,
+        ang:0,
+        stunned:0
+    });
+
+}
+
+
+function updateAttic(dt){
+
+    const a = playArea();
+
+    for(const j of jouets){
+
+        if(j.stunned > 0){ j.stunned -= dt; continue; }
+
+        j.step += dt * 9;
+        j.cle  += dt * 4;
+
+        const sp = 150 * unit;
+
+        j.x += j.dx * sp * dt;
+        j.y += j.dy * sp * dt;
+
+        /* il tourne d'un quart de tour quand il cogne un mur */
+        if(j.x < a.x0 + j.r || j.x > a.x1 - j.r ||
+           j.y < a.y0 + j.r || j.y > a.y1 - j.r){
+
+            j.x = Math.max(a.x0 + j.r, Math.min(a.x1 - j.r, j.x));
+            j.y = Math.max(a.y0 + j.r, Math.min(a.y1 - j.r, j.y));
+
+            const nd = j.dx;
+            j.dx = -j.dy;
+            j.dy = nd;
+
+            sound(360, .1, "square", .03);
+
+        }
+
+        if(player.invincible <= 0 &&
+           Math.hypot(j.x - player.x, j.y - player.y) < j.r * .8 + player.r){
+            loseLife(null);
+        }
+
+    }
+
+    for(const b of boites){
+
+        if(b.stunned > 0){ b.stunned -= dt; continue; }
+
+        if(b.state === "fermee"){
+
+            if(Math.hypot(b.x - player.x, b.y - player.y) < 150 * unit){
+                b.state = "ouvre";
+                b.timer = .55;
+                sound(420, .2, "triangle", .035);
+            }
+
+        }else if(b.state === "ouvre"){
+
+            b.timer -= dt;
+
+            if(b.timer <= 0){
+
+                b.state = "sort";
+                b.timer = 1.1;
+
+                b.ang = Math.atan2(player.y - b.y, player.x - b.x);
+                b.hv  = 560 * unit;
+                b.hx  = b.x;
+                b.hy  = b.y;
+
+                sound(180, .3, "sawtooth", .05);
+                buzz([30, 30]);
+
+            }
+
+        }else if(b.state === "sort"){
+
+            b.timer -= dt;
+
+            b.hx += Math.cos(b.ang) * b.hv * dt;
+            b.hy += Math.sin(b.ang) * b.hv * dt;
+
+            b.hv *= Math.pow(.35, dt);
+
+            if(player.invincible <= 0 &&
+               Math.hypot(b.hx - player.x, b.hy - player.y) < 17 * unit + player.r){
+                loseLife(null);
+            }
+
+            if(b.timer <= 0){
+                b.state = "rentre";
+                b.timer = .7;
+            }
+
+        }else{
+
+            b.timer -= dt;
+
+            b.hx += (b.x - b.hx) * Math.min(1, dt * 5);
+            b.hy += (b.y - b.hy) * Math.min(1, dt * 5);
+
+            if(b.timer <= 0){
+                b.state = "fermee";
+                b.x = a.x0 + (a.x1 - a.x0) * (.15 + rnd() * .7);
+                b.y = a.y0 + (a.y1 - a.y0) * (.15 + rnd() * .7);
+            }
+
+        }
+
+    }
+
+}
+
+
+function drawAttic(){
+
+    /* les boites a surprise */
+    for(const b of boites){
+
+        /* le ressort et la tete, quand elle est sortie */
+        if(b.state === "sort" || b.state === "rentre"){
+
+            ctx.save();
+            ctx.strokeStyle = "#d8d0e8";
+            ctx.lineWidth   = 3 * unit;
+
+            ctx.beginPath();
+
+            const n = 9;
+
+            for(let i = 0; i <= n; i++){
+                const u = i / n;
+                const px = b.x + (b.hx - b.x) * u + Math.cos(u * 20) * 9 * unit;
+                const py = b.y + (b.hy - b.y) * u + Math.sin(u * 20) * 9 * unit;
+                if(i === 0){ ctx.moveTo(px, py); } else { ctx.lineTo(px, py); }
+            }
+
+            ctx.stroke();
+
+            /* la tete du diable */
+            ctx.translate(b.hx, b.hy);
+
+            ctx.fillStyle   = "#b03a5c";
+            ctx.strokeStyle = "rgba(0,0,0,.5)";
+            ctx.lineWidth   = 2 * unit;
+
+            ctx.beginPath();
+            ctx.arc(0, 0, 17 * unit, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.stroke();
+
+            ctx.fillStyle = "#ffffff";
+
+            [-1, 1].forEach(sg => {
+                ctx.beginPath();
+                ctx.arc(sg * 6 * unit, -3 * unit, 4 * unit, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            ctx.fillStyle = "#20101a";
+
+            [-1, 1].forEach(sg => {
+                ctx.beginPath();
+                ctx.arc(sg * 6 * unit, -3 * unit, 1.8 * unit, 0, Math.PI * 2);
+                ctx.fill();
+            });
+
+            ctx.restore();
+
+        }
+
+        /* la boite */
+        ctx.save();
+        ctx.translate(b.x, b.y);
+
+        if(b.stunned > 0){ ctx.globalAlpha = .5; }
+
+        const bois = ctx.createLinearGradient(0, -b.r, 0, b.r);
+        bois.addColorStop(0,  "#a8703c");
+        bois.addColorStop(1,  "#5a3a1e");
+
+        ctx.fillStyle   = bois;
+        ctx.strokeStyle = "rgba(0,0,0,.5)";
+        ctx.lineWidth   = 2 * unit;
+
+        ctx.beginPath();
+        ctx.roundRect(-b.r, -b.r * .8, b.r * 2, b.r * 1.6, 4 * unit);
+        ctx.fill();
+        ctx.stroke();
+
+        /* le couvercle, ouvert ou non */
+        const op = b.state === "fermee" ? 0 : 1;
+
+        ctx.save();
+        ctx.translate(-b.r, -b.r * .8);
+        ctx.rotate(-op * 1.1);
+
+        ctx.fillStyle = "#c98a4a";
+
+        ctx.beginPath();
+        ctx.roundRect(0, -6 * unit, b.r * 2, 7 * unit, 3 * unit);
+        ctx.fill();
+        ctx.stroke();
+
+        ctx.restore();
+
+        /* la manivelle */
+        ctx.strokeStyle = "#e8c46a";
+        ctx.lineWidth   = 2.4 * unit;
+
+        ctx.beginPath();
+        ctx.arc(b.r * .75, b.r * .2, 6 * unit, 0, Math.PI * 1.4);
+        ctx.stroke();
+
+        ctx.restore();
+
+    }
+
+    /* les jouets remontes */
+    for(const j of jouets){
+
+        ctx.save();
+        ctx.translate(j.x, j.y);
+
+        if(j.stunned > 0){ ctx.globalAlpha = .5; }
+
+        /* la clef qui tourne dans son dos */
+        ctx.save();
+        ctx.translate(-j.dx * j.r * .9, -j.dy * j.r * .9);
+        ctx.rotate(j.cle);
+
+        ctx.strokeStyle = "#e8c46a";
+        ctx.lineWidth   = 3 * unit;
+
+        ctx.beginPath();
+        ctx.moveTo(-7 * unit, 0);
+        ctx.lineTo( 7 * unit, 0);
+        ctx.moveTo(0, -7 * unit);
+        ctx.lineTo(0,  7 * unit);
+        ctx.stroke();
+
+        ctx.restore();
+
+        /* le corps de fer-blanc */
+        const tin = ctx.createLinearGradient(0, -j.r, 0, j.r);
+        tin.addColorStop(0,  "#e07a3c");
+        tin.addColorStop(.5, "#a8471c");
+        tin.addColorStop(1,  "#5c2410");
+
+        ctx.fillStyle   = tin;
+        ctx.strokeStyle = "rgba(0,0,0,.5)";
+        ctx.lineWidth   = 2 * unit;
+
+        ctx.beginPath();
+        ctx.roundRect(-j.r * .8, -j.r * .8, j.r * 1.6, j.r * 1.6, 5 * unit);
+        ctx.fill();
+        ctx.stroke();
+
+        /* ses deux pieds qui marchent */
+        ctx.fillStyle = "#3a2010";
+
+        [-1, 1].forEach(sg => {
+            const k = Math.sin(j.step + (sg > 0 ? 0 : Math.PI)) * j.r * .3;
+            ctx.beginPath();
+            ctx.roundRect(sg * j.r * .4 - 4 * unit, j.r * .7 + k, 8 * unit, 7 * unit, 2 * unit);
+            ctx.fill();
+        });
+
+        /* ses yeux peints */
+        ctx.fillStyle = "#fff3e0";
+
+        [-1, 1].forEach(sg => {
+            ctx.beginPath();
+            ctx.arc(sg * j.r * .3, -j.r * .15, j.r * .2, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        ctx.fillStyle = "#20100a";
+
+        [-1, 1].forEach(sg => {
+            ctx.beginPath();
+            ctx.arc(sg * j.r * .3 + j.dx * j.r * .07, -j.r * .15 + j.dy * j.r * .07, j.r * .09, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* =========== MONDE 15 : LE THEATRE D'OMBRES =========== */
+
+function enterShadows(){
+
+    theatreEnter("ombres", "🕯");
+
+    for(let i = 0; i < 2; i++){ spawnOmbre(i); }
+
+    spawnGriffe();
+
+}
+
+
+function spawnOmbre(i){
+
+    ombres.push({
+        x:player.x,
+        y:player.y,
+        r:player.r * 1.05,
+        delay:1.1 + i * .7,   /* le retard de ton reflet */
+        buf:[],
+        stunned:0
+    });
+
+}
+
+
+function spawnGriffe(){
+
+    const a = playArea();
+
+    griffes.push({
+        side:rnd() < .5 ? 0 : 1,
+        y:a.y0 + (a.y1 - a.y0) * (.25 + rnd() * .5),
+        reach:0,
+        state:"attend",
+        timer:2.2,
+        t:0
+    });
+
+}
+
+
+function updateShadows(dt){
+
+    const a = playArea();
+
+    /*
+    L'OMBRE rejoue ce que TU as fait, en miroir et en retard.
+    On enregistre donc ta position, et elle la relit.
+    */
+    for(const o of ombres){
+
+        if(o.stunned > 0){ o.stunned -= dt; continue; }
+
+        const now = gameTime;
+
+        o.buf.push({t:now, x:player.x, y:player.y});
+
+        while(o.buf.length > 2 && o.buf[1].t < now - o.delay){
+            o.buf.shift();
+        }
+
+        const p0 = o.buf[0];
+
+        /*
+        Le miroir, autour de l'axe du drap. L'ombre reste
+        TOUJOURS de l'autre cote : elle ne peut donc jamais
+        te tomber dessus quand tu ne bouges pas. Le danger,
+        c'est de traverser l'axe — ou de la croiser.
+        */
+        const cx = (a.x0 + a.x1) / 2;
+
+        const off  = p0.x - cx;
+        const side = off >= 0 ? -1 : 1;
+
+        o.x = cx + side * Math.max(58 * unit, Math.abs(off));
+        o.y = p0.y;
+
+        if(player.invincible <= 0 &&
+           Math.hypot(o.x - player.x, o.y - player.y) < o.r * .7 + player.r * .7){
+            loseLife(null);
+        }
+
+    }
+
+    for(const g of griffes){
+
+        g.t += dt;
+        g.timer -= dt;
+
+        if(g.state === "attend"){
+
+            if(g.timer <= 0){
+                g.state = "annonce";
+                g.timer = .9;
+                g.y = player.y;
+                sound(140, .35, "sawtooth", .045);
+            }
+
+        }else if(g.state === "annonce"){
+
+            g.y += (player.y - g.y) * Math.min(1, dt * 1.2);
+
+            if(g.timer <= 0){
+                g.state = "avance";
+                g.timer = 1.5;
+                sound(90, .4, "square", .05);
+                buzz([40, 40]);
+            }
+
+        }else if(g.state === "avance"){
+
+            g.reach = Math.min(1, g.reach + dt * 1.5);
+
+            const len = (a.x1 - a.x0) * .72 * g.reach;
+            const x0  = g.side ? a.x1 : a.x0;
+            const tip = g.side ? x0 - len : x0 + len;
+
+            if(player.invincible <= 0 &&
+               Math.abs(player.y - g.y) < 42 * unit &&
+               (g.side ? player.x > tip : player.x < tip)){
+                loseLife(null);
+            }
+
+            if(g.timer <= 0){
+                g.state = "retire";
+                g.timer = 1.2;
+            }
+
+        }else{
+
+            g.reach = Math.max(0, g.reach - dt * 1.2);
+
+            if(g.timer <= 0){
+                g.state = "attend";
+                g.timer = 2.4;
+                g.side  = rnd() < .5 ? 0 : 1;
+            }
+
+        }
+
+    }
+
+}
+
+
+function drawShadows(){
+
+    const a = playArea();
+
+    /* la main d'ombre */
+    for(const g of griffes){
+
+        const x0 = g.side ? a.x1 : a.x0;
+
+        if(g.state === "annonce"){
+
+            ctx.save();
+            ctx.globalAlpha = .35 + .35 * Math.abs(Math.sin(g.t * 12));
+            ctx.strokeStyle = "#c86aff";
+            ctx.lineWidth   = 3 * unit;
+            ctx.setLineDash([9 * unit, 9 * unit]);
+
+            ctx.beginPath();
+            ctx.moveTo(a.x0, g.y);
+            ctx.lineTo(a.x1, g.y);
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+            ctx.restore();
+
+        }
+
+        if(g.reach <= .01){ continue; }
+
+        const len = (a.x1 - a.x0) * .72 * g.reach;
+
+        ctx.save();
+        ctx.translate(x0, g.y);
+        ctx.scale(g.side ? -1 : 1, 1);
+
+        ctx.fillStyle   = "rgba(10,4,20,.92)";
+        ctx.shadowColor = "#c86aff";
+        ctx.shadowBlur  = 20;
+
+        /* l'avant-bras */
+        ctx.beginPath();
+        ctx.roundRect(0, -34 * unit, len * .72, 68 * unit, 20 * unit);
+        ctx.fill();
+
+        /* la paume et les quatre doigts */
+        ctx.beginPath();
+        ctx.roundRect(len * .62, -42 * unit, len * .2, 84 * unit, 18 * unit);
+        ctx.fill();
+
+        for(let f = 0; f < 4; f++){
+
+            const fy = -34 * unit + f * 22 * unit;
+            const wig = Math.sin(g.t * 5 + f) * 5 * unit;
+
+            ctx.beginPath();
+            ctx.roundRect(len * .78, fy + wig, len * .22, 13 * unit, 7 * unit);
+            ctx.fill();
+
+        }
+
+        ctx.shadowBlur = 0;
+        ctx.restore();
+
+    }
+
+    /* tes ombres */
+    for(const o of ombres){
+
+        ctx.save();
+        ctx.translate(o.x, o.y);
+
+        ctx.globalAlpha = o.stunned > 0 ? .25 : .8;
+
+        /* la meme silhouette que toi, mais pleine d'encre */
+        ctx.fillStyle   = "#0a0414";
+        ctx.shadowColor = "#c86aff";
+        ctx.shadowBlur  = 16;
+
+        ctx.beginPath();
+        ctx.ellipse(0, 0, o.r * 1.06, o.r, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.shadowBlur = 0;
+
+        /* deux yeux vides */
+        ctx.fillStyle = "#c86aff";
+
+        [-1, 1].forEach(sg => {
+            ctx.beginPath();
+            ctx.ellipse(sg * o.r * .34, -o.r * .12, o.r * .13, o.r * .19, 0, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        ctx.restore();
+
+    }
+
+    ctx.globalAlpha = 1;
+
+}
+
+
+/* ---- le chef d'orchestre des cinq mondes ---- */
+
+function updateTheatre(dt){
+
+    if(zone === "coulisses"){ updateBackstage(dt); }
+    else if(zone === "scene"){ updateStage(dt); }
+    else if(zone === "atelier"){ updateWorkshop(dt); }
+    else if(zone === "grenier"){ updateAttic(dt); }
+    else if(zone === "ombres"){ updateShadows(dt); }
+    else{
+
+        if(pendus.length || rideaux.length || projos.length || trappes.length ||
+           aiguilles.length || bobines.length || jouets.length || boites.length ||
+           ombres.length || griffes.length){
+            clearTheatre();
+        }
+
+        return;
+
+    }
+
+    /* de temps en temps, un habitant de plus */
+    theatreTimer -= dt;
+
+    if(theatreTimer <= 0){
+
+        theatreTimer = 11;
+
+        if(zone === "coulisses" && pendus.length < 6){ spawnPendu(); }
+        else if(zone === "scene" && trappes.length < 5){ spawnTrappe(); }
+        else if(zone === "atelier" && aiguilles.length < 5){ spawnAiguille(); }
+        else if(zone === "grenier" && jouets.length < 5){ spawnJouet(); }
+        else if(zone === "ombres" && griffes.length < 2){ spawnGriffe(); }
+
+    }
+
+}
+
+
+function drawTheatre(){
+
+    if(zone === "coulisses"){ drawBackstage(); }
+    else if(zone === "scene"){ drawStage(); }
+    else if(zone === "atelier"){ drawWorkshop(); }
+    else if(zone === "grenier"){ drawAttic(); }
+    else if(zone === "ombres"){ drawShadows(); }
+
+}
+
+
+/* celles de ces creatures que l'orbe sait figer */
+function theatreCreatures(){
+    return [].concat(pendus, aiguilles, bobines, jouets, boites, ombres);
+}
+
+
 /* la jauge : la meme que pour L'OEIL, mais a ses couleurs */
 function mimBar(){
 
@@ -10763,7 +12427,17 @@ function updateWarp(dt){
             /* on arrive par le portail : c'est ce qui debloque */
             byPortal = true;
 
-            if(warp.target === "couloir"){
+            if(warp.target === "ombres"){
+                enterShadows();
+            }else if(warp.target === "grenier"){
+                enterAttic();
+            }else if(warp.target === "atelier"){
+                enterWorkshop();
+            }else if(warp.target === "scene"){
+                enterStage();
+            }else if(warp.target === "coulisses"){
+                enterBackstage();
+            }else if(warp.target === "couloir"){
                 enterCorridor();
             }else if(warp.target === "horloge"){
                 enterClock();

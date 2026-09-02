@@ -1010,6 +1010,7 @@ function update(dt){
     updateGloutons(dt);
     updateBoss(dt);
     updateMimic(dt);
+    updateTheatre(dt);
     updateW69(dt);
     updateGuimauves(dt);
     updateAnguilles(dt);
@@ -1054,6 +1055,10 @@ function update(dt){
             }
 
             for(const e of w69Creatures()){
+                e.stunned = 3.2;
+            }
+
+            for(const e of theatreCreatures()){
                 e.stunned = 3.2;
             }
 
@@ -2195,6 +2200,9 @@ function drawRaw(){
 
     /* LE MIMIC, monde 10 */
     drawMimic();
+
+    /* LE THEATRE, mondes 11 a 15 */
+    drawTheatre();
 
 
     /* LE LEURRE */

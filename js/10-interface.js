@@ -790,6 +790,11 @@ function playWorld(zoneId){
     else if(zoneId === "biblio"){ enterLibrary(); }
     else if(zoneId === "horloge"){ enterClock(); }
     else if(zoneId === "couloir"){ enterCorridor(); }
+    else if(zoneId === "coulisses"){ enterBackstage(); }
+    else if(zoneId === "scene"){ enterStage(); }
+    else if(zoneId === "atelier"){ enterWorkshop(); }
+    else if(zoneId === "grenier"){ enterAttic(); }
+    else if(zoneId === "ombres"){ enterShadows(); }
 
 }
 

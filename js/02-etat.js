@@ -94,6 +94,11 @@ const FORGE_LEVEL   = 120;  /* portail vers LA FORGE */
 const BIBLIO_LEVEL  = 140;  /* portail vers LA BIBLIOTHÈQUE */
 const CLOCK_LEVEL   = 160;  /* portail vers L'HORLOGE */
 const MIMIC_LEVEL   = 200;  /* portail vers LE COULOIR : LE MIMIC t'attend */
+const BACK_LEVEL    = 240;  /* portail vers LES COULISSES      */
+const SCENE_LEVEL   = 280;  /* portail vers LA SCÈNE           */
+const ATELIER_LEVEL = 320;  /* portail vers L'ATELIER          */
+const GRENIER_LEVEL = 360;  /* portail vers LE GRENIER         */
+const OMBRE_LEVEL   = 400;  /* portail vers LE THÉÂTRE D'OMBRES */
 const MAX_ANGUILLES = 3;    /* anguilles simultanées */
 const MAX_LANTERNES = 3;    /* lanternes simultanées */
 
@@ -108,7 +113,12 @@ const WORLDS = [
     {zone:"forge",   n:7, name:"LA FORGE",             from:FORGE_LEVEL,  to:BIBLIO_LEVEL, col:"#ff7a2a"},
     {zone:"biblio",  n:8, name:"LA BIBLIOTHÈQUE",      from:BIBLIO_LEVEL, to:CLOCK_LEVEL,  col:"#b06cff"},
     {zone:"horloge", n:9, name:"L'HORLOGE",            from:CLOCK_LEVEL,  to:MIMIC_LEVEL,  col:"#9fe9ff"},
-    {zone:"couloir", n:10,name:"LE COULOIR",          from:MIMIC_LEVEL,  to:null,         col:"#b06cff"}
+    {zone:"couloir",  n:10, name:"LE COULOIR",           from:MIMIC_LEVEL,   to:BACK_LEVEL,    col:"#b06cff"},
+    {zone:"coulisses",n:11, name:"LES COULISSES",        from:BACK_LEVEL,    to:SCENE_LEVEL,   col:"#8f6cff"},
+    {zone:"scene",    n:12, name:"LA SCÈNE",             from:SCENE_LEVEL,   to:ATELIER_LEVEL, col:"#ffd76a"},
+    {zone:"atelier",  n:13, name:"L'ATELIER",            from:ATELIER_LEVEL, to:GRENIER_LEVEL, col:"#6ad0ff"},
+    {zone:"grenier",  n:14, name:"LE GRENIER",           from:GRENIER_LEVEL, to:OMBRE_LEVEL,   col:"#ff9a5c"},
+    {zone:"ombres",   n:15, name:"LE THÉÂTRE D\u2019OMBRES", from:OMBRE_LEVEL, to:null,        col:"#c86aff"}
 ];
 
 
@@ -125,7 +135,12 @@ const WARP_VEIL = {
     forge:   "#3a1405",
     biblio:  "#24104a",
     horloge: "#0b2436",
-    couloir: "#1a0730"
+    couloir:   "#1a0730",
+    coulisses: "#140a26",
+    scene:     "#3a2c08",
+    atelier:   "#06222e",
+    grenier:   "#2e1608",
+    ombres:    "#120520"
 };
 const MAX_BLOBS    = 4;     /* slimes du marais présents en même temps */
 const START_SOLIDS = 9;     /* blocs présents dès le début */

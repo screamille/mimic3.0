@@ -521,6 +521,26 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
 
         /* un seul oeil, deja peint au centre du corps : rien ici */
 
+    }else if(skin.effect === "pantin"){
+
+        /*
+        Les yeux de la marionnette, repris trait pour trait :
+        deux ovales blancs qui brulent, sans pupille.
+        */
+        [-1, 1].forEach(sgn => {
+
+            c.shadowColor = "#ffffff";
+            c.shadowBlur  = r * .5;
+            c.fillStyle   = "#ffffff";
+
+            c.beginPath();
+            c.ellipse(sgn * w * .30, -h * .12, w * .155, h * .21, 0, 0, Math.PI * 2);
+            c.fill();
+
+        });
+
+        c.shadowBlur = 0;
+
     }else if(skin.effect === "squelette"){
 
         /* deux orbites vides */
@@ -626,7 +646,6 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
             abyssal:["#5fe8ff", "#7bffca"],
             neant:  ["#ffc65a", "#ffc65a"],
             mimic:  ["#ffffff", "#c86aff"],
-            pantin: ["#e8dcff", "#b06cff"],
             lampe:  ["#ffd0f5", "#ff6ad5"],
             holo:   ["#d8feff", "#5fe8ff"],
             requin: ["#eef4fa", "#eef4fa"],
@@ -677,7 +696,7 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
     });
 
     /* la bouche */
-    if(!robot && !plush && skin.effect !== "neant"){
+    if(!robot && !plush && skin.effect !== "neant" && skin.effect !== "pantin"){
 
         c.strokeStyle = "#101828";
         c.lineWidth   = Math.max(1, r * .07);
@@ -4822,25 +4841,25 @@ function paintSkinInner(c, skin, w, h, r, t, f){
     if(e === "pantin"){
 
         /* le bois sombre et verni de son crane */
-        const wood = c.createRadialGradient(-w * .25, -h * .35, 0, 0, 0, w * 1.15);
-        wood.addColorStop(0,   "#6a5480");
-        wood.addColorStop(.45, "#33263f");
-        wood.addColorStop(1,   "#140d1e");
+        const wood = c.createRadialGradient(-w * .26, -h * .55, 0, 0, -h * .10, w * 1.1);
+        wood.addColorStop(0,  "#5e4a6e");
+        wood.addColorStop(.6, "#2f2340");
+        wood.addColorStop(1,  "#150e1e");
 
         c.fillStyle = wood;
         c.fillRect(-w * 1.3, -h * 1.4, w * 2.6, h * 2.8);
 
-        /* la petite rangee de dents, sous les yeux */
+        /* la rangee de dents, exactement comme sur sa tete */
         c.fillStyle = "#f6f2ff";
 
-        for(let i = 0; i < 6; i++){
+        for(let i = 0; i < 5; i++){
 
-            const px = -w * .30 + i * w * .12;
+            const px = -w * .34 + i * w * .17;
 
             c.beginPath();
-            c.moveTo(px - w * .045, h * .34);
-            c.lineTo(px + w * .045, h * .34);
-            c.lineTo(px,            h * .50);
+            c.moveTo(px - w * .075, h * .38);
+            c.lineTo(px + w * .075, h * .38);
+            c.lineTo(px,            h * .58);
             c.closePath();
             c.fill();
 
