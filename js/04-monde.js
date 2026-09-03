@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "9.4";
+const VERSION = "9.5";
 
 (function(){
 
@@ -3187,6 +3187,8 @@ function openHello(edit){
         c.classList.toggle("on",
             (helloAge === 18 && c.textContent === "18+") || c.textContent === String(helloAge));
     }
+
+    paintLangGrid();
 
     document.getElementById("helloScreen").style.display = "flex";
 

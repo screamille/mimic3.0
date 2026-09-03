@@ -10,7 +10,7 @@
 
 <title>MIMIC</title>
 
-<link rel="stylesheet" href="css/style.css?v=9.4">
+<link rel="stylesheet" href="css/style.css?v=9.5">
 </head>
 
 <body>
@@ -92,8 +92,8 @@
             <button class="navTab active" id="navPlay" data-i18n="nav.play">JOUER</button>
             <button class="navTab" id="openShopStore" data-i18n="nav.shop">BOUTIQUE<i class="navDot" id="shopDot"></i></button>
             <button class="navTab" id="openShop" data-i18n="nav.locker">CASIER</button>
-            <button class="navTab" id="missionButton">MISSIONS<i class="navDot" id="missionDot"></i></button>
-            <button class="navTab" id="passButton">PASSE<i class="navDot" id="passDot"></i></button>
+            <button class="navTab" id="missionButton"><span data-i18n="nav.missions">MISSIONS</span><i class="navDot" id="missionDot"></i></button>
+            <button class="navTab" id="passButton"><span data-i18n="nav.pass">PASSE</span><i class="navDot" id="passDot"></i></button>
         </div>
 
         <div class="lobbyRight">
@@ -107,7 +107,7 @@
             </button>
 
             <div class="lvlPill">
-                <b>NIV <span id="lvlNum">1</span></b>
+                <b><span data-i18n="hud.lvlShort">NIV</span> <span id="lvlNum">1</span></b>
                 <i class="lvlTrack"><u id="lvlFill"></u></i>
             </div>
 
@@ -157,7 +157,7 @@
         <b id="bestScore">0</b>
     </div>
 
-    <div class="version" id="versionTag">V 9.4</div>
+    <div class="version" id="versionTag">V 9.5</div>
 
     <div id="errBanner" class="errBanner" style="display:none"></div>
 
@@ -754,6 +754,9 @@
 
         <div class="helloStep on" id="helloStep1">
 
+            <p class="helloHint" style="margin:0 0 6px" data-i18n="set.lang">LANGUE</p>
+            <div id="helloLangGrid" class="langGrid" style="max-height:24vh;margin-bottom:16px"></div>
+
             <h1 class="helloTitle" data-i18n="hello.title">BIENVENUE DANS MIMIC</h1>
             <p class="helloHint" data-i18n="hello.hint">Choisis ton pseudo. C'est le nom que les autres verront en multijoueur.</p>
 
@@ -1045,16 +1048,16 @@ fonctionne parfaitement même si aucun des deux ne répond.
 })();
 </script>
 
-<script src="js/01-moteur.js?v=9.4"></script>
-<script src="js/02-etat.js?v=9.4"></script>
-<script src="js/03-skins.js?v=9.4"></script>
-<script src="js/04-monde.js?v=9.4"></script>
-<script src="js/05-jeu.js?v=9.4"></script>
-<script src="js/06-boutique.js?v=9.4"></script>
-<script src="js/07-duel.js?v=9.4"></script>
-<script src="js/08-langues.js?v=9.4"></script>
-<script src="js/09-laser.js?v=9.4"></script>
-<script src="js/10-interface.js?v=9.4"></script>
+<script src="js/01-moteur.js?v=9.5"></script>
+<script src="js/02-etat.js?v=9.5"></script>
+<script src="js/03-skins.js?v=9.5"></script>
+<script src="js/04-monde.js?v=9.5"></script>
+<script src="js/05-jeu.js?v=9.5"></script>
+<script src="js/06-boutique.js?v=9.5"></script>
+<script src="js/07-duel.js?v=9.5"></script>
+<script src="js/08-langues.js?v=9.5"></script>
+<script src="js/09-laser.js?v=9.5"></script>
+<script src="js/10-interface.js?v=9.5"></script>
 
 </body>
 </html>
