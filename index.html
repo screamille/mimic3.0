@@ -10,7 +10,7 @@
 
 <title>MIMIC</title>
 
-<link rel="stylesheet" href="css/style.css?v=9.3">
+<link rel="stylesheet" href="css/style.css?v=9.4">
 </head>
 
 <body>
@@ -157,7 +157,7 @@
         <b id="bestScore">0</b>
     </div>
 
-    <div class="version" id="versionTag">V 9.3</div>
+    <div class="version" id="versionTag">V 9.4</div>
 
     <div id="errBanner" class="errBanner" style="display:none"></div>
 
@@ -209,8 +209,8 @@
 
             <button class="setRow" id="vibToggle">
                 <span class="setRowText">
-                    <b>Vibration</b>
-                    <small>Coups reçus, combos et capacités</small>
+                    <b data-i18n="set.vib">Vibration</b>
+                    <small data-i18n="set.vibHint">Coups reçus, combos et capacités</small>
                 </span>
                 <span class="setSwitch"><i></i></span>
             </button>
@@ -219,20 +219,20 @@
 
         <div class="setBlock">
 
-            <div class="setLabel">TES PARTIES</div>
+            <div class="setLabel" data-i18n="set.games">TES PARTIES</div>
 
             <button class="setRow" id="recordsButton">
                 <span class="setRowText">
-                    <b>🏆 RECORDS</b>
-                    <small>Ton meilleur score dans chaque monde</small>
+                    <b data-i18n="set.records">🏆 RECORDS</b>
+                    <small data-i18n="set.recordsHint">Ton meilleur score dans chaque monde</small>
                 </span>
                 <span class="setArrow">›</span>
             </button>
 
             <button class="setRow" id="shareButton">
                 <span class="setRowText">
-                    <b>📤 PARTAGER MON SCORE</b>
-                    <small>Copie ton record et le lien du jeu</small>
+                    <b data-i18n="set.share">📤 PARTAGER MON SCORE</b>
+                    <small data-i18n="set.shareHint">Copie ton record et le lien du jeu</small>
                 </span>
                 <span class="setArrow">›</span>
             </button>
@@ -241,20 +241,20 @@
 
         <div class="setBlock">
 
-            <div class="setLabel">PROFIL</div>
+            <div class="setLabel" data-i18n="set.profile">PROFIL</div>
 
             <button class="setRow" id="profileButton">
                 <span class="setRowText">
-                    <b>🙂 MON PSEUDO</b>
-                    <small id="profileSub">Change ton nom et ton âge</small>
+                    <b data-i18n="set.pseudo">🙂 MON PSEUDO</b>
+                    <small id="profileSub" data-i18n="set.pseudoHint">Change ton nom et ton âge</small>
                 </span>
                 <span class="setArrow">›</span>
             </button>
 
             <button class="setRow" id="rankButton">
                 <span class="setRowText">
-                    <b>🏆 MON RANG</b>
-                    <small id="rankSub">Tes trophées et l'échelle des rangs</small>
+                    <b data-i18n="set.rank">🏆 MON RANG</b>
+                    <small id="rankSub" data-i18n="set.rankHint">Tes trophées et l'échelle des rangs</small>
                 </span>
                 <span class="setArrow">›</span>
             </button>
@@ -268,7 +268,7 @@
             <button class="setRow" id="guideButton">
                 <span class="setRowText">
                     <b data-i18n="nav.guide2">📖 GUIDE</b>
-                    <small>Les ennemis, les objets et les paliers</small>
+                    <small data-i18n="set.guideHint">Les ennemis, les objets et les paliers</small>
                 </span>
                 <span class="setArrow">›</span>
             </button>
@@ -292,9 +292,9 @@
 
     <div class="menu">
 
-        <h1 style="margin:0 0 4px">🌍 LES MONDES</h1>
+        <h1 style="margin:0 0 4px" data-i18n="worlds.title">🌍 LES MONDES</h1>
 
-        <p class="tagline" style="margin:6px auto 0">
+        <p class="tagline" style="margin:6px auto 0" data-i18n="worlds.sub">
             Termine un monde pour ouvrir le suivant.
         </p>
 
@@ -312,9 +312,9 @@
 <!-- la fausse pub, tant qu'aucune regie n'est branchee -->
 <div id="adScreen" class="adScreen" style="display:none">
     <div class="adBox">
-        <b>PUBLICITÉ</b>
+        <b data-i18n="ad.title">PUBLICITÉ</b>
         <i id="adCount">5</i>
-        <small>Emplacement de test — aucune régie branchée</small>
+        <small data-i18n="ad.sub">Emplacement de test — aucune régie branchée</small>
     </div>
 </div>
 
@@ -330,13 +330,13 @@
         <div class="passHero">
 
             <div class="passHeroTxt">
-                <span class="passSeason">SAISON 1</span>
-                <h1>PASSE DE COMBAT</h1>
+                <span class="passSeason" data-i18n="pass.season">SAISON 1</span>
+                <h1 data-i18n="pass.title">PASSE DE COMBAT</h1>
             </div>
 
             <div class="passTierBadge">
                 <b id="passTierNum">0</b>
-                <small>PALIER</small>
+                <small data-i18n="pass.tier">PALIER</small>
             </div>
 
         </div>
@@ -365,7 +365,7 @@
 
     <div class="menu">
 
-        <h1 style="margin:0 0 4px">🎯 MISSIONS DU JOUR</h1>
+        <h1 style="margin:0 0 4px" data-i18n="miss.title">🎯 MISSIONS DU JOUR</h1>
 
         <p class="tagline" id="missionClock" style="margin:6px auto 0"></p>
 
@@ -388,7 +388,7 @@
 
     <div class="menu">
 
-        <h1 style="margin:0 0 4px">🏆 RECORDS</h1>
+        <h1 style="margin:0 0 4px" data-i18n="set.records">🏆 RECORDS</h1>
 
         <div id="recordList" class="recList"></div>
 
@@ -411,7 +411,7 @@
 
         <h1 style="margin:0 0 4px" data-i18n="code.title">🔑 CODE SECRET</h1>
 
-        <p class="tagline" style="margin:8px auto 0">
+        <p class="tagline" style="margin:8px auto 0" data-i18n="code.four">
             Quatre chiffres.
         </p>
 
@@ -440,7 +440,7 @@
         <p id="codeMessage"></p>
 
         <div class="menuButtons" style="margin-top:12px">
-            <button class="secondary" id="codeBack">← RETOUR</button>
+            <button class="secondary" id="codeBack" data-i18n="ui.back">← RETOUR</button>
         </div>
 
     </div>
@@ -656,12 +656,12 @@
 
             <button class="lasModeBtn on" id="lasModeFun">
                 🎈 AMICAL
-                <small>entre amis, avec un code</small>
+                <small data-i18n="las.modeFunSub">entre amis, avec un code</small>
             </button>
 
             <button class="lasModeBtn" id="lasModeRanked">
                 🏆 CLASSÉ
-                <small>adversaires au hasard</small>
+                <small data-i18n="las.modeRankSub">adversaires au hasard</small>
             </button>
 
         </div>
@@ -671,15 +671,15 @@
 
             <div class="queueCard">
                 <span class="queueDots" id="queueDots">● ● ●</span>
-                <b id="queueTitle">RECHERCHE D'ADVERSAIRES</b>
-                <small id="queueSub">La partie démarre dès qu'il y a 2 joueurs.</small>
+                <b id="queueTitle" data-i18n="queue.title">RECHERCHE D'ADVERSAIRES</b>
+                <small id="queueSub" data-i18n="queue.sub">La partie démarre dès qu'il y a 2 joueurs.</small>
             </div>
 
             <div class="menuButtons" style="margin-top:12px">
-                <button class="primary" id="lasFind" style="width:100%">
+                <button class="primary" id="lasFind" style="width:100%" data-i18n="las.find">
                     🏆 TROUVER UNE PARTIE
                 </button>
-                <button class="secondary" id="lasLeave" style="width:100%;display:none">
+                <button class="secondary" id="lasLeave" style="width:100%;display:none" data-i18n="las.leave">
                     ✕ ANNULER LA RECHERCHE
                 </button>
             </div>
@@ -716,7 +716,7 @@
                 <em data-i18n="las.orJoin">ou rejoins un salon existant</em>
             </p>
 
-            <input id="lasInput" maxlength="4" placeholder="CODE"
+            <input id="lasInput" maxlength="4" placeholder="CODE" data-i18n-ph="ph.code"
                    autocomplete="off" autocapitalize="characters">
 
             <button class="secondary" id="lasJoin" style="width:100%">
@@ -754,29 +754,29 @@
 
         <div class="helloStep on" id="helloStep1">
 
-            <h1 class="helloTitle">BIENVENUE DANS MIMIC</h1>
-            <p class="helloHint">Choisis ton pseudo. C'est le nom que les autres verront en multijoueur.</p>
+            <h1 class="helloTitle" data-i18n="hello.title">BIENVENUE DANS MIMIC</h1>
+            <p class="helloHint" data-i18n="hello.hint">Choisis ton pseudo. C'est le nom que les autres verront en multijoueur.</p>
 
-            <input id="helloName" maxlength="12" placeholder="TON PSEUDO"
+            <input id="helloName" maxlength="12" placeholder="TON PSEUDO" data-i18n-ph="ph.pseudo"
                    autocomplete="off" autocapitalize="characters">
 
             <p id="helloNameWarn" class="helloHint" style="color:#ff8fa8;margin-top:8px"></p>
 
             <div class="menuButtons" style="margin-top:14px">
-                <button class="primary" id="helloNext" style="width:100%">SUIVANT →</button>
+                <button class="primary" id="helloNext" style="width:100%" data-i18n="hello.next">SUIVANT →</button>
             </div>
 
         </div>
 
         <div class="helloStep" id="helloStep2">
 
-            <h1 class="helloTitle">QUEL ÂGE AS-TU ?</h1>
-            <p class="helloHint">Ça reste sur ton téléphone : rien n'est envoyé nulle part.</p>
+            <h1 class="helloTitle" data-i18n="hello.age">QUEL ÂGE AS-TU ?</h1>
+            <p class="helloHint" data-i18n="hello.ageHint">Ça reste sur ton téléphone : rien n'est envoyé nulle part.</p>
 
             <div class="ageGrid" id="ageGrid"></div>
 
             <div class="menuButtons" style="margin-top:14px">
-                <button class="secondary" id="helloBack" style="width:100%">← RETOUR</button>
+                <button class="secondary" id="helloBack" style="width:100%" data-i18n="ui.back">← RETOUR</button>
             </div>
 
         </div>
@@ -831,7 +831,7 @@
             </button>
 
             <!-- en classé : pas de revanche, on repart chercher un adversaire -->
-            <button class="primary" id="lasSearchAgain" style="display:none">
+            <button class="primary" id="lasSearchAgain" style="display:none" data-i18n="las.searchAgain">
                 🔍 CHERCHER UNE PARTIE
             </button>
 
@@ -1045,16 +1045,16 @@ fonctionne parfaitement même si aucun des deux ne répond.
 })();
 </script>
 
-<script src="js/01-moteur.js?v=9.3"></script>
-<script src="js/02-etat.js?v=9.3"></script>
-<script src="js/03-skins.js?v=9.3"></script>
-<script src="js/04-monde.js?v=9.3"></script>
-<script src="js/05-jeu.js?v=9.3"></script>
-<script src="js/06-boutique.js?v=9.3"></script>
-<script src="js/07-duel.js?v=9.3"></script>
-<script src="js/08-langues.js?v=9.3"></script>
-<script src="js/09-laser.js?v=9.3"></script>
-<script src="js/10-interface.js?v=9.3"></script>
+<script src="js/01-moteur.js?v=9.4"></script>
+<script src="js/02-etat.js?v=9.4"></script>
+<script src="js/03-skins.js?v=9.4"></script>
+<script src="js/04-monde.js?v=9.4"></script>
+<script src="js/05-jeu.js?v=9.4"></script>
+<script src="js/06-boutique.js?v=9.4"></script>
+<script src="js/07-duel.js?v=9.4"></script>
+<script src="js/08-langues.js?v=9.4"></script>
+<script src="js/09-laser.js?v=9.4"></script>
+<script src="js/10-interface.js?v=9.4"></script>
 
 </body>
 </html>
