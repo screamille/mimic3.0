@@ -360,7 +360,7 @@ function createMimic(forcedType){
         pickupMessage("☠️ LE TRAQUEUR NOIR EST LÀ", "#dce6ff");
         sound(70, .7, "sawtooth", .07);
     }else{
-        pickupMessage("⚠️ " + type.name + " ARRIVE", type.color);
+        pickupMessage("⚠️ " + T("foe." + (type.name === "HUNTER" ? "hunter" : type.name === "PREDICTOR" ? "predictor" : "traqueur")) + " " + T("ui.arrive"), type.color);
     }
 
 }
@@ -1295,7 +1295,7 @@ function update(dt){
         const wd = currentWorld();
 
         paintProgress(
-            "MONDE " + wd.n + "  " + wd.name,
+            T("ui.world") + " " + wd.n + "  " + T(wd.k),
             worldProgress(),
             wd.col
         );
@@ -2294,7 +2294,7 @@ function drawRaw(){
             ctx.fillStyle   = wDest ? wDest.col : "#d7ffa8";
             ctx.font        = "bold " + Math.round(30 * unit) + "px Arial";
             ctx.textAlign   = "center";
-            ctx.fillText(wDest ? wDest.name : "", W / 2, H * .34);
+            ctx.fillText(wDest ? T(wDest.k) : "", W / 2, H * .34);
 
             ctx.globalAlpha *= .75;
             ctx.fillStyle    = "#ffffff";

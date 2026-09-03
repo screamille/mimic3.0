@@ -1383,10 +1383,13 @@ function lasTrophies(order, won){
     box.style.display = "block";
     box.className     = "troDelta " + (d >= 0 ? "up" : "down");
 
-    box.textContent =
-        (d >= 0 ? "+" : "") + d + " 🏆   ·   " +
-        place + (place === 1 ? "er" : "e") + " sur " + total +
-        "   ·   " + rank.tr + " (" + r.name + ")";
+    box.textContent = TF("rank.delta", {
+        d: (d >= 0 ? "+" : "") + d,
+        p: place,
+        t: total,
+        tr: rank.tr,
+        r: T(r.k)
+    });
 
 }
 

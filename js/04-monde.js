@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "9.6";
+const VERSION = "9.7";
 
 (function(){
 
@@ -2654,13 +2654,13 @@ function slowTick(dt){
 
 /* chaque mission rapporte entre 50 et 75 pieces */
 const MISSIONS = [
-    {id:"coins", min:20, max:55, step:5,   reward:55, txt:g => "Ramasse " + g + " pièces en une partie"},
-    {id:"score", min:600, max:2400, step:200, reward:60, txt:g => "Fais " + g + " points en une partie"},
-    {id:"world", min:2,  max:9,  step:1,   reward:75, txt:g => "Atteins le monde " + g},
-    {id:"time",  min:60, max:180, step:30, reward:60, txt:g => "Survis " + g + " secondes"},
-    {id:"combo", min:6,  max:20, step:2,   reward:65, txt:g => "Atteins un combo de " + g},
-    {id:"nohit", min:40, max:110, step:10, reward:75, txt:g => "Survis " + g + " s sans perdre de vie"},
-    {id:"graze", min:10, max:35, step:5,   reward:50, txt:g => "Frôle " + g + " fois un danger"}
+    {id:"coins", min:20, max:55, step:5,   reward:55, k:"miss.coins"},
+    {id:"score", min:600, max:2400, step:200, reward:60, k:"miss.score"},
+    {id:"world", min:2,  max:9,  step:1,   reward:75, k:"miss.world"},
+    {id:"time",  min:60, max:180, step:30, reward:60, k:"miss.time"},
+    {id:"combo", min:6,  max:20, step:2,   reward:65, k:"miss.combo"},
+    {id:"nohit", min:40, max:110, step:10, reward:75, k:"miss.nohit"},
+    {id:"graze", min:10, max:35, step:5,   reward:50, k:"miss.graze"}
 ];
 
 
@@ -2832,7 +2832,7 @@ function renderMissions(){
         head.className = "missionHead";
 
         const name = document.createElement("b");
-        name.textContent = def.txt(t.goal);
+        name.textContent = TF(def.k, {n:t.goal});
 
         const rw = document.createElement("span");
         rw.className = "missionReward";
@@ -2870,10 +2870,10 @@ function renderMissions(){
         const end = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
         const s   = Math.max(0, Math.floor((end - now) / 1000));
 
-        left.textContent =
-            "Nouvelles missions dans " +
-            Math.floor(s / 3600) + " h " +
-            String(Math.floor((s % 3600) / 60)).padStart(2, "0");
+        left.textContent = TF("miss.clock", {
+            h: Math.floor(s / 3600),
+            m: String(Math.floor((s % 3600) / 60)).padStart(2, "0")
+        });
 
     }
 
@@ -2920,13 +2920,13 @@ function playerName(){
 ========================================================= */
 
 const RANKS = [
-    {tr:0,   name:"BOIS",     ic:"🪵", col:"#b98a5a"},
-    {tr:50,  name:"BRONZE",   ic:"🥉", col:"#d08b4a"},
-    {tr:120, name:"ARGENT",   ic:"🥈", col:"#cfd8e8"},
-    {tr:220, name:"OR",       ic:"🥇", col:"#ffd76a"},
-    {tr:350, name:"DIAMANT",  ic:"💎", col:"#7bf0ff"},
-    {tr:500, name:"MAÎTRE",   ic:"👑", col:"#c86aff"},
-    {tr:700, name:"LÉGENDE",  ic:"🔥", col:"#ff7a2a"}
+    {tr:0,   k:"rk.0", name:"BOIS",     ic:"🪵", col:"#b98a5a"},
+    {tr:50,  k:"rk.1", name:"BRONZE",   ic:"🥉", col:"#d08b4a"},
+    {tr:120, k:"rk.2", name:"ARGENT",   ic:"🥈", col:"#cfd8e8"},
+    {tr:220, k:"rk.3", name:"OR",       ic:"🥇", col:"#ffd76a"},
+    {tr:350, k:"rk.4", name:"DIAMANT",  ic:"💎", col:"#7bf0ff"},
+    {tr:500, k:"rk.5", name:"MAÎTRE",   ic:"👑", col:"#c86aff"},
+    {tr:700, k:"rk.6", name:"LÉGENDE",  ic:"🔥", col:"#ff7a2a"}
 ];
 
 let rank = loadJSON("mimicRank", null);
@@ -3026,15 +3026,17 @@ function renderRank(){
     if(ic){ ic.textContent = r.ic; }
 
     if(nm){
-        nm.textContent = r.name;
+        nm.textContent = T(r.k);
         nm.style.color = r.col;
     }
 
     if(tr){
-        tr.textContent =
-            rank.tr + " trophées   ·   record " + Math.max(rank.best, rank.tr) +
-            "   ·   " + rank.wins + " victoire" + (rank.wins > 1 ? "s" : "") +
-            " sur " + rank.games;
+        tr.textContent = TF("rank.stats", {
+            t: rank.tr,
+            b: Math.max(rank.best, rank.tr),
+            w: rank.wins,
+            g: rank.games
+        });
     }
 
     const fill = document.getElementById("rankNextFill");
@@ -3046,12 +3048,12 @@ function renderRank(){
         const done = rank.tr - r.tr;
 
         if(fill){ fill.style.width = (Math.max(0, Math.min(1, done / span)) * 100).toFixed(1) + "%"; }
-        if(txt){  txt.textContent  = (nx.tr - rank.tr) + " trophées avant " + nx.name; }
+        if(txt){  txt.textContent  = TF("rank.next", {n:nx.tr - rank.tr, r:T(nx.k)}); }
 
     }else{
 
         if(fill){ fill.style.width = "100%"; }
-        if(txt){  txt.textContent  = "Tu es au sommet. Bien joué."; }
+        if(txt){  txt.textContent  = T("rank.top"); }
 
     }
 
@@ -3078,11 +3080,11 @@ function renderRank(){
         em.textContent = rr.ic;
 
         const b = document.createElement("b");
-        b.textContent = rr.name;
+        b.textContent = T(rr.k);
         b.style.color = rr.col;
 
         const sm = document.createElement("small");
-        sm.textContent = nxt ? rr.tr + " – " + (nxt.tr - 1) : rr.tr + " et plus";
+        sm.textContent = nxt ? rr.tr + " – " + (nxt.tr - 1) : TF("rank.andMore", {n:rr.tr});
 
         row.appendChild(em);
         row.appendChild(b);
@@ -3943,7 +3945,7 @@ function renderRecords(){
         const seen = worldsSeen.indexOf(wd.zone) >= 0;
 
         const n = document.createElement("b");
-        n.textContent   = "MONDE " + wd.n + "  " + wd.name;
+        n.textContent   = T("ui.world") + " " + wd.n + "  " + T(wd.k);
         n.style.color   = seen ? wd.col : "#5f6f97";
 
         const v = document.createElement("span");
@@ -4032,9 +4034,9 @@ const BOSS_TIME  = 78;    /* secondes de survie pour le vaincre */
 const BOSS_PUNCH = .05;   /* ce qu'il regagne quand il te touche */
 
 const BOSS_PHASES = [
-    {name:"SALVES", col:"#c86aff"},
-    {name:"FAUX",   col:"#ff5f8f"},
-    {name:"TRAQUE", col:"#ff3a52"}
+    {k:"bp.0", name:"SALVES", col:"#c86aff"},
+    {k:"bp.1", name:"FAUX",   col:"#ff5f8f"},
+    {k:"bp.2", name:"TRAQUE", col:"#ff3a52"}
 ];
 
 
@@ -4486,7 +4488,7 @@ function updateBoss(dt){
 
         bossBeams = [];
 
-        pickupMessage("⚠️ " + BOSS_PHASES[ph].name, BOSS_PHASES[ph].col);
+        pickupMessage("⚠️ " + T(BOSS_PHASES[ph].k), BOSS_PHASES[ph].col);
 
         sound(110, .5, "square", .05);
 
@@ -4880,7 +4882,7 @@ function bossBar(){
     el.style.display = "block";
 
     document.getElementById("bossName").textContent  = "👁 L'ŒIL DU NÉANT";
-    document.getElementById("bossPhase").textContent = ph.name;
+    document.getElementById("bossPhase").textContent = T(ph.k);
     document.getElementById("bossPhase").style.color = ph.col;
 
     const f = document.getElementById("bossFill");
@@ -4907,9 +4909,9 @@ const MIM_TIME   = 105;   /* secondes pour l'user entierement */
 const MIM_PUNCH  = .06;   /* ce qu'il regagne quand il te touche */
 
 const MIM_PHASES = [
-    {name:"LES FILS",    col:"#b06cff"},
-    {name:"LA DANSE",    col:"#d64bff"},
-    {name:"FILS COUPÉS", col:"#ff3af0"}
+    {k:"mp.0", name:"LES FILS",    col:"#b06cff"},
+    {k:"mp.1", name:"LA DANSE",    col:"#d64bff"},
+    {k:"mp.2", name:"FILS COUPÉS", col:"#ff3af0"}
 ];
 
 let mim         = null;   /* LE MIMIC lui-meme       */
@@ -5762,7 +5764,7 @@ function updateMimic(dt){
 
         mimBeams = [];
 
-        pickupMessage("⚠️ " + MIM_PHASES[ph].name, MIM_PHASES[ph].col);
+        pickupMessage("⚠️ " + T(MIM_PHASES[ph].k), MIM_PHASES[ph].col);
 
         mimSfx("phase");
 
@@ -8796,7 +8798,7 @@ function mimBar(){
     el.style.display = "block";
 
     document.getElementById("bossName").textContent  = "🚪 LE MIMIC";
-    document.getElementById("bossPhase").textContent = ph.name;
+    document.getElementById("bossPhase").textContent = T(ph.k);
     document.getElementById("bossPhase").style.color = ph.col;
 
     const f = document.getElementById("bossFill");
@@ -10765,7 +10767,7 @@ function worldBanner(zoneId, icon){
         return;
     }
 
-    pickupMessage(icon + " MONDE " + w.n + "  " + w.name, w.col);
+    pickupMessage(icon + " " + T("ui.world") + " " + w.n + "  " + T(w.k), w.col);
 
 }
 

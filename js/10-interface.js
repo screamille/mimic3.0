@@ -827,14 +827,14 @@ function renderWorlds(){
         txt.className = "worldTxt";
 
         const nm = document.createElement("b");
-        nm.textContent = wd.name;
+        nm.textContent = T(wd.k);
         nm.style.color = open ? wd.col : "#5f6f97";
 
         const sub = document.createElement("small");
 
         sub.textContent = open
-            ? "Meilleur score : " + (records.best[wd.zone] || 0)
-            : "Termine le monde " + (prev ? prev.n : 1) + " pour l'ouvrir";
+            ? TF("worlds.best", {n:records.best[wd.zone] || 0})
+            : TF("worlds.locked", {n:prev ? prev.n : 1});
 
         txt.appendChild(nm);
         txt.appendChild(sub);

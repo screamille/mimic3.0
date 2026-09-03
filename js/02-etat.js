@@ -111,21 +111,21 @@ const MAX_LANTERNES = 3;    /* lanternes simultanées */
 
 /* la carte des mondes : elle sert au HUD et a la progression */
 const WORLDS = [
-    {zone:"cyber",  n:1, name:"L'ESPACE",            from:1,           to:PORTAL_LEVEL, col:"#55d9ff"},
-    {zone:"marais", n:2, name:"LE MARAIS",           from:PORTAL_LEVEL, to:CANDY_LEVEL, col:"#8fe04a"},
-    {zone:"bonbon", n:3, name:"LE PAYS DES BONBONS", from:CANDY_LEVEL,  to:ABYSS_LEVEL, col:"#ff8fc4"},
-    {zone:"abysse", n:4, name:"LES ABYSSES",         from:ABYSS_LEVEL,  to:VOID_LEVEL,  col:"#2fe0ff"},
-    {zone:"neant",   n:5, name:"LE NÉANT",             from:VOID_LEVEL,   to:DESERT_LEVEL, col:"#c86aff"},
-    {zone:"desert",  n:6, name:"LE DÉSERT DE VERRE",   from:DESERT_LEVEL, to:FORGE_LEVEL,  col:"#ffd76a"},
-    {zone:"forge",   n:7, name:"LA FORGE",             from:FORGE_LEVEL,  to:BIBLIO_LEVEL, col:"#ff7a2a"},
-    {zone:"biblio",  n:8, name:"LA BIBLIOTHÈQUE",      from:BIBLIO_LEVEL, to:CLOCK_LEVEL,  col:"#b06cff"},
-    {zone:"horloge", n:9, name:"L'HORLOGE",            from:CLOCK_LEVEL,  to:MIMIC_LEVEL,  col:"#9fe9ff"},
-    {zone:"couloir",  n:10, name:"LE COULOIR",           from:MIMIC_LEVEL,   to:BACK_LEVEL,    col:"#b06cff"},
-    {zone:"coulisses",n:11, name:"LES COULISSES",        from:BACK_LEVEL,    to:SCENE_LEVEL,   col:"#8f6cff"},
-    {zone:"scene",    n:12, name:"LA SCÈNE",             from:SCENE_LEVEL,   to:ATELIER_LEVEL, col:"#ffd76a"},
-    {zone:"atelier",  n:13, name:"L'ATELIER",            from:ATELIER_LEVEL, to:GRENIER_LEVEL, col:"#6ad0ff"},
-    {zone:"grenier",  n:14, name:"LE GRENIER",           from:GRENIER_LEVEL, to:OMBRE_LEVEL,   col:"#ff9a5c"},
-    {zone:"ombres",   n:15, name:"LE THÉÂTRE D\u2019OMBRES", from:OMBRE_LEVEL, to:null,        col:"#c86aff"}
+    {zone:"cyber",  k:"w.cyber", n:1, name:"L'ESPACE",            from:1,           to:PORTAL_LEVEL, col:"#55d9ff"},
+    {zone:"marais", k:"w.marais", n:2, name:"LE MARAIS",           from:PORTAL_LEVEL, to:CANDY_LEVEL, col:"#8fe04a"},
+    {zone:"bonbon", k:"w.bonbon", n:3, name:"LE PAYS DES BONBONS", from:CANDY_LEVEL,  to:ABYSS_LEVEL, col:"#ff8fc4"},
+    {zone:"abysse", k:"w.abysse", n:4, name:"LES ABYSSES",         from:ABYSS_LEVEL,  to:VOID_LEVEL,  col:"#2fe0ff"},
+    {zone:"neant",   k:"w.neant", n:5, name:"LE NÉANT",             from:VOID_LEVEL,   to:DESERT_LEVEL, col:"#c86aff"},
+    {zone:"desert",  k:"w.desert", n:6, name:"LE DÉSERT DE VERRE",   from:DESERT_LEVEL, to:FORGE_LEVEL,  col:"#ffd76a"},
+    {zone:"forge",   k:"w.forge", n:7, name:"LA FORGE",             from:FORGE_LEVEL,  to:BIBLIO_LEVEL, col:"#ff7a2a"},
+    {zone:"biblio",  k:"w.biblio", n:8, name:"LA BIBLIOTHÈQUE",      from:BIBLIO_LEVEL, to:CLOCK_LEVEL,  col:"#b06cff"},
+    {zone:"horloge", k:"w.horloge", n:9, name:"L'HORLOGE",            from:CLOCK_LEVEL,  to:MIMIC_LEVEL,  col:"#9fe9ff"},
+    {zone:"couloir",  k:"w.couloir", n:10, name:"LE COULOIR",           from:MIMIC_LEVEL,   to:BACK_LEVEL,    col:"#b06cff"},
+    {zone:"coulisses",k:"w.coulisses", n:11, name:"LES COULISSES",        from:BACK_LEVEL,    to:SCENE_LEVEL,   col:"#8f6cff"},
+    {zone:"scene",    k:"w.scene", n:12, name:"LA SCÈNE",             from:SCENE_LEVEL,   to:ATELIER_LEVEL, col:"#ffd76a"},
+    {zone:"atelier",  k:"w.atelier", n:13, name:"L'ATELIER",            from:ATELIER_LEVEL, to:GRENIER_LEVEL, col:"#6ad0ff"},
+    {zone:"grenier",  k:"w.grenier", n:14, name:"LE GRENIER",           from:GRENIER_LEVEL, to:OMBRE_LEVEL,   col:"#ff9a5c"},
+    {zone:"ombres",   k:"w.ombres", n:15, name:"LE THÉÂTRE D\u2019OMBRES", from:OMBRE_LEVEL, to:null,        col:"#c86aff"}
 ];
 
 
