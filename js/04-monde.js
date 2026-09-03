@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "9.5";
+const VERSION = "9.6";
 
 (function(){
 
@@ -2890,6 +2890,8 @@ function renderMissions(){
 
 let profile = loadJSON("mimicProfile", null);
 
+let helloFrom = "menu";
+
 if(!profile || typeof profile !== "object"){
     profile = {name:"", age:0};
 }
@@ -3165,7 +3167,14 @@ function buildAgeGrid(){
 }
 
 
-function openHello(edit){
+function openHello(edit, from){
+
+    /*
+    Sans ca, refermer l'ecran laissait un ecran noir : le salon
+    et les reglages avaient ete caches, et personne ne les
+    rouvrait. On retient donc d'ou l'on vient.
+    */
+    helloFrom = from || "menu";
 
     buildAgeGrid();
 
@@ -3209,6 +3218,13 @@ function finishHello(){
     paintRankPill();
 
     document.getElementById("helloScreen").style.display = "none";
+
+    /* on revient exactement a l'ecran d'ou l'on venait */
+    if(helloFrom === "settings"){
+        document.getElementById("settings").style.display = "flex";
+    }else{
+        document.getElementById("mainMenu").style.display = "block";
+    }
 
     sound(760, .16, "triangle", .05);
 

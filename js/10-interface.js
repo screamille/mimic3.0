@@ -883,7 +883,7 @@ document.getElementById("namePill").onclick = () => openHello(true);
 
 document.getElementById("profileButton").onclick = () => {
     document.getElementById("settings").style.display = "none";
-    openHello(true);
+    openHello(true, "settings");
 };
 
 document.getElementById("rankButton").onclick = () => {
@@ -905,8 +905,7 @@ document.getElementById("helloNext").onclick = () => {
     const typed = document.getElementById("helloName").value.trim();
 
     if(typed.length < 2){
-        document.getElementById("helloNameWarn").textContent =
-            "Il faut au moins 2 caractères.";
+        document.getElementById("helloNameWarn").textContent = T("hello.short");
         return;
     }
 

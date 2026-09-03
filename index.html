@@ -10,7 +10,7 @@
 
 <title>MIMIC</title>
 
-<link rel="stylesheet" href="css/style.css?v=9.5">
+<link rel="stylesheet" href="css/style.css?v=9.6">
 </head>
 
 <body>
@@ -157,7 +157,7 @@
         <b id="bestScore">0</b>
     </div>
 
-    <div class="version" id="versionTag">V 9.5</div>
+    <div class="version" id="versionTag">V 9.6</div>
 
     <div id="errBanner" class="errBanner" style="display:none"></div>
 
@@ -475,7 +475,7 @@
         <div class="foe">
             <canvas class="foeIcon" data-kind="hunter"></canvas>
             <span class="txt">
-                <span class="nm" style="color:#ff713d">HUNTER</span>
+                <span class="nm" style="color:#ff713d" data-i18n="foe.hunter">HUNTER</span>
                 <span class="ds" data-i18n="g.hunter">Il fonce droit sur toi et contourne les blocs. Le plus simple à lire.</span>
             </span>
         </div>
@@ -483,7 +483,7 @@
         <div class="foe">
             <canvas class="foeIcon" data-kind="predictor"></canvas>
             <span class="txt">
-                <span class="nm" style="color:#a855ff">PREDICTOR</span>
+                <span class="nm" style="color:#a855ff" data-i18n="foe.predictor">PREDICTOR</span>
                 <span class="ds" data-i18n="g.predictor">Il vise là où tu seras, pas où tu es. Il coupe tes virages.</span>
             </span>
         </div>
@@ -491,7 +491,7 @@
         <div class="foe">
             <canvas class="foeIcon" data-kind="traqueur"></canvas>
             <span class="txt">
-                <span class="nm" style="color:#ff2f4d">TRAQUEUR</span>
+                <span class="nm" style="color:#ff2f4d" data-i18n="foe.traqueur">TRAQUEUR</span>
                 <span class="ds" data-i18n="g.traqueur">Il remonte ta piste et sprinte parfois. Si tu t'arrêtes, il te rattrape.</span>
             </span>
         </div>
@@ -499,7 +499,7 @@
         <div class="foe">
             <canvas class="foeIcon" data-kind="slime"></canvas>
             <span class="txt">
-                <span class="nm" style="color:#7fdc3f">SLIME</span>
+                <span class="nm" style="color:#7fdc3f" data-i18n="foe.slime">SLIME</span>
                 <span class="ds" data-i18n="g.slime">Maître du marais. Il s'écrase au sol avant de bondir : c'est ton signal.</span>
             </span>
         </div>
@@ -523,32 +523,32 @@
         <div class="foe">
             <canvas class="foeIcon" data-kind="guimauve"></canvas>
             <span class="txt">
-                <span class="nm" style="color:#ff6fae">GUIMAUVE</span>
-                <span class="ds">Au pays des bonbons. Elle rebondit en ligne droite et s'écrase à chaque choc : sa trajectoire est lisible, anticipe le rebond au lieu de courir devant elle.</span>
+                <span class="nm" style="color:#ff6fae" data-i18n="foe.guimauve">GUIMAUVE</span>
+                <span class="ds" data-i18n="g.guimauve">Au pays des bonbons. Elle rebondit en ligne droite et s'écrase à chaque choc : sa trajectoire est lisible, anticipe le rebond au lieu de courir devant elle.</span>
             </span>
         </div>
 
         <div class="foe">
             <canvas class="foeIcon" data-kind="anguille"></canvas>
             <span class="txt">
-                <span class="nm" style="color:#3fe0ff">ANGUILLE</span>
-                <span class="ds">Dans les abysses. Elle ondule sans jamais s'arrêter et tourne lentement : change d'angle au dernier moment et elle te dépasse.</span>
+                <span class="nm" style="color:#3fe0ff" data-i18n="foe.anguille">ANGUILLE</span>
+                <span class="ds" data-i18n="g.anguille">Dans les abysses. Elle ondule sans jamais s'arrêter et tourne lentement : change d'angle au dernier moment et elle te dépasse.</span>
             </span>
         </div>
 
         <div class="foe">
             <canvas class="foeIcon" data-kind="lanterne"></canvas>
             <span class="txt">
-                <span class="nm" style="color:#9ff0ff">LANTERNE</span>
-                <span class="ds">Immobile, sa lueur porte loin. Entre dedans et elle se ramasse — c'est le signal — puis se détend d'un coup.</span>
+                <span class="nm" style="color:#9ff0ff" data-i18n="foe.lanterne">LANTERNE</span>
+                <span class="ds" data-i18n="g.lanterne">Immobile, sa lueur porte loin. Entre dedans et elle se ramasse — c'est le signal — puis se détend d'un coup.</span>
             </span>
         </div>
 
         <div class="foe">
             <canvas class="foeIcon" data-kind="oeil"></canvas>
             <span class="txt">
-                <span class="nm" style="color:#c86aff">L'ŒIL DU NÉANT</span>
-                <span class="ds">Le boss, au monde 5. Il ne se tue pas : il s'use tant que tu restes debout, et il regagne du terrain à chaque fois qu'il te touche. Trois façons d'attaquer — SALVES (des couronnes percées de deux trous), FAUX (des rayons qui balaient), TRAQUE (il se téléporte et arrose en spirale). Le vaincre te laisse le NÉANT SLIME.</span>
+                <span class="nm" style="color:#c86aff" data-i18n="foe.oeil">L'ŒIL DU NÉANT</span>
+                <span class="ds" data-i18n="g.oeil">Le boss, au monde 5. Il ne se tue pas : il s'use tant que tu restes debout, et il regagne du terrain à chaque fois qu'il te touche. Trois façons d'attaquer — SALVES (des couronnes percées de deux trous), FAUX (des rayons qui balaient), TRAQUE (il se téléporte et arrose en spirale). Le vaincre te laisse le NÉANT SLIME.</span>
             </span>
         </div>
 
@@ -593,38 +593,38 @@
             <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 10</span><span class="ds" data-i18n="g.t20">🌀 Un portail t'aspire vers LE MARAIS, le monde des slimes</span></div>
             <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 15</span><span class="ds" data-i18n="g.t30">Le terrain se referme</span></div>
             <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 20</span><span class="ds" data-i18n="g.t40">🍬 Un second portail t'emmène au PAYS DES BONBONS</span></div>
-            <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 30</span><span class="ds">🌑 Un portail t'entraîne dans LES ABYSSES — et te laisse l'ABYSSAL SLIME</span></div>
-            <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 40</span><span class="ds">👁 Un portail ouvre LE NÉANT, et L'ŒIL t'y attend</span></div>
-            <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 55</span><span class="ds">🏜 LE DÉSERT DE VERRE</span></div>
-            <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 65</span><span class="ds">🔥 LA FORGE</span></div>
-            <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 75</span><span class="ds">📖 LA BIBLIOTHÈQUE</span></div>
-            <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 85</span><span class="ds">🕰 L'HORLOGE</span></div>
+            <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 30</span><span class="ds" data-i18n="g.m1">🌑 Un portail t'entraîne dans LES ABYSSES — et te laisse l'ABYSSAL SLIME</span></div>
+            <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 40</span><span class="ds" data-i18n="g.m2">👁 Un portail ouvre LE NÉANT, et L'ŒIL t'y attend</span></div>
+            <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 55</span><span class="ds" data-i18n="g.m3">🏜 LE DÉSERT DE VERRE</span></div>
+            <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 65</span><span class="ds" data-i18n="g.m4">🔥 LA FORGE</span></div>
+            <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 75</span><span class="ds" data-i18n="g.m5">📖 LA BIBLIOTHÈQUE</span></div>
+            <div class="step"><span class="lv"><em data-i18n="g.lvl">NIVEAU</em> 85</span><span class="ds" data-i18n="g.m6">🕰 L'HORLOGE</span></div>
 
         </div>
 
-        <div class="guideSection">LES MONDES 6 À 9</div>
+        <div class="guideSection" data-i18n="g.sect69">LES MONDES 6 À 9</div>
 
         <div class="steps">
 
-            <div class="step"><span class="lv" style="color:#ffd76a">🌀 MIRAGE</span><span class="ds">Désert. Ta propre image. Le toucher coûte une vie même quand il est transparent — et quand il se durcit, il se jette sur toi. Ils sont jusqu'à sept, mais jamais tous prêts en même temps. Les pics de verre les arrêtent : sers-t'en.</span></div>
-            <div class="step"><span class="lv" style="color:#ff7a2a">⛓ CHAÎNE</span><span class="ds">Forge. Un boulet chauffé à blanc qui tourne autour de son ancre. L'ancre, elle, se rapproche.</span></div>
-            <div class="step"><span class="lv" style="color:#ff7a2a">🔥 FOURNAISE</span><span class="ds">Forge. Elle pivote vers toi, sa gueule rougit, puis elle souffle un cône de feu. Passe derrière elle.</span></div>
-            <div class="step"><span class="lv" style="color:#b06cff">📚 TOME</span><span class="ds">Bibliothèque. Une colonne se met à trembler et de la poussière tombe : un cercle violet marque le point de chute. Le tome écrase, et l'onde de papier qui part du choc frappe encore.</span></div>
-            <div class="step"><span class="lv" style="color:#b06cff">🕊️ OISEAU DE PAPIER</span><span class="ds">Bibliothèque. Une plume au bord droit annonce sa hauteur, puis il traverse de droite à gauche en ondulant. Toujours la même vitesse, toujours la même ondulation : ça s'apprend.</span></div>
-            <div class="step"><span class="lv" style="color:#b06cff">📕 GRIMOIRE</span><span class="ds">Bibliothèque. Il s'ouvre — c'est le signal — puis lâche trois lames de papier en éventail. Ils sont cinq.</span></div>
-            <div class="step"><span class="lv" style="color:#9fe9ff">⚙️ ENGRENAGE</span><span class="ds">Horloge. Il longe le bord de l'arène sans jamais s'arrêter. Ne reste pas collé aux murs.</span></div>
-            <div class="step"><span class="lv" style="color:#9fe9ff">🕰 PENDULE</span><span class="ds">Horloge. Il balaie toujours le même arc, au même rythme. Il suffit de compter.</span></div>
-            <div class="step"><span class="lv" style="color:#8f6cff">🎭 PANTIN PENDU</span><span class="ds">Coulisses. Il pend au gril. Passe dessous et il tremble — c'est ta seconde pour t'écarter — puis il tombe et rampe vers toi avant d'être remonté.</span></div>
-            <div class="step"><span class="lv" style="color:#8f6cff">🎪 RIDEAU</span><span class="ds">Coulisses. Un pan de velours traverse la scène. Un seul passage, bordé d'or : c'est par là.</span></div>
-            <div class="step"><span class="lv" style="color:#ffd76a">🔦 PROJECTEUR</span><span class="ds">Scène. Il balaie lentement. Dès qu'il t'accroche il se fige et chauffe une seconde — sors du cône avant qu'il brûle.</span></div>
-            <div class="step"><span class="lv" style="color:#ffd76a">🕳️ TRAPPE</span><span class="ds">Scène. Un cercle en pointillés marque l'endroit, puis le plancher s'ouvre. Ne reste pas dessus.</span></div>
-            <div class="step"><span class="lv" style="color:#6ad0ff">📍 AIGUILLE</span><span class="ds">Atelier. Elle pique depuis un mur, ressort, repique — toujours au même rythme, toujours au même endroit.</span></div>
-            <div class="step"><span class="lv" style="color:#6ad0ff">🧵 BOBINE</span><span class="ds">Atelier. Elle roule en ligne droite et rebondit sur les murs, en laissant son fil derrière elle.</span></div>
-            <div class="step"><span class="lv" style="color:#ff9a5c">🔑 JOUET REMONTÉ</span><span class="ds">Grenier. Il marche tout droit et tourne d'un quart de tour à chaque mur. Sa clef te dit d'où il vient.</span></div>
-            <div class="step"><span class="lv" style="color:#ff9a5c">📦 BOÎTE À SURPRISE</span><span class="ds">Grenier. Approche-toi et le couvercle s'ouvre. Une demi-seconde plus tard, la tête jaillit sur son ressort, droit sur toi.</span></div>
-            <div class="step"><span class="lv" style="color:#c86aff">🕯️ TON OMBRE</span><span class="ds">Théâtre d'ombres. Elle refait tes mouvements en miroir, avec une seconde de retard. C'est toi qui la diriges — sans le vouloir.</span></div>
-            <div class="step"><span class="lv" style="color:#c86aff">🖐️ MAIN D'OMBRE</span><span class="ds">Théâtre d'ombres. Une ligne en pointillés se cale sur ta hauteur, puis la main traverse le mur. Change d'étage.</span></div>
-            <div class="step"><span class="lv" style="color:#9fe9ff">⚖️ CONTREPOIDS</span><span class="ds">Horloge. Des masses de laiton pendues au plafond. Elles ne t'attaquent pas : elles barrent le passage, et elles balancent.</span></div>
+            <div class="step"><span class="lv" style="color:#ffd76a" data-i18n="foe.mirage">🌀 MIRAGE</span><span class="ds" data-i18n="g.mirage">Désert. Ta propre image. Le toucher coûte une vie même quand il est transparent — et quand il se durcit, il se jette sur toi. Ils sont jusqu'à sept, mais jamais tous prêts en même temps. Les pics de verre les arrêtent : sers-t'en.</span></div>
+            <div class="step"><span class="lv" style="color:#ff7a2a" data-i18n="foe.chaine">⛓ CHAÎNE</span><span class="ds" data-i18n="g.chaine">Forge. Un boulet chauffé à blanc qui tourne autour de son ancre. L'ancre, elle, se rapproche.</span></div>
+            <div class="step"><span class="lv" style="color:#ff7a2a" data-i18n="foe.fournaise">🔥 FOURNAISE</span><span class="ds" data-i18n="g.fournaise">Forge. Elle pivote vers toi, sa gueule rougit, puis elle souffle un cône de feu. Passe derrière elle.</span></div>
+            <div class="step"><span class="lv" style="color:#b06cff" data-i18n="foe.tome">📚 TOME</span><span class="ds" data-i18n="g.tome">Bibliothèque. Une colonne se met à trembler et de la poussière tombe : un cercle violet marque le point de chute. Le tome écrase, et l'onde de papier qui part du choc frappe encore.</span></div>
+            <div class="step"><span class="lv" style="color:#b06cff" data-i18n="foe.oiseau">🕊️ OISEAU DE PAPIER</span><span class="ds" data-i18n="g.oiseau">Bibliothèque. Une plume au bord droit annonce sa hauteur, puis il traverse de droite à gauche en ondulant. Toujours la même vitesse, toujours la même ondulation : ça s'apprend.</span></div>
+            <div class="step"><span class="lv" style="color:#b06cff" data-i18n="foe.grimoire">📕 GRIMOIRE</span><span class="ds" data-i18n="g.grimoire">Bibliothèque. Il s'ouvre — c'est le signal — puis lâche trois lames de papier en éventail. Ils sont cinq.</span></div>
+            <div class="step"><span class="lv" style="color:#9fe9ff" data-i18n="foe.engrenage">⚙️ ENGRENAGE</span><span class="ds" data-i18n="g.engrenage">Horloge. Il longe le bord de l'arène sans jamais s'arrêter. Ne reste pas collé aux murs.</span></div>
+            <div class="step"><span class="lv" style="color:#9fe9ff" data-i18n="foe.pendule">🕰 PENDULE</span><span class="ds" data-i18n="g.pendule">Horloge. Il balaie toujours le même arc, au même rythme. Il suffit de compter.</span></div>
+            <div class="step"><span class="lv" style="color:#8f6cff" data-i18n="foe.pantin">🎭 PANTIN PENDU</span><span class="ds" data-i18n="g.pantin">Coulisses. Il pend au gril. Passe dessous et il tremble — c'est ta seconde pour t'écarter — puis il tombe et rampe vers toi avant d'être remonté.</span></div>
+            <div class="step"><span class="lv" style="color:#8f6cff" data-i18n="foe.rideau">🎪 RIDEAU</span><span class="ds" data-i18n="g.rideau">Coulisses. Un pan de velours traverse la scène. Un seul passage, bordé d'or : c'est par là.</span></div>
+            <div class="step"><span class="lv" style="color:#ffd76a" data-i18n="foe.projo">🔦 PROJECTEUR</span><span class="ds" data-i18n="g.projo">Scène. Il balaie lentement. Dès qu'il t'accroche il se fige et chauffe une seconde — sors du cône avant qu'il brûle.</span></div>
+            <div class="step"><span class="lv" style="color:#ffd76a" data-i18n="foe.trappe">🕳️ TRAPPE</span><span class="ds" data-i18n="g.trappe">Scène. Un cercle en pointillés marque l'endroit, puis le plancher s'ouvre. Ne reste pas dessus.</span></div>
+            <div class="step"><span class="lv" style="color:#6ad0ff" data-i18n="foe.aiguille">📍 AIGUILLE</span><span class="ds" data-i18n="g.aiguille">Atelier. Elle pique depuis un mur, ressort, repique — toujours au même rythme, toujours au même endroit.</span></div>
+            <div class="step"><span class="lv" style="color:#6ad0ff" data-i18n="foe.bobine">🧵 BOBINE</span><span class="ds" data-i18n="g.bobine">Atelier. Elle roule en ligne droite et rebondit sur les murs, en laissant son fil derrière elle.</span></div>
+            <div class="step"><span class="lv" style="color:#ff9a5c" data-i18n="foe.jouet">🔑 JOUET REMONTÉ</span><span class="ds" data-i18n="g.jouet">Grenier. Il marche tout droit et tourne d'un quart de tour à chaque mur. Sa clef te dit d'où il vient.</span></div>
+            <div class="step"><span class="lv" style="color:#ff9a5c" data-i18n="foe.boite">📦 BOÎTE À SURPRISE</span><span class="ds" data-i18n="g.boite">Grenier. Approche-toi et le couvercle s'ouvre. Une demi-seconde plus tard, la tête jaillit sur son ressort, droit sur toi.</span></div>
+            <div class="step"><span class="lv" style="color:#c86aff" data-i18n="foe.ombre">🕯️ TON OMBRE</span><span class="ds" data-i18n="g.ombre">Théâtre d'ombres. Elle refait tes mouvements en miroir, avec une seconde de retard. C'est toi qui la diriges — sans le vouloir.</span></div>
+            <div class="step"><span class="lv" style="color:#c86aff" data-i18n="foe.main">🖐️ MAIN D'OMBRE</span><span class="ds" data-i18n="g.main">Théâtre d'ombres. Une ligne en pointillés se cale sur ta hauteur, puis la main traverse le mur. Change d'étage.</span></div>
+            <div class="step"><span class="lv" style="color:#9fe9ff" data-i18n="foe.contrepoids">⚖️ CONTREPOIDS</span><span class="ds" data-i18n="g.contrepoids">Horloge. Des masses de laiton pendues au plafond. Elles ne t'attaquent pas : elles barrent le passage, et elles balancent.</span></div>
 
         </div>
 
@@ -655,12 +655,12 @@
         <div class="lasModes" id="lasModes">
 
             <button class="lasModeBtn on" id="lasModeFun">
-                🎈 AMICAL
+                <span data-i18n="las.modeFun">🎈 AMICAL</span>
                 <small data-i18n="las.modeFunSub">entre amis, avec un code</small>
             </button>
 
             <button class="lasModeBtn" id="lasModeRanked">
-                🏆 CLASSÉ
+                <span data-i18n="las.modeRank">🏆 CLASSÉ</span>
                 <small data-i18n="las.modeRankSub">adversaires au hasard</small>
             </button>
 
@@ -1048,16 +1048,16 @@ fonctionne parfaitement même si aucun des deux ne répond.
 })();
 </script>
 
-<script src="js/01-moteur.js?v=9.5"></script>
-<script src="js/02-etat.js?v=9.5"></script>
-<script src="js/03-skins.js?v=9.5"></script>
-<script src="js/04-monde.js?v=9.5"></script>
-<script src="js/05-jeu.js?v=9.5"></script>
-<script src="js/06-boutique.js?v=9.5"></script>
-<script src="js/07-duel.js?v=9.5"></script>
-<script src="js/08-langues.js?v=9.5"></script>
-<script src="js/09-laser.js?v=9.5"></script>
-<script src="js/10-interface.js?v=9.5"></script>
+<script src="js/01-moteur.js?v=9.6"></script>
+<script src="js/02-etat.js?v=9.6"></script>
+<script src="js/03-skins.js?v=9.6"></script>
+<script src="js/04-monde.js?v=9.6"></script>
+<script src="js/05-jeu.js?v=9.6"></script>
+<script src="js/06-boutique.js?v=9.6"></script>
+<script src="js/07-duel.js?v=9.6"></script>
+<script src="js/08-langues.js?v=9.6"></script>
+<script src="js/09-laser.js?v=9.6"></script>
+<script src="js/10-interface.js?v=9.6"></script>
 
 </body>
 </html>
