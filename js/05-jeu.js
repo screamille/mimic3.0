@@ -1466,6 +1466,7 @@ function drawRaw(){
     /* LE SOL */
 
     drawFloor();
+    drawGardBack();
 
 
     /* CRÉATURES QUI DÉRIVENT DERRIÈRE LE MENU */
