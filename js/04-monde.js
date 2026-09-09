@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "10.3";
+const VERSION = "10.5";
 
 (function(){
 
@@ -12618,31 +12618,245 @@ function drawGardBack(){
     }
 
     /* --- LES EPAULES : deux masses d'ecorce qui sortent du sol --- */
-    /*
-    Juste ce qu'il faut d'epaules pour qu'on sente un corps
-    sous le crane. Une masse trop franche faisait une
-    montagne noire au milieu de l'arene.
-    */
-    const eg = ctx.createRadialGradient(0, r * .95, r * .1, 0, r * .95, r * 1.5);
-    eg.addColorStop(0,   "rgba(10,20,9,.92)");
-    eg.addColorStop(.55, "rgba(7,14,6,.62)");
-    eg.addColorStop(1,   "rgba(5,10,5,0)");
+    /* =====================================================
+       LE CORPS
 
-    ctx.fillStyle = eg;
-    ctx.beginPath();
-    ctx.ellipse(0, r * .95, r * 1.45, r * .62, 0, 0, Math.PI * 2);
-    ctx.fill();
+       Une cage thoracique en bois mort, ouverte au milieu
+       sur un coeur qui bat. Deux bras-branches descendent
+       de part et d'autre de l'arene et se terminent en
+       serres posees au sol. Tout reste sombre : c'est le
+       liseret qui dessine, pas la matiere.
+    ===================================================== */
 
-    /* deux epaules d'ecorce, a peine dessinees */
-    ctx.strokeStyle = "rgba(150,190,140,.16)";
-    ctx.lineWidth   = r * .02;
+    /* --- l'ombre du corps, qui le pose dans la brume --- */
+    const og2 = ctx.createRadialGradient(0, r * 1.45, r * .2, 0, r * 1.45, r * 2.0);
+    og2.addColorStop(0,   "rgba(6,12,5,.90)");
+    og2.addColorStop(.6,  "rgba(6,12,5,.50)");
+    og2.addColorStop(1,   "rgba(6,12,5,0)");
+
+    ctx.fillStyle = og2;
+    ctx.fillRect(-r * 2.4, r * .2, r * 4.8, r * 2.6);
+
+    /* --- LES BRAS : deux branches qui descendent au sol --- */
+    ctx.strokeStyle = "#080f06";
+    ctx.lineCap     = "round";
+    ctx.lineJoin    = "round";
+
+    /* la meme lueur que les bois : sans elle ils disparaissent */
+    ctx.shadowBlur  = r * .10;
+    ctx.shadowColor = "rgba(170,210,160,.55)";
 
     [-1, 1].forEach(sg => {
+
+        const os = Math.sin(t * .6 + sg) * r * .05;
+
+        /* le bras */
+        ctx.lineWidth = r * .155;
+
         ctx.beginPath();
-        ctx.moveTo(sg * r * .30, r * .40);
-        ctx.quadraticCurveTo(sg * r * .95, r * .52, sg * r * 1.35, r * 1.05);
+        ctx.moveTo(sg * r * .42, r * .62);
+        ctx.quadraticCurveTo(
+            sg * r * 1.35, r * (.78 + os * .2),
+            sg * r * 1.62, r * (1.62 + os)
+        );
         ctx.stroke();
+
+        /* l'avant-bras, plus fin */
+        ctx.lineWidth = r * .10;
+
+        ctx.beginPath();
+        ctx.moveTo(sg * r * 1.62, r * (1.62 + os));
+        ctx.quadraticCurveTo(
+            sg * r * 1.80, r * (2.05 + os),
+            sg * r * 1.58, r * (2.35 + os)
+        );
+        ctx.stroke();
+
+        /* la serre : trois doigts poses au sol */
+        ctx.lineWidth = r * .045;
+
+        for(let d = -1; d <= 1; d++){
+            ctx.beginPath();
+            ctx.moveTo(sg * r * 1.58, r * (2.35 + os));
+            ctx.quadraticCurveTo(
+                sg * r * (1.58 + d * .16), r * (2.55 + os),
+                sg * r * (1.50 + d * .34), r * (2.66 + os)
+            );
+            ctx.stroke();
+        }
+
     });
+
+    ctx.shadowBlur = 0;
+
+    /* =====================================================
+       LE TORSE
+
+       Pas une cage dessinee au trait — ca faisait un schema.
+       Le corps est fait de troncs qui se sont tordus
+       ensemble en poussant. La lumiere du coeur passe entre
+       eux : c'est elle qui donne le volume, pas un contour.
+    ===================================================== */
+
+    /* --- le coeur, DERRIERE les troncs : il filtre entre eux --- */
+    const bat = .55 + Math.abs(Math.sin(t * 1.9)) * .45;
+
+    const hg = ctx.createRadialGradient(0, r * 1.15, 0, 0, r * 1.15, r * 1.25);
+    hg.addColorStop(0,   hexA(ph.col, .95 * bat));
+    hg.addColorStop(.22, hexA(ph.col, .55 * bat));
+    hg.addColorStop(.55, hexA(ph.col, .18 * bat));
+    hg.addColorStop(1,   hexA(ph.col, 0));
+
+    ctx.fillStyle = hg;
+    ctx.beginPath();
+    ctx.arc(0, r * 1.15, r * 1.25, 0, Math.PI * 2);
+    ctx.fill();
+
+    /* --- les troncs tresses --- */
+    const NBR = 7;
+
+    for(let i = 0; i < NBR; i++){
+
+        /* le tronc du milieu passe devant, les autres derriere */
+        const k  = i - (NBR - 1) / 2;
+        const av = 1 - Math.abs(k) / ((NBR - 1) / 2);
+
+        const tor = Math.sin(t * .35 + i * 1.7) * .06;
+
+        ctx.beginPath();
+
+        const G = [], D = [];
+
+        /* chacun s'arrete a sa hauteur : un ourlet droit
+           faisait une jupe */
+        const bout = 1.95 + gardRnd(i * 6.1) * .55;
+
+        for(let j = 0; j <= 10; j++){
+
+            const u = j / 10;
+            const y = r * (.24 + u * bout);
+
+            /* ils s'ecartent en descendant, et se croisent en route */
+            const ex = k * r * (.135 + u * .235);
+            /* ils se croisent en descendant : c'est ce qui
+               fait la tresse plutot que des barreaux */
+            const ox = Math.sin(u * 4.2 + i * 2.1) * r * (.075 + u * .13)
+                     + Math.sin(u * 1.7 + i * .9) * r * u * .10
+                     + tor * r * u;
+
+            const cx2 = ex + ox;
+
+            /* chacun enfle au milieu : c'est du bois, pas un tuyau */
+            /* plus fins : c'est le vide entre eux qui laisse
+               passer la lumiere du coeur */
+            const ep = r * (.070 + av * .035) *
+                       (1 + Math.sin(u * 2.6 + i) * .34) *
+                       (1 - Math.pow(u, 2.4) * .30);
+
+            G.push([cx2 - ep, y]);
+            D.push([cx2 + ep, y]);
+
+        }
+
+        ctx.moveTo(G[0][0], G[0][1]);
+        for(let j = 1; j < G.length; j++){ ctx.lineTo(G[j][0], G[j][1]); }
+        for(let j = D.length - 1; j >= 0; j--){ ctx.lineTo(D[j][0], D[j][1]); }
+        ctx.closePath();
+
+        /* du bois sombre, eclaire d'un seul cote */
+        /* un tronc sur deux est plus clair : sinon ils
+           fusionnent en une seule masse noire */
+        const clair = (i % 2) === 0;
+
+        const wg = ctx.createLinearGradient(k * r * .3 - r * .2, 0, k * r * .3 + r * .2, 0);
+        wg.addColorStop(0,   "#040903");
+        wg.addColorStop(.28, clair ? "#22361a" : "#131f0d");
+        wg.addColorStop(.58, clair ? "#2c4522" : "#1a2a12");
+        wg.addColorStop(1,   "#060d05");
+
+        ctx.fillStyle = wg;
+        ctx.fill();
+
+        /* le trait noir qui detache le tronc de son voisin */
+        ctx.strokeStyle = "#020602";
+        ctx.lineWidth   = r * .022;
+        ctx.stroke();
+
+        /* l'arete claire du cote eclaire */
+        ctx.save();
+        ctx.clip();
+        ctx.strokeStyle = "rgba(185,225,175," + (.30 + av * .30).toFixed(3) + ")";
+        ctx.lineWidth   = r * .030;
+        ctx.stroke();
+        ctx.restore();
+
+        /* les fibres qui courent le long du tronc */
+        ctx.globalAlpha = sortie * .35;
+        ctx.strokeStyle = "#040a03";
+        ctx.lineWidth   = r * .010;
+
+        for(let f = -1; f <= 1; f++){
+
+            ctx.beginPath();
+
+            for(let j = 0; j <= 10; j++){
+                const p = G[j];
+                const q = D[j];
+                const x = p[0] + (q[0] - p[0]) * (.5 + f * .26);
+                if(j === 0){ ctx.moveTo(x, p[1]); }else{ ctx.lineTo(x, p[1]); }
+            }
+
+            ctx.stroke();
+
+        }
+
+        ctx.globalAlpha = sortie;
+
+    }
+
+    /* --- la mousse dans les creux --- */
+    ctx.globalAlpha = sortie * .55;
+
+    for(let i = 0; i < 9; i++){
+
+        const u  = gardRnd(i * 4.7);
+        const px = (gardRnd(i * 8.3) - .5) * r * 1.5;
+        const py = r * (.5 + u * 1.6);
+
+        ctx.fillStyle = (i % 2) ? "#2f5220" : "#3f6a28";
+        ctx.beginPath();
+        ctx.ellipse(px, py, r * .13, r * .055, u * 3, 0, Math.PI * 2);
+        ctx.fill();
+
+    }
+
+    ctx.globalAlpha = sortie;
+
+    /* --- LE COEUR, au fond : le point le plus brillant --- */
+    ctx.shadowBlur  = r * .45 * bat;
+    ctx.shadowColor = ph.col;
+
+    ctx.fillStyle = hexA(ph.col, .9);
+    ctx.beginPath();
+    ctx.ellipse(0, r * 1.15, r * .085 * bat, r * .13 * bat, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#fff6e0";
+    ctx.beginPath();
+    ctx.ellipse(0, r * 1.15, r * .032 * bat, r * .055 * bat, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur = 0;
+
+    /* --- LE COU : il relie le crane au torse --- */
+    ctx.fillStyle = "#0a1207";
+    ctx.beginPath();
+    ctx.moveTo(-r * .15, r * .70);
+    ctx.quadraticCurveTo(-r * .13, r * .35, -r * .11, r * .10);
+    ctx.lineTo(r * .11, r * .10);
+    ctx.quadraticCurveTo(r * .13, r * .35, r * .15, r * .70);
+    ctx.closePath();
+    ctx.fill();
 
     /* --- LE CRANE --- */
     const kg = ctx.createLinearGradient(-r * .5, -r * .8, r * .5, r * .9);
