@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "10.2";
+const VERSION = "10.3";
 
 (function(){
 
@@ -196,10 +196,22 @@ function skillTick(dt){
 
 /* toutes les creatures qui savent etre sonnees */
 function stunnableCreatures(){
+
+    /*
+    Tout ce qui peut etre sonne, repousse ou leurre. Le
+    GARDIEN n'y est pas : un boss qu'on assomme d'un bouton
+    n'est plus un boss.
+    */
     return [].concat(
         mimics, blobs, gloutons, guimauves, anguilles, lanternes,
-        w69Creatures(), theatreCreatures()
+        w69Creatures(), theatreCreatures(), foretCreatures()
     );
+
+}
+
+
+function foretCreatures(){
+    return (typeof guepes === "undefined") ? [] : guepes;
 }
 
 
@@ -10993,6 +11005,7 @@ function spawnGuepe(){
         ang:rnd() * 6.28,
         vx:0, vy:0,
         aimX:0, aimY:0,
+        stunned:0,
         wing:0, birth:.5
     });
 
@@ -11009,12 +11022,32 @@ function updateGuepes(dt){
 
         if(g.birth > 0){ g.birth -= dt; }
 
+        /* sonnee par l'ONDE : elle tombe et ne pique plus */
+        if(g.stunned > 0){
+
+            g.stunned -= dt;
+
+            g.vx *= Math.pow(.08, dt);
+            g.vy *= Math.pow(.08, dt);
+
+            g.x += g.vx * dt;
+            g.y += g.vy * dt;
+
+            g.phase = "repos";
+            g.t     = Math.max(g.t, .5);
+
+            continue;
+
+        }
+
         g.t -= dt;
 
         if(g.phase === "vole"){
 
-            /* une derive lente autour du joueur, sans jamais le toucher */
-            const dx = player.x - g.x, dy = player.y - g.y;
+            /* une derive lente autour de sa cible, sans jamais la toucher */
+            const cible = lureTarget();
+
+            const dx = cible.x - g.x, dy = cible.y - g.y;
             const d  = Math.hypot(dx, dy) || 1;
 
             const veut = 210 * unit;
@@ -11036,10 +11069,13 @@ function updateGuepes(dt){
                 /*
                 Le point est fixe MAINTENANT. Le trait pointille
                 ne bougera plus : on a une seconde pleine pour
-                sortir de la ligne.
+                sortir de la ligne. Si un LEURRE est pose, c'est
+                lui qu'elle vise.
                 */
-                g.aimX = player.x;
-                g.aimY = player.y;
+                const cible = lureTarget();
+
+                g.aimX = cible.x;
+                g.aimY = cible.y;
 
                 sound(1250, .12, "sawtooth", .022);
 
@@ -11160,8 +11196,8 @@ function drawGuepes(){
 
         const tendue = g.phase === "vise" || g.phase === "pique";
 
-        /* essoufflee : elle palit, on voit qu'elle ne pique plus */
-        if(g.phase === "repos"){
+        /* essoufflee ou sonnee : elle palit, elle ne pique plus */
+        if(g.phase === "repos" || g.stunned > 0){
             ctx.globalAlpha = .55;
         }
 
@@ -11952,10 +11988,12 @@ function updateGard(dt){
 
             /* trois racines isolees, hauteurs inegales */
             for(let i = 0; i < 3; i++){
+                const hh = (a.y1 - a.y0) * (.30 + rnd() * .32);
+
                 pousseRacine(
                     a.x0 + (a.x1 - a.x0) * (.10 + rnd() * .80),
-                    (54 + rnd() * 30) * unit,
-                    (a.y1 - a.y0) * (.42 + rnd() * .46),
+                    hh * (.42 + rnd() * .16),
+                    hh,
                     1.15
                 );
             }
@@ -11972,10 +12010,12 @@ function updateGard(dt){
 
                 const k = gauche ? i : n - 1 - i;
 
+                const hh = (a.y1 - a.y0) * (.34 + rnd() * .26);
+
                 pousseRacine(
                     a.x0 + (a.x1 - a.x0) * (.07 + k / (n - 1) * .86),
-                    (56 + rnd() * 18) * unit,
-                    (a.y1 - a.y0) * (.46 + rnd() * .34),
+                    hh * (.44 + rnd() * .14),
+                    hh,
                     .95 + i * .16
                 );
 
@@ -11999,8 +12039,8 @@ function updateGard(dt){
 
                 pousseRacine(
                     a.x0 + (a.x1 - a.x0) * ((i + .5) / n),
-                    (a.x1 - a.x0) / n * .82,
-                    (a.y1 - a.y0) * (.55 + rnd() * .42),
+                    (a.x1 - a.x0) / n * .86,
+                    (a.y1 - a.y0) * (.44 + rnd() * .30),
                     1.05
                 );
 
@@ -12008,10 +12048,12 @@ function updateGard(dt){
 
             /* et deux retardataires, pour ne pas rester plante */
             for(let i = 0; i < 2; i++){
+                const hh = (a.y1 - a.y0) * (.32 + rnd() * .28);
+
                 pousseRacine(
                     a.x0 + (a.x1 - a.x0) * (.12 + rnd() * .76),
-                    (60 + rnd() * 24) * unit,
-                    (a.y1 - a.y0) * (.5 + rnd() * .4),
+                    hh * (.46 + rnd() * .14),
+                    hh,
                     2.1
                 );
             }
@@ -12086,53 +12128,335 @@ function updateGard(dt){
 function pousseRacine(x, w, h, delai){
 
     /*
-    Chaque racine a sa propre echine, tiree une fois pour
-    toutes : elle serpente, s'epaissit aux noeuds et s'affine
-    vers la pointe. C'est ce profil irregulier qui fait la
-    difference entre une racine et un piquet.
+    Le defaut de la version d'avant : les deux bords etaient
+    le miroir l'un de l'autre, ce qui donnait un cone. Ici
+    chaque cote a son propre profil, avec ses renflements et
+    ses etranglements. C'est l'asymetrie qui fait la racine.
     */
-    const courbe = (rnd() - .5) * .9;
-    const grain  = rnd() * 6.28;
+    const courbe = (rnd() - .5) * 1.1;
+    const gL     = rnd() * 6.28;
+    const gR     = rnd() * 6.28;
 
     const echine = [];
 
-    for(let i = 0; i <= 10; i++){
+    for(let i = 0; i <= 12; i++){
 
-        const t = i / 10;
+        const t    = i / 12;
+        /* le sommet garde de la matiere : sinon c'est un brin d'herbe */
+        const fine = 1 - Math.pow(t, .85) * .52;
 
         echine.push({
             t:t,
-            dx:courbe * Math.sin(t * 2.1) + Math.sin(t * 7.5 + grain) * .09,
-            w:(1 - Math.pow(t, .85) * .80) * (1 + Math.sin(t * 9 + grain) * .16)
+            dx:courbe * Math.sin(t * 2.4) + Math.sin(t * 8 + gL) * .07,
+            wl:fine * (1 + Math.sin(t * 4.1 + gL) * .34 + Math.sin(t * 11 + gL) * .12),
+            wr:fine * (1 + Math.sin(t * 3.4 + gR) * .34 + Math.sin(t * 9 + gR) * .12)
         });
 
     }
 
-    /* deux ou trois radicelles partent sur les cotes */
+    /* les radicelles laterales */
     const bras = [];
-    const nb   = 2 + Math.floor(rnd() * 2);
+    const nb   = 2 + Math.floor(rnd() * 3);
 
     for(let i = 0; i < nb; i++){
         bras.push({
-            t:.22 + rnd() * .52,
+            t:.14 + rnd() * .60,
             sens:rnd() < .5 ? -1 : 1,
-            len:.30 + rnd() * .30,
-            ang:.5 + rnd() * .7
+            len:.22 + rnd() * .30,
+            tomb:.1 + rnd() * .5
+        });
+    }
+
+    /* la cassure du bout : trois a cinq echardes inegales */
+    /*
+    Deux ou trois echardes, l'une nettement plus longue que
+    les autres : une cassure reguliere, ca fait un creneau.
+    */
+    const echardes = [];
+    const ne       = 2 + Math.floor(rnd() * 2);
+    const roi      = Math.floor(rnd() * ne);
+
+    for(let i = 0; i < ne; i++){
+        echardes.push({
+            u:(i + .2 + rnd() * .6) / ne,
+            len:(i === roi ? .42 + rnd() * .28 : .10 + rnd() * .14),
+            pen:(rnd() - .5) * .9
         });
     }
 
     gardRoots.push({
-        x:x,
-        w:w,
-        h:h,
+        x:x, w:w, h:h,
         t:delai,
         phase:"marque",
         grow:0,
         marque:delai,
         echine:echine,
         bras:bras,
-        grain:grain
+        echardes:echardes
     });
+
+}
+
+
+/* ---------------------------------------------------------
+   CE QUI SORT DU SOL, DEVANT
+--------------------------------------------------------- */
+
+function drawGardFront(){
+
+    const a = playArea();
+
+    for(const r of gardRoots){
+
+        const bas = a.y1;
+
+        if(r.phase === "marque"){
+
+            const k = 1 - r.t / r.marque;
+
+            ctx.save();
+
+            const cg = ctx.createLinearGradient(0, bas, 0, bas - r.h);
+            cg.addColorStop(0, "rgba(200,140,60," + (.20 + k * .22).toFixed(3) + ")");
+            cg.addColorStop(1, "rgba(200,140,60,0)");
+
+            ctx.fillStyle = cg;
+            ctx.fillRect(r.x - r.w / 2, bas - r.h, r.w, r.h);
+
+            ctx.globalAlpha = .35 + Math.sin(r.t * 22) * .25;
+            ctx.strokeStyle = "#c98a3a";
+            ctx.lineWidth   = 3 * unit;
+            ctx.setLineDash([7 * unit, 6 * unit]);
+
+            ctx.beginPath();
+            ctx.moveTo(r.x - r.w / 2, bas - 3 * unit);
+            ctx.lineTo(r.x + r.w / 2, bas - 3 * unit);
+            ctx.moveTo(r.x - r.w / 2, bas - r.h);
+            ctx.lineTo(r.x + r.w / 2, bas - r.h);
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+            ctx.restore();
+
+            continue;
+
+        }
+
+        dessineRacine(r, bas);
+
+    }
+
+}
+
+
+function dessineRacine(r, bas){
+
+    const h = r.h * r.grow;
+
+    if(h < 1){ return; }
+
+    const ech = r.echine;
+    const n   = ech.length - 1;
+
+    ctx.save();
+
+    /* --- les radicelles, derriere --- */
+    ctx.strokeStyle = "#1c1208";
+    ctx.lineCap     = "round";
+
+    for(const b of r.bras){
+
+        if(b.t > r.grow){ continue; }
+
+        const p  = pointEchine(r, b.t, bas, h);
+        const lo = r.h * b.len * r.grow;
+
+        ctx.lineWidth = r.w * .13;
+
+        ctx.beginPath();
+        ctx.moveTo(p.x, p.y);
+        ctx.quadraticCurveTo(
+            p.x + b.sens * lo * .60, p.y + lo * b.tomb * .30,
+            p.x + b.sens * lo * .92, p.y + lo * b.tomb
+        );
+        ctx.stroke();
+
+    }
+
+    /* --- le corps, asymetrique --- */
+    const tete0 = pointEchine(r, 1, bas, h);
+    const wl0   = r.w * .5 * ech[n].wl;
+    const wr0   = r.w * .5 * ech[n].wr;
+
+    ctx.beginPath();
+
+    for(let i = 0; i <= n; i++){
+        const p = pointEchine(r, ech[i].t, bas, h);
+        const w = r.w * .5 * ech[i].wl;
+        if(i === 0){ ctx.moveTo(p.x - w, p.y); }else{ ctx.lineTo(p.x - w, p.y); }
+    }
+
+    /*
+    Le sommet n'est pas coupe net : il est CASSE. La dechirure
+    fait partie de la silhouette, elle n'est plus une rangee
+    de triangles posee par-dessus.
+    */
+    for(const e of r.echardes){
+
+        const px = tete0.x - wl0 + (wl0 + wr0) * e.u;
+        const lo = (wl0 + wr0) * e.len * 1.5;
+
+        ctx.lineTo(px - (wl0 + wr0) * .06, tete0.y + lo * .35);
+        ctx.lineTo(px + e.pen * lo * .5,   tete0.y - lo);
+        ctx.lineTo(px + (wl0 + wr0) * .07, tete0.y + lo * .2);
+
+    }
+
+    for(let i = n; i >= 0; i--){
+        const p = pointEchine(r, ech[i].t, bas, h);
+        const w = r.w * .5 * ech[i].wr;
+        ctx.lineTo(p.x + w, p.y);
+    }
+
+    ctx.closePath();
+
+    /* du bois humide : sombre, a peine chaud, eclaire d'un seul cote */
+    const bg = ctx.createLinearGradient(r.x - r.w * .6, 0, r.x + r.w * .6, 0);
+    bg.addColorStop(0,   "#120c06");
+    bg.addColorStop(.22, "#3e2a15");
+    bg.addColorStop(.48, "#54391d");
+    bg.addColorStop(.72, "#2b1c0e");
+    bg.addColorStop(1,   "#0d0804");
+
+    ctx.fillStyle = bg;
+    ctx.fill();
+
+    /* on garde la silhouette pour y enfermer le relief */
+    ctx.save();
+    ctx.clip();
+
+    /* les cannelures de l'ecorce, dans le sens de la pousse */
+    ctx.globalAlpha = .5;
+    ctx.strokeStyle = "#0b0703";
+    ctx.lineWidth   = Math.max(1, r.w * .05);
+
+    for(let k = -2; k <= 2; k++){
+
+        ctx.beginPath();
+
+        for(let i = 0; i <= n; i++){
+            const p = pointEchine(r, ech[i].t, bas, h);
+            const o = k * r.w * .16 * (ech[i].wl + ech[i].wr) * .5;
+            if(i === 0){ ctx.moveTo(p.x + o, p.y); }else{ ctx.lineTo(p.x + o, p.y); }
+        }
+
+        ctx.stroke();
+
+    }
+
+    /* l'arete claire, sur le bord eclaire */
+    ctx.globalAlpha = .28;
+    ctx.strokeStyle = "#8a6234";
+    ctx.lineWidth   = Math.max(1, r.w * .10);
+
+    ctx.beginPath();
+
+    for(let i = 0; i <= n; i++){
+        const p = pointEchine(r, ech[i].t, bas, h);
+        const o = -r.w * .5 * ech[i].wl * .55;
+        if(i === 0){ ctx.moveTo(p.x + o, p.y); }else{ ctx.lineTo(p.x + o, p.y); }
+    }
+
+    ctx.stroke();
+
+    /* la mousse, seulement au pied */
+    const mg = ctx.createLinearGradient(0, bas, 0, bas - h * .45);
+    mg.addColorStop(0, "rgba(58,92,38,.55)");
+    mg.addColorStop(1, "rgba(58,92,38,0)");
+
+    ctx.globalAlpha = 1;
+    ctx.fillStyle   = mg;
+    ctx.fillRect(r.x - r.w, bas - h * .45, r.w * 2, h * .45);
+
+    ctx.restore();
+
+    /* --- LA CASSURE : du bois brise, pas une pointe --- */
+    const tete = pointEchine(r, 1, bas, h);
+    const wl   = r.w * .5 * ech[n].wl;
+    const wr   = r.w * .5 * ech[n].wr;
+
+    ctx.globalAlpha = 1;
+
+    /* la fibre a vif dans la cassure */
+    ctx.globalAlpha = .7;
+    ctx.strokeStyle = "#9a7040";
+    ctx.lineWidth   = Math.max(1, r.w * .03);
+    ctx.lineCap     = "round";
+
+    for(const e of r.echardes){
+
+        const px = tete.x - wl + (wl + wr) * e.u;
+        const lo = (wl + wr) * e.len * 1.5;
+
+        ctx.beginPath();
+        ctx.moveTo(px, tete.y + lo * .25);
+        ctx.lineTo(px + e.pen * lo * .5, tete.y - lo * .88);
+        ctx.stroke();
+
+    }
+
+    ctx.globalAlpha = 1;
+
+    /* --- la terre soulevee, et les radicelles au sol --- */
+    ctx.globalAlpha = .8 * r.grow;
+
+    ctx.fillStyle = "#241708";
+    ctx.beginPath();
+    ctx.ellipse(r.x, bas - 2 * unit, r.w * .95, 11 * unit, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.fillStyle = "#3d2a14";
+    ctx.beginPath();
+    ctx.ellipse(r.x, bas - 6 * unit, r.w * .68, 8 * unit, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.strokeStyle = "#1c1208";
+    ctx.lineWidth   = Math.max(1, r.w * .07);
+
+    for(let i = 0; i < 5; i++){
+
+        const ang = Math.PI + (i + .5) / 5 * Math.PI;
+        const lo  = r.w * (.5 + (i % 2) * .35);
+
+        ctx.beginPath();
+        ctx.moveTo(r.x, bas - 5 * unit);
+        ctx.quadraticCurveTo(
+            r.x + Math.cos(ang) * lo * .6, bas - 5 * unit + Math.sin(ang) * 5 * unit,
+            r.x + Math.cos(ang) * lo, bas - 2 * unit
+        );
+        ctx.stroke();
+
+    }
+
+    ctx.restore();
+
+}
+
+
+/* la position d'un point de l'echine, a la hauteur atteinte */
+function pointEchine(r, t, bas, h){
+
+    const n  = r.echine.length - 1;
+    const f  = Math.max(0, Math.min(n, t * n));
+    const i  = Math.min(n - 1, Math.floor(f));
+    const k  = f - i;
+
+    const dx = r.echine[i].dx * (1 - k) + r.echine[i + 1].dx * k;
+
+    return {
+        x:r.x + r.w * dx * r.grow,
+        y:bas - h * t
+    };
 
 }
 
@@ -12502,217 +12826,6 @@ function drawGardBack(){
 }
 
 
-/* ---------------------------------------------------------
-   CE QUI SORT DU SOL, DEVANT
---------------------------------------------------------- */
-
-function drawGardFront(){
-
-    const a = playArea();
-
-    for(const r of gardRoots){
-
-        const bas = a.y1;
-
-        /* --- l'annonce --- */
-        if(r.phase === "marque"){
-
-            const k = 1 - r.t / r.marque;
-
-            ctx.save();
-
-            const cg = ctx.createLinearGradient(0, bas, 0, bas - r.h);
-            cg.addColorStop(0, "rgba(200,140,60," + (.20 + k * .22).toFixed(3) + ")");
-            cg.addColorStop(1, "rgba(200,140,60,0)");
-
-            ctx.fillStyle = cg;
-            ctx.fillRect(r.x - r.w / 2, bas - r.h, r.w, r.h);
-
-            ctx.globalAlpha = .35 + Math.sin(r.t * 22) * .25;
-            ctx.strokeStyle = "#c98a3a";
-            ctx.lineWidth   = 3 * unit;
-            ctx.setLineDash([7 * unit, 6 * unit]);
-
-            ctx.beginPath();
-            ctx.moveTo(r.x - r.w / 2, bas - 3 * unit);
-            ctx.lineTo(r.x + r.w / 2, bas - 3 * unit);
-            ctx.moveTo(r.x - r.w / 2, bas - r.h);
-            ctx.lineTo(r.x + r.w / 2, bas - r.h);
-            ctx.stroke();
-
-            ctx.setLineDash([]);
-            ctx.restore();
-
-            continue;
-
-        }
-
-        dessineRacine(r, bas);
-
-    }
-
-}
-
-
-/*
-Une racine, ce n'est pas un piquet : c'est une echine qui
-serpente, qui enfle aux noeuds, qui pousse des radicelles
-sur les cotes et qui se termine en griffes.
-*/
-function dessineRacine(r, bas){
-
-    const h = r.h * r.grow;
-
-    if(h < 1){ return; }
-
-    ctx.save();
-
-    /* --- les radicelles, derriere le corps --- */
-    ctx.strokeStyle = "#3a2612";
-    ctx.lineCap     = "round";
-
-    for(const b of r.bras){
-
-        if(b.t > r.grow){ continue; }
-
-        const p  = pointEchine(r, b.t, bas, h);
-        const lo = r.h * b.len * r.grow;
-
-        ctx.lineWidth = r.w * .17;
-
-        ctx.beginPath();
-        ctx.moveTo(p.x, p.y);
-        ctx.quadraticCurveTo(
-            p.x + b.sens * lo * .55, p.y - lo * .12,
-            p.x + b.sens * lo * .78, p.y - lo * .52
-        );
-        ctx.stroke();
-
-        /* la petite griffe au bout */
-        ctx.fillStyle = "#8fbf58";
-        ctx.beginPath();
-        ctx.arc(p.x + b.sens * lo * .78, p.y - lo * .52, r.w * .07, 0, Math.PI * 2);
-        ctx.fill();
-
-    }
-
-    /* --- le corps --- */
-    const bg = ctx.createLinearGradient(r.x - r.w * .5, 0, r.x + r.w * .5, 0);
-    bg.addColorStop(0,   "#2a1a0c");
-    bg.addColorStop(.35, "#6b4620");
-    bg.addColorStop(.62, "#4a2f16");
-    bg.addColorStop(1,   "#20140a");
-
-    ctx.fillStyle = bg;
-
-    ctx.beginPath();
-
-    /* le bord gauche, de bas en haut */
-    for(let i = 0; i < r.echine.length; i++){
-        const e = r.echine[i];
-        const p = pointEchine(r, e.t, bas, h);
-        const w = r.w * .5 * e.w;
-        if(i === 0){ ctx.moveTo(p.x - w, p.y); }else{ ctx.lineTo(p.x - w, p.y); }
-    }
-
-    /* le bord droit, de haut en bas */
-    for(let i = r.echine.length - 1; i >= 0; i--){
-        const e = r.echine[i];
-        const p = pointEchine(r, e.t, bas, h);
-        const w = r.w * .5 * e.w;
-        ctx.lineTo(p.x + w, p.y);
-    }
-
-    ctx.closePath();
-    ctx.fill();
-
-    /* --- les fissures de l'ecorce --- */
-    ctx.globalAlpha = .45;
-    ctx.strokeStyle = "#1a1008";
-    ctx.lineWidth   = Math.max(1, r.w * .045);
-
-    for(let k = -1; k <= 1; k++){
-
-        ctx.beginPath();
-
-        for(let i = 0; i < r.echine.length; i++){
-            const e = r.echine[i];
-            const p = pointEchine(r, e.t, bas, h);
-            const o = k * r.w * .22 * e.w;
-            if(i === 0){ ctx.moveTo(p.x + o, p.y); }else{ ctx.lineTo(p.x + o, p.y); }
-        }
-
-        ctx.stroke();
-
-    }
-
-    /* --- les griffes du bout --- */
-    ctx.globalAlpha = 1;
-
-    const tete = pointEchine(r, 1, bas, h);
-    const larg = r.w * .5 * r.echine[r.echine.length - 1].w;
-
-    ctx.fillStyle = "#9fd166";
-
-    for(let i = -1; i <= 1; i++){
-
-        const gx = tete.x + i * larg * .8;
-        const gy = tete.y + Math.abs(i) * larg * .3;
-
-        ctx.beginPath();
-        ctx.moveTo(gx - larg * .42, gy);
-        ctx.lineTo(gx + larg * .42, gy);
-        ctx.lineTo(gx + i * larg * .5, gy - larg * (2.0 - Math.abs(i) * .7));
-        ctx.closePath();
-        ctx.fill();
-
-    }
-
-    /* --- la terre soulevee au pied --- */
-    ctx.globalAlpha = .6 * r.grow;
-    ctx.fillStyle   = "#3a2a16";
-
-    ctx.beginPath();
-    ctx.ellipse(r.x, bas - 3 * unit, r.w * .78, 10 * unit, 0, 0, Math.PI * 2);
-    ctx.fill();
-
-    ctx.fillStyle = "#241708";
-
-    for(let i = 0; i < 5; i++){
-        const a2 = Math.PI + i / 4 * Math.PI;
-        ctx.beginPath();
-        ctx.ellipse(
-            r.x + Math.cos(a2) * r.w * .6,
-            bas - 6 * unit - Math.abs(Math.sin(a2)) * 8 * unit,
-            r.w * .12, r.w * .08, a2, 0, Math.PI * 2
-        );
-        ctx.fill();
-    }
-
-    ctx.restore();
-
-}
-
-
-/* la position d'un point de l'echine, a la hauteur atteinte */
-function pointEchine(r, t, bas, h){
-
-    /* on interpole entre les points tires au depart */
-    const n  = r.echine.length - 1;
-    const f  = Math.max(0, Math.min(n, t * n));
-    const i  = Math.min(n - 1, Math.floor(f));
-    const k  = f - i;
-
-    const dx = r.echine[i].dx * (1 - k) + r.echine[i + 1].dx * k;
-
-    return {
-        x:r.x + r.w * dx * r.grow,
-        y:bas - h * t
-    };
-
-}
-
-
 function gardBar(){
 
     const el = document.getElementById("bossBar");
@@ -12816,7 +12929,6 @@ function updateForest(dt){
     }
 
     updateGuepes(dt);
-    updateRonces(dt);
 
 }
 
@@ -12830,10 +12942,8 @@ function foretPeuple(){
 
     const n = zone === "clairiere" ? 4 : level;
 
-    /* les guepes d'abord, les ronces ensuite : deux menaces suffisent */
+    /* le terrain reste degage : rien qui bloque le passage */
     if(guepes.length < Math.min(4, 1 + n)){ spawnGuepe(); }
-
-    if(n >= 2 && ronces.length < Math.min(5, n + 1)){ spawnRonce(); }
 
 }
 
@@ -12859,7 +12969,6 @@ function drawForest(){
 
     }
 
-    drawRonces();
     drawGuepes();
     drawGardFront();
 
