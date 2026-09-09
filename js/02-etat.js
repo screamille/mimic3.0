@@ -111,6 +111,17 @@ const MAX_LANTERNES = 3;    /* lanternes simultanées */
 
 /* la carte des mondes : elle sert au HUD et a la progression */
 const WORLDS = [
+    {zone:"foret",     k:"w.foret",     n:1, name:"LA FORÊT",      from:1, to:5,    col:"#7fd14a"},
+    {zone:"clairiere", k:"w.clairiere", n:2, name:"LA CLAIRIÈRE",  from:5, to:null, col:"#ffd76a"}
+];
+
+
+/*
+Les quinze mondes d'avant dorment ici. Rien ne les atteint
+plus, mais tout leur code reste en place : on y repuisera
+quand on batira les zones suivantes.
+*/
+const WORLDS_DORMANT = [
     {zone:"cyber",  k:"w.cyber", n:1, name:"L'ESPACE",            from:1,           to:PORTAL_LEVEL, col:"#55d9ff"},
     {zone:"marais", k:"w.marais", n:2, name:"LE MARAIS",           from:PORTAL_LEVEL, to:CANDY_LEVEL, col:"#8fe04a"},
     {zone:"bonbon", k:"w.bonbon", n:3, name:"LE PAYS DES BONBONS", from:CANDY_LEVEL,  to:ABYSS_LEVEL, col:"#ff8fc4"},

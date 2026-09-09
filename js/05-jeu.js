@@ -442,7 +442,9 @@ function reset(){
     drips     = [];
     portal    = null;
     warp      = null;
-    zone      = "cyber";
+    zone      = "foret";
+    foretCleared = false;
+    clearForet();
     blobTimer = 0;
     particles = [];
     trails    = [];
@@ -465,6 +467,12 @@ function reset(){
 
     addCoin();
     addOrb();
+
+    /* la partie commence dans la foret */
+    if(zone === "foret"){
+        enterForet();
+        foretPeuple();
+    }
 
 }
 
@@ -1013,6 +1021,7 @@ function update(dt){
     updateMimic(dt);
     updateTheatre(dt);
     updateW69(dt);
+    updateForest(dt);
     updateGuimauves(dt);
     updateAnguilles(dt);
     updateLanternes(dt);
@@ -1183,7 +1192,7 @@ function update(dt){
 
     levelTimer += dt;
 
-    if(levelTimer > 12){
+    if(levelTimer > levelSecs()){
 
         levelTimer = 0;
 
@@ -1195,8 +1204,12 @@ function update(dt){
             totalCoins += 10;
         }
 
-        /* le marais se remplit de flaques, la surface de blocs */
-        if(zone === "neant" || zone === "desert" || zone === "forge" ||
+        /* la foret n'a pas de blocs : ce sont les ronces le terrain */
+        if(zone === "foret" || zone === "clairiere"){
+
+            foretPeuple();
+
+        }else if(zone === "neant" || zone === "desert" || zone === "forge" ||
            zone === "biblio" || zone === "horloge"){
 
             /* ces arenes restent degagees : les ennemis y suffisent */
@@ -1303,7 +1316,7 @@ function update(dt){
     }
 
     paintDashButton();
-    if(!mimBar()){
+    if(!gardBar() && !mimBar()){
         bossBar();
     }
 
@@ -1869,6 +1882,7 @@ function drawRaw(){
     /* LES MONDES 6 A 9 */
 
     drawW69();
+    drawForest();
 
 
     /* LE NÉANT */

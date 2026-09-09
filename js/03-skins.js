@@ -91,6 +91,7 @@ const SKINS = [
     {id:"neant",     name:"NÉANT SLIME",     color:"#c86aff", color2:"#100322", price:0,    effect:"neant",     rarity:4, exclusive:true},
     {id:"mimic",     name:"MIMIC SLIME",     color:"#1b1424", color2:"#c86aff", price:0,    effect:"mimic",     rarity:4, exclusive:true},
     {id:"pantin",    name:"MARIONNETTE",     color:"#2b2038", color2:"#b06cff", price:600,  effect:"pantin",    rarity:3},
+    {id:"foret",     name:"GARDIEN SLIME",   color:"#5a4426", color2:"#1d1409", price:0,    effect:"gardien",   rarity:4, exclusive:true},
 
     /* --- vague 9 : 30 motifs nets, lisibles meme en tout petit --- */
     {id:"damier",    name:"DAMIER SLIME",    color:"#f2f4f8", color2:"#1a1d26", price:250,  effect:"damier",    rarity:1},
@@ -2402,6 +2403,79 @@ function paintSkinInner(c, skin, w, h, r, t, f){
     c.globalAlpha = 1;
 
     const e = skin.effect;
+
+    /* ---------- GARDIEN : ecorce et mousse ---------- */
+    if(e === "gardien"){
+
+        const bois = c.createLinearGradient(-w, -h, w, h);
+        bois.addColorStop(0,   "#7a5c33");
+        bois.addColorStop(.45, "#4a3620");
+        bois.addColorStop(1,   "#241a0e");
+
+        c.globalAlpha = 1;
+        c.fillStyle   = bois;
+        c.fillRect(-w * 1.4, -h * 1.5, w * 2.8, h * 3);
+
+        /* les veines de l'ecorce */
+        c.globalAlpha = .35;
+        c.strokeStyle = "#1a1208";
+        c.lineWidth   = Math.max(1, r * .026);
+        c.lineCap     = "round";
+
+        for(let i = 0; i < 7; i++){
+
+            const x0 = -w * 1.1 + i * w * .34;
+
+            c.beginPath();
+            c.moveTo(x0, -h * 1.3);
+
+            for(let k = 1; k <= 4; k++){
+                c.lineTo(x0 + Math.sin(k * 1.9 + i) * w * .12, -h * 1.3 + k * h * .65);
+            }
+
+            c.stroke();
+
+        }
+
+        /* la mousse, cote ombre */
+        c.globalAlpha = .8;
+
+        for(let i = 0; i < 9; i++){
+
+            const a = i * 1.4 + .4;
+
+            c.fillStyle = (i % 2) ? "#3f6a24" : "#5f9a3a";
+            c.beginPath();
+            c.ellipse(
+                Math.cos(a) * w * .6 - w * .12,
+                Math.sin(a) * h * .55 + h * .18,
+                w * .22, h * .13, a, 0, Math.PI * 2
+            );
+            c.fill();
+
+        }
+
+        /* une pousse qui sort du crane */
+        c.globalAlpha = 1;
+        c.strokeStyle = "#6a4a26";
+        c.lineWidth   = Math.max(1, r * .045);
+
+        c.beginPath();
+        c.moveTo(w * .1, -h * .78);
+        c.quadraticCurveTo(w * .3, -h * 1.05, w * .18, -h * 1.3);
+        c.stroke();
+
+        c.fillStyle = "#7fd14a";
+
+        for(let i = 0; i < 3; i++){
+            c.beginPath();
+            c.ellipse(w * (.2 + i * .04), -h * (1.05 + i * .1), w * .1, h * .05, .5 - i * .4, 0, Math.PI * 2);
+            c.fill();
+        }
+
+        return;
+
+    }
 
     /* ---------- MAGMA : croute fissuree ---------- */
     if(e === "magma"){

@@ -775,11 +775,13 @@ function playWorld(zoneId){
 
     startGame();
 
-    if(zoneId === "cyber"){
+    if(zoneId === "foret"){
         return;
     }
 
     level = wd.from;
+
+    if(zoneId === "clairiere"){ enterClairiere(); return; }
 
     if(zoneId === "marais"){ enterMarais(); }
     else if(zoneId === "bonbon"){ enterCandy(); }

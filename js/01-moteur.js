@@ -990,7 +990,7 @@ function w1Update(){
     const now = audioCtx.currentTime;
 
     /* elle ne tourne qu'en partie, et seulement dans le monde 1 */
-    const want = musicOn && playing && zone === "cyber";
+    const want = musicOn && playing && (zone === "foret" || zone === "cyber");
 
     if(want !== w1On){
 

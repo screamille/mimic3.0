@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "9.7";
+const VERSION = "10.0";
 
 (function(){
 
@@ -1423,7 +1423,11 @@ function buildFloor(){
     floorW    = W;
     floorH    = H;
 
-    if(zone === "marais"){
+    if(zone === "foret"){
+        paintForest(c);
+    }else if(zone === "clairiere"){
+        paintClairiere(c);
+    }else if(zone === "marais"){
         paintEarth(c);
     }else if(zone === "bonbon"){
         paintCandy(c);
@@ -1957,6 +1961,11 @@ function hexA(hex, a){
 
 
 function portalTarget(){
+
+    /* la foret ne se quitte que par le GARDIEN */
+    if(zone === "foret" || zone === "clairiere"){
+        return null;
+    }
 
 
     if(zone === "cyber" && level >= PORTAL_LEVEL){
@@ -3867,7 +3876,7 @@ un code secret te laisse jouer, mais n'ouvre rien de plus.
 let byPortal = false;
 
 function worldUnlocked(zoneId){
-    return zoneId === "cyber" || worldsSeen.indexOf(zoneId) >= 0;
+    return zoneId === "foret" || worldsSeen.indexOf(zoneId) >= 0;
 }
 
 function noteWorld(zoneId){
@@ -4041,7 +4050,9 @@ const BOSS_PHASES = [
 
 
 function currentWorld(){
-    return WORLDS.find(w => w.zone === zone) || WORLDS[0];
+    return WORLDS.find(w => w.zone === zone) ||
+           WORLDS_DORMANT.find(w => w.zone === zone) ||
+           WORLDS[0];
 }
 
 
@@ -4049,6 +4060,16 @@ function currentWorld(){
 function worldProgress(){
 
     const wd = currentWorld();
+
+    /* dans LA FORÊT, c'est le niveau — puis l'usure du GARDIEN */
+    if(wd.zone === "foret"){
+        if(gard){ return 1 - gard.hp; }
+        return Math.max(0, Math.min(1, (level - 1) / FORET_LEVELS));
+    }
+
+    if(wd.zone === "clairiere"){
+        return Math.max(0, Math.min(1, ((level - 5) % 4) / 4));
+    }
 
     /* dans le NEANT, la progression c'est l'usure du boss */
     if(wd.zone === "neant"){
@@ -10806,6 +10827,1931 @@ function w69Enter(zoneId, label, col){
     worldBanner(zoneId, label);
 
     sound(200, .7, "triangle", .05);
+
+}
+
+
+
+/* =========================================================
+   LA FORÊT
+
+   Le jeu commence ici. Quatre niveaux de quarante-cinq
+   secondes, quatre creatures qui arrivent une par une, puis
+   le sol tremble : LE GARDIEN sort de terre.
+
+   Une fois brise, une colonne de lumiere t'arrache a la
+   foret et te depose dans LA CLAIRIERE.
+========================================================= */
+
+const FORET_LEVELS = 4;    /* niveaux avant le boss */
+const FORET_SECS   = 45;   /* duree d'un niveau, en secondes */
+const GARD_TIME    = 70;   /* secondes de survie pour l'user */
+const GARD_PUNCH   = .05;  /* ce qu'il regagne en te touchant */
+
+let guepes    = [];
+let sangliers = [];
+let ronces    = [];
+let champis   = [];
+let spores    = [];
+let lucioles  = [];
+
+let gard       = null;
+let gardRoots  = [];
+let gardLeaves = [];
+
+let foretIntro   = 0;      /* animation d'entree du boss */
+let foretEject   = 0;      /* animation d'ejection */
+let foretCleared = false;
+let foretShake   = 0;
+
+
+const GARD_PHASES = [
+    {k:"gp.0", name:"RACINES", col:"#7fd14a"},
+    {k:"gp.1", name:"FEUILLES", col:"#ffb43a"},
+    {k:"gp.2", name:"FUREUR",  col:"#ff5a2a"}
+];
+
+
+function gardPhase(){
+
+    if(!gard){ return 0; }
+
+    return gard.hp > .66 ? 0 : gard.hp > .33 ? 1 : 2;
+
+}
+
+
+function clearForet(){
+
+    guepes = []; sangliers = []; ronces = []; champis = []; spores = [];
+    lucioles = []; gardRoots = []; gardLeaves = [];
+
+    gard       = null;
+    foretIntro = 0;
+    foretEject = 0;
+    foretShake = 0;
+
+}
+
+
+/* combien de secondes dure un niveau, selon la zone */
+function levelSecs(){
+
+    return (zone === "foret" || zone === "clairiere") ? FORET_SECS : 12;
+
+}
+
+
+function foretEnter(zoneId){
+
+    zone = zoneId;
+
+    portal = null;
+
+    solids = []; orbs = []; coins = []; hearts = []; balls = [];
+    slimes = []; trails = []; mimics = []; archers = []; blobs = [];
+    puddles = []; logs = []; crawlers = []; drips = []; candies = [];
+    gloutons = []; guimauves = []; anguilles = []; lanternes = [];
+    bulles = [];
+
+    trace = [];
+    traceLength = 0;
+
+    clearForet();
+
+    const a = playArea();
+
+    player.x = (a.x0 + a.x1) / 2;
+    player.y = (a.y0 + a.y1) / 2;
+
+    player.invincible = 2.4;
+
+    /* les lucioles : rien de dangereux, juste la foret qui respire */
+    for(let i = 0; i < 26; i++){
+        lucioles.push({
+            x:a.x0 + rnd() * (a.x1 - a.x0),
+            y:a.y0 + rnd() * (a.y1 - a.y0),
+            r:(1.4 + rnd() * 1.8) * unit,
+            a:rnd() * 6.28,
+            sp:.25 + rnd() * .5,
+            ph:rnd() * 6.28
+        });
+    }
+
+    addCoin();
+    addOrb();
+
+    noteWorld(zoneId);
+
+    worldBanner(zoneId, zoneId === "foret" ? "🌲" : "🌾");
+
+    sound(320, .5, "triangle", .06);
+
+}
+
+
+function enterForet(){
+    foretCleared = false;
+    foretEnter("foret");
+}
+
+
+function enterClairiere(){
+    foretEnter("clairiere");
+}
+
+
+/* ---------------------------------------------------------
+   LA GUÊPE
+
+   Elle tourne autour de toi, s'arrete, VISE — un trait
+   pointille montre exactement ou elle va passer — puis
+   plonge en ligne droite. La direction est verrouillee au
+   moment de la visee : bouge et elle passe a cote.
+--------------------------------------------------------- */
+
+function spawnGuepe(){
+
+    if(guepes.length >= 4){ return; }
+
+    const r = 13 * unit;
+    const p = findSpot(r, 260) || findSpot(r, 170);
+
+    if(!p){ return; }
+
+    guepes.push({
+        x:p.x, y:p.y, r:r,
+        phase:"vole", t:1.4 + rnd() * 1.2,
+        ang:rnd() * 6.28,
+        vx:0, vy:0,
+        aimX:0, aimY:0,
+        wing:0, birth:.5
+    });
+
+}
+
+
+function updateGuepes(dt){
+
+    const a = playArea();
+
+    for(const g of guepes){
+
+        g.wing += dt * 34;
+
+        if(g.birth > 0){ g.birth -= dt; }
+
+        g.t -= dt;
+
+        if(g.phase === "vole"){
+
+            /* une derive lente autour du joueur, sans jamais le toucher */
+            const dx = player.x - g.x, dy = player.y - g.y;
+            const d  = Math.hypot(dx, dy) || 1;
+
+            const veut = 210 * unit;
+            const pousse = (d - veut) / veut;
+
+            g.ang += dt * .7;
+
+            g.vx = (dx / d * pousse * 130 + Math.cos(g.ang) * 70) * unit;
+            g.vy = (dy / d * pousse * 130 + Math.sin(g.ang) * 70) * unit;
+
+            g.x += g.vx * dt;
+            g.y += g.vy * dt;
+
+            if(g.t <= 0){
+
+                g.phase = "vise";
+                g.t     = 1.4;
+
+                /*
+                Le point est fixe MAINTENANT. Le trait pointille
+                ne bougera plus : on a une seconde pleine pour
+                sortir de la ligne.
+                */
+                g.aimX = player.x;
+                g.aimY = player.y;
+
+                sound(1250, .12, "sawtooth", .022);
+
+            }
+
+        }else if(g.phase === "vise"){
+
+            /* elle se fige : la trajectoire se verrouille a la fin */
+            g.vx *= Math.pow(.02, dt);
+            g.vy *= Math.pow(.02, dt);
+
+            g.x += g.vx * dt;
+            g.y += g.vy * dt;
+
+            if(g.t <= 0){
+
+                const dx = g.aimX - g.x, dy = g.aimY - g.y;
+                const d  = Math.hypot(dx, dy) || 1;
+
+                g.vx = dx / d * 560 * unit;
+                g.vy = dy / d * 560 * unit;
+
+                g.phase = "pique";
+                g.t     = .68;
+
+                sound(220, .18, "sawtooth", .05);
+
+            }
+
+        }else if(g.phase === "pique"){
+
+            g.x += g.vx * dt;
+            g.y += g.vy * dt;
+
+            if(g.t <= 0){
+                g.phase = "repos";
+                g.t     = 1.9;
+            }
+
+        }else{
+
+            /* elle reprend son souffle, lentement */
+            g.vx *= Math.pow(.12, dt);
+            g.vy *= Math.pow(.12, dt);
+
+            g.x += g.vx * dt;
+            g.y += g.vy * dt;
+
+            if(g.t <= 0){
+                g.phase = "vole";
+                g.t     = 1.9 + rnd() * 1.2;
+            }
+
+        }
+
+        g.x = Math.max(a.x0 + g.r, Math.min(a.x1 - g.r, g.x));
+        g.y = Math.max(a.y0 + g.r, Math.min(a.y1 - g.r, g.y));
+
+        /*
+        Une guepe qui reprend son souffle est inoffensive :
+        c'est la fenetre pour passer derriere elle.
+        */
+        if(g.birth <= 0 && g.phase !== "repos" &&
+           Math.hypot(player.x - g.x, player.y - g.y) < g.r * .85 + player.r * .6){
+
+            loseLife("guepe");
+
+            /* elle est renvoyee : pas de touche en chaine */
+            const dx = g.x - player.x, dy = g.y - player.y;
+            const d  = Math.hypot(dx, dy) || 1;
+
+            g.x += dx / d * 90 * unit;
+            g.y += dy / d * 90 * unit;
+
+            g.phase = "repos";
+            g.t     = 1.9;
+
+        }
+
+    }
+
+}
+
+
+function drawGuepes(){
+
+    for(const g of guepes){
+
+        /* le trait de visee : c'est lui qui rend l'attaque esquivable */
+        if(g.phase === "vise"){
+
+            const dx = g.aimX - g.x, dy = g.aimY - g.y;
+            const d  = Math.hypot(dx, dy) || 1;
+
+            ctx.save();
+            const proche = g.t < .4;
+
+            ctx.globalAlpha = (proche ? .55 : .34) +
+                              Math.sin(g.t * (proche ? 46 : 20)) * .2;
+
+            ctx.strokeStyle = proche ? "#ff7a3a" : "#ffd24a";
+            ctx.lineWidth   = (proche ? 3.4 : 2.2) * unit;
+            ctx.setLineDash([9 * unit, 7 * unit]);
+
+            ctx.beginPath();
+            ctx.moveTo(g.x, g.y);
+            ctx.lineTo(g.x + dx / d * 900 * unit, g.y + dy / d * 900 * unit);
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+            ctx.restore();
+
+        }
+
+        ctx.save();
+        ctx.translate(g.x, g.y);
+        ctx.rotate(Math.atan2(g.vy, g.vx));
+
+        const tendue = g.phase === "vise" || g.phase === "pique";
+
+        /* essoufflee : elle palit, on voit qu'elle ne pique plus */
+        if(g.phase === "repos"){
+            ctx.globalAlpha = .55;
+        }
+
+        /* les ailes, floues */
+        ctx.globalAlpha = .35;
+        ctx.fillStyle   = "#eaf6ff";
+
+        [-1, 1].forEach(s => {
+            ctx.save();
+            ctx.rotate(s * (.5 + Math.sin(g.wing) * .5));
+            ctx.beginPath();
+            ctx.ellipse(0, s * g.r * .5, g.r * 1.15, g.r * .38, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        });
+
+        /* le corps raye */
+        ctx.globalAlpha = 1;
+
+        const cg = ctx.createLinearGradient(-g.r, 0, g.r, 0);
+        cg.addColorStop(0,  tendue ? "#ff8a3a" : "#f0c23a");
+        cg.addColorStop(1,  "#2a1a08");
+
+        ctx.fillStyle = cg;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, g.r * 1.25, g.r * .78, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#1a1206";
+
+        for(let i = 0; i < 3; i++){
+            ctx.beginPath();
+            ctx.ellipse(-g.r * .1 + i * g.r * .42, 0, g.r * .13, g.r * .72, 0, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        /* le dard */
+        ctx.fillStyle = tendue ? "#ff5a2a" : "#4a3a1a";
+        ctx.beginPath();
+        ctx.moveTo(g.r * 1.2, 0);
+        ctx.lineTo(g.r * 1.85, 0);
+        ctx.lineTo(g.r * 1.2, g.r * .16);
+        ctx.closePath();
+        ctx.fill();
+
+        /* les yeux */
+        ctx.fillStyle = tendue ? "#ff3a2a" : "#ffffff";
+        [-1, 1].forEach(s => {
+            ctx.beginPath();
+            ctx.arc(-g.r * .78, s * g.r * .28, g.r * .2, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   LE SANGLIER
+
+   Il gratte le sol au bord de l'arene — le couloir de sa
+   charge s'allume — puis il traverse tout droit. Il ne
+   corrige jamais sa trajectoire.
+--------------------------------------------------------- */
+
+function spawnSanglier(){
+
+    if(sangliers.length >= 2){ return; }
+
+    const a = playArea();
+    const r = 26 * unit;
+
+    /* il part d'un bord, face au terrain */
+    const bord = Math.floor(rnd() * 4);
+
+    let x, y, ang;
+
+    if(bord === 0){       x = a.x0 + r; y = a.y0 + rnd() * (a.y1 - a.y0); ang = 0; }
+    else if(bord === 1){  x = a.x1 - r; y = a.y0 + rnd() * (a.y1 - a.y0); ang = Math.PI; }
+    else if(bord === 2){  x = a.x0 + rnd() * (a.x1 - a.x0); y = a.y0 + r; ang = Math.PI / 2; }
+    else {                x = a.x0 + rnd() * (a.x1 - a.x0); y = a.y1 - r; ang = -Math.PI / 2; }
+
+    sangliers.push({
+        x:x, y:y, r:r, ang:ang,
+        phase:"gratte", t:1.9,
+        vx:0, vy:0,
+        rebonds:0,
+        souffle:0
+    });
+
+}
+
+
+function updateSangliers(dt){
+
+    const a = playArea();
+
+    for(const s of sangliers){
+
+        s.t -= dt;
+        s.souffle += dt;
+
+        if(s.phase === "gratte"){
+
+            /* il se tourne vers le joueur pendant qu'il gratte,
+               mais la direction se fige a la fin du grattage */
+            if(s.t > .85){
+                const want = Math.atan2(player.y - s.y, player.x - s.x);
+                let   d    = ((want - s.ang + Math.PI * 3) % (Math.PI * 2)) - Math.PI;
+                s.ang += Math.max(-1.9 * dt, Math.min(1.9 * dt, d));
+            }
+
+            /*
+            Deux couloirs de charge en meme temps, dans une
+            arene aussi petite, ne laissent aucune sortie :
+            le second sanglier attend que le premier ait fini.
+            */
+            const occupe = sangliers.some(o => o !== s && o.phase === "charge");
+
+            if(s.t <= 0 && occupe){
+                s.t = .45;
+            }
+
+            if(s.t <= 0){
+
+                s.vx = Math.cos(s.ang) * 520 * unit;
+                s.vy = Math.sin(s.ang) * 520 * unit;
+
+                s.phase = "charge";
+                s.t     = 4;
+
+                sound(110, .3, "sawtooth", .06);
+            }
+
+        }else if(s.phase === "charge"){
+
+            s.x += s.vx * dt;
+            s.y += s.vy * dt;
+
+            /*
+            Il ne rebondit pas. Un rebond, c'est une seconde
+            course qu'on n'a pas vue venir : sa charge est un
+            aller simple, du bord ou il gratte au mur d'en face.
+            */
+            let cogne = false;
+
+            if(s.x <= a.x0 + s.r){ s.x = a.x0 + s.r; cogne = true; }
+            if(s.x >= a.x1 - s.r){ s.x = a.x1 - s.r; cogne = true; }
+            if(s.y <= a.y0 + s.r){ s.y = a.y0 + s.r; cogne = true; }
+            if(s.y >= a.y1 - s.r){ s.y = a.y1 - s.r; cogne = true; }
+
+            if(cogne){
+
+                s.vx = 0;
+                s.vy = 0;
+
+                burst(s.x, s.y, 16, "#8a6a3a");
+                sound(90, .22, "square", .055);
+
+                foretShake = Math.max(foretShake, .25);
+
+                s.phase = "souffle2";
+                s.t     = 2.4;
+
+            }
+
+            if(s.t <= 0){
+                s.phase = "souffle2";
+                s.t     = 2.4;
+            }
+
+        }else{
+
+            s.vx *= Math.pow(.02, dt);
+            s.vy *= Math.pow(.02, dt);
+
+            s.x += s.vx * dt;
+            s.y += s.vy * dt;
+
+            if(s.t <= 0){
+                s.phase   = "gratte";
+                s.t       = 1.9;
+                s.rebonds = 0;
+            }
+
+        }
+
+        /* il n'est dangereux que lance : a l'arret on peut le frôler */
+        if(s.phase === "charge" &&
+           Math.hypot(player.x - s.x, player.y - s.y) < s.r * .74 + player.r * .6){
+
+            loseLife("sanglier");
+
+            const dx = s.x - player.x, dy = s.y - player.y;
+            const d  = Math.hypot(dx, dy) || 1;
+
+            s.x += dx / d * 110 * unit;
+            s.y += dy / d * 110 * unit;
+
+            s.phase = "souffle2";
+            s.t     = 2.4;
+
+        }
+
+    }
+
+}
+
+
+function drawSangliers(){
+
+    const a = playArea();
+
+    for(const s of sangliers){
+
+        /* le couloir de charge, annonce a l'avance */
+        if(s.phase === "gratte"){
+
+            const k = Math.max(0, Math.min(1, 1 - s.t / 1.9));
+
+            ctx.save();
+            ctx.translate(s.x, s.y);
+            ctx.rotate(s.ang);
+
+            const lg = ctx.createLinearGradient(0, 0, Math.hypot(a.x1 - a.x0, a.y1 - a.y0), 0);
+            lg.addColorStop(0, "rgba(255,120,50," + (.10 + k * .22).toFixed(3) + ")");
+            lg.addColorStop(1, "rgba(255,120,50,0)");
+
+            ctx.fillStyle = lg;
+            ctx.fillRect(0, -s.r * .8, Math.hypot(a.x1 - a.x0, a.y1 - a.y0), s.r * 1.6);
+
+            ctx.restore();
+
+        }
+
+        ctx.save();
+        ctx.translate(s.x, s.y);
+        ctx.rotate(s.ang);
+
+        const trepigne = s.phase === "gratte" ? Math.sin(s.souffle * 26) * s.r * .05 : 0;
+
+        if(s.phase === "souffle2"){
+            ctx.globalAlpha = .55;
+        }
+
+        /* l'ombre */
+        ctx.globalAlpha = .3;
+        ctx.fillStyle   = "#000000";
+        ctx.beginPath();
+        ctx.ellipse(0, s.r * .55, s.r * 1.1, s.r * .34, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        /* le corps */
+        ctx.globalAlpha = 1;
+
+        const cg = ctx.createLinearGradient(0, -s.r, 0, s.r);
+        cg.addColorStop(0, "#6a5340");
+        cg.addColorStop(1, "#2c1f16");
+
+        ctx.fillStyle = cg;
+        ctx.beginPath();
+        ctx.ellipse(-s.r * .15, trepigne, s.r * 1.05, s.r * .76, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        /* les soies sur l'echine */
+        ctx.strokeStyle = "#1a120c";
+        ctx.lineWidth   = 2 * unit;
+        ctx.lineCap     = "round";
+
+        for(let i = 0; i < 6; i++){
+            const px = -s.r * .8 + i * s.r * .28;
+            ctx.beginPath();
+            ctx.moveTo(px, -s.r * .6);
+            ctx.lineTo(px - s.r * .1, -s.r * .95);
+            ctx.stroke();
+        }
+
+        /* le groin */
+        ctx.fillStyle = "#8a6a52";
+        ctx.beginPath();
+        ctx.ellipse(s.r * .92, trepigne * .5, s.r * .3, s.r * .26, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = "#2a1a12";
+        [-1, 1].forEach(k => {
+            ctx.beginPath();
+            ctx.arc(s.r * 1.0, trepigne * .5 + k * s.r * .11, s.r * .06, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        /* les defenses */
+        ctx.fillStyle = "#f2ead8";
+        [-1, 1].forEach(k => {
+            ctx.save();
+            ctx.translate(s.r * .82, k * s.r * .3);
+            ctx.rotate(k * -.6);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.quadraticCurveTo(s.r * .3, -s.r * .1, s.r * .42, -s.r * .34);
+            ctx.lineTo(s.r * .3, -s.r * .3);
+            ctx.quadraticCurveTo(s.r * .22, -s.r * .08, 0, s.r * .07);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        });
+
+        /* l'oeil */
+        ctx.fillStyle = s.phase === "charge" ? "#ff3a2a" : "#ffcf5a";
+        ctx.beginPath();
+        ctx.arc(s.r * .38, -s.r * .3, s.r * .12, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+
+        /* la poussiere qu'il souleve */
+        if(s.phase === "gratte" && rnd() < dtDust()){
+            burst(s.x - Math.cos(s.ang) * s.r, s.y - Math.sin(s.ang) * s.r, 2, "#9a7a52");
+        }
+
+    }
+
+}
+
+
+function dtDust(){ return .35; }
+
+
+/* ---------------------------------------------------------
+   LA RONCE
+
+   Un cercle d'epines se dessine au sol, pulse une seconde,
+   puis les epines sortent et restent. Elles ne bougent
+   jamais : c'est le terrain qui se referme sur toi.
+--------------------------------------------------------- */
+
+function spawnRonce(){
+
+    if(ronces.length >= 7){ return; }
+
+    const r = (34 + rnd() * 16) * unit;
+    const p = findSpot(r, 230) || findSpot(r, 150);
+
+    if(!p){ return; }
+
+    ronces.push({
+        x:p.x, y:p.y, r:r,
+        phase:"marque", t:1.15,
+        grow:0,
+        pics:Array.from({length:9}, (_, i) => ({
+            a:i / 9 * 6.28 + rnd() * .3,
+            d:.45 + rnd() * .5,
+            l:.5 + rnd() * .5
+        }))
+    });
+
+}
+
+
+function updateRonces(dt){
+
+    for(const r of ronces){
+
+        r.t -= dt;
+
+        if(r.phase === "marque"){
+
+            if(r.t <= 0){
+                r.phase = "pousse";
+                r.t     = .35;
+                sound(160, .22, "sawtooth", .04);
+                burst(r.x, r.y, 14, "#4a7a2a");
+            }
+
+        }else if(r.phase === "pousse"){
+
+            r.grow = Math.min(1, r.grow + dt / .35);
+
+            if(r.t <= 0){
+                r.phase = "en place";
+                r.t     = 6;
+                r.grow  = 1;
+            }
+
+        }else if(r.phase === "en place"){
+
+            if(r.t <= 0){
+                r.phase = "fane";
+                r.t     = .5;
+            }
+
+        }else{
+
+            r.grow = Math.max(0, r.grow - dt / .5);
+
+            if(r.t <= 0){ r.mort = true; }
+
+        }
+
+        if(r.grow > .5 && Math.hypot(player.x - r.x, player.y - r.y) < r.r * .62 + player.r * .5){
+            loseLife("ronce");
+        }
+
+    }
+
+    ronces = ronces.filter(r => !r.mort);
+
+}
+
+
+function drawRonces(){
+
+    for(const r of ronces){
+
+        if(r.phase === "marque"){
+
+            const k = 1 - r.t / 1.15;
+
+            ctx.save();
+            ctx.globalAlpha = .25 + Math.sin(r.t * 16) * .18;
+            ctx.strokeStyle = "#7fd14a";
+            ctx.lineWidth   = 2.5 * unit;
+            ctx.setLineDash([7 * unit, 6 * unit]);
+            ctx.beginPath();
+            ctx.arc(r.x, r.y, r.r * (.6 + k * .4), 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
+
+            continue;
+
+        }
+
+        ctx.save();
+        ctx.translate(r.x, r.y);
+
+        /* la masse sombre au sol */
+        ctx.globalAlpha = .85 * r.grow;
+        ctx.fillStyle   = "#1f3a14";
+        ctx.beginPath();
+        ctx.arc(0, 0, r.r * .72 * r.grow, 0, Math.PI * 2);
+        ctx.fill();
+
+        /* les tiges */
+        ctx.strokeStyle = "#3f6a24";
+        ctx.lineWidth   = 3.2 * unit;
+        ctx.lineCap     = "round";
+        ctx.globalAlpha = r.grow;
+
+        for(const p of r.pics){
+
+            const l = r.r * p.l * r.grow;
+
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.quadraticCurveTo(
+                Math.cos(p.a + .5) * l * .6, Math.sin(p.a + .5) * l * .6,
+                Math.cos(p.a) * l, Math.sin(p.a) * l
+            );
+            ctx.stroke();
+
+            /* l'epine au bout */
+            ctx.fillStyle = "#c9e8a0";
+            ctx.beginPath();
+            ctx.arc(Math.cos(p.a) * l, Math.sin(p.a) * l, 2.6 * unit * r.grow, 0, Math.PI * 2);
+            ctx.fill();
+
+        }
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   LE CHAMPIGNON
+
+   Immobile. Son chapeau gonfle — c'est le signal — puis il
+   lache un anneau de spores qui s'ecarte. Il suffit d'etre
+   deja loin, ou de traverser avant qu'il s'ouvre.
+--------------------------------------------------------- */
+
+function spawnChampi(){
+
+    if(champis.length >= 3){ return; }
+
+    const r = 22 * unit;
+    const p = findSpot(r, 280) || findSpot(r, 190);
+
+    if(!p){ return; }
+
+    champis.push({
+        x:p.x, y:p.y, r:r,
+        t:2.4 + rnd() * 1.6,
+        gonfle:0,
+        pois:Array.from({length:5}, () => ({a:rnd() * 3.14, d:rnd() * .7}))
+    });
+
+}
+
+
+function updateChampis(dt){
+
+    for(const m of champis){
+
+        m.t -= dt;
+
+        if(m.t < .9 && m.t > 0){
+            m.gonfle = 1 - m.t / .9;
+        }
+
+        if(m.t <= 0){
+
+            spores.push({x:m.x, y:m.y, r:m.r * 1.2, max:m.r * 7.5, life:1});
+
+            m.t      = 3.6 + rnd() * 1.4;
+            m.gonfle = 0;
+
+            sound(300, .3, "sine", .04);
+            burst(m.x, m.y, 16, "#c9a6ff");
+
+        }
+
+    }
+
+    for(const s of spores){
+
+        s.r    += (s.max - s.r) * Math.min(1, dt * 1.9);
+        s.life -= dt / 1.25;
+
+        /* seul l'anneau blesse : le centre est sur */
+        const d = Math.hypot(player.x - s.x, player.y - s.y);
+
+        if(s.life > 0 && Math.abs(d - s.r) < 14 * unit + player.r * .5){
+            loseLife("spores");
+        }
+
+    }
+
+    spores = spores.filter(s => s.life > 0);
+
+}
+
+
+function drawChampis(){
+
+    /* les anneaux de spores */
+    for(const s of spores){
+
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, s.life) * .9;
+        ctx.strokeStyle = "#c9a6ff";
+        ctx.lineWidth   = 11 * unit;
+        ctx.shadowBlur  = 16 * unit;
+        ctx.shadowColor = "#a06aff";
+
+        ctx.beginPath();
+        ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+        ctx.restore();
+
+    }
+
+    for(const m of champis){
+
+        ctx.save();
+        ctx.translate(m.x, m.y);
+
+        const g = 1 + m.gonfle * .3;
+
+        /* l'ombre */
+        ctx.globalAlpha = .3;
+        ctx.fillStyle   = "#000000";
+        ctx.beginPath();
+        ctx.ellipse(0, m.r * .62, m.r * .9, m.r * .28, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        /* le pied */
+        ctx.globalAlpha = 1;
+        ctx.fillStyle   = "#f0e6d0";
+        ctx.beginPath();
+        ctx.moveTo(-m.r * .26, m.r * .6);
+        ctx.quadraticCurveTo(-m.r * .18, 0, -m.r * .3, -m.r * .2);
+        ctx.lineTo(m.r * .3, -m.r * .2);
+        ctx.quadraticCurveTo(m.r * .18, 0, m.r * .26, m.r * .6);
+        ctx.closePath();
+        ctx.fill();
+
+        /* le chapeau */
+        const cg = ctx.createLinearGradient(0, -m.r * g, 0, 0);
+        cg.addColorStop(0, m.gonfle > 0 ? "#ff8ad0" : "#d8447a");
+        cg.addColorStop(1, "#8a1a3a");
+
+        ctx.fillStyle = cg;
+        ctx.beginPath();
+        ctx.ellipse(0, -m.r * .18, m.r * 1.05 * g, m.r * .78 * g, 0, Math.PI, 0);
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.ellipse(0, -m.r * .18, m.r * 1.05 * g, m.r * .2, 0, 0, Math.PI);
+        ctx.fill();
+
+        /* les pois */
+        ctx.fillStyle = "#fff0f6";
+
+        for(const p of m.pois){
+            ctx.beginPath();
+            ctx.ellipse(
+                Math.cos(p.a + Math.PI) * m.r * p.d * g,
+                -m.r * .32 - Math.sin(p.a) * m.r * .3 * g,
+                m.r * .13, m.r * .1, 0, 0, Math.PI * 2
+            );
+            ctx.fill();
+        }
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   L'ANIMATION D'ENTREE DU GARDIEN
+--------------------------------------------------------- */
+
+function startGardIntro(){
+
+    if(foretIntro > 0 || gard){ return; }
+
+    foretIntro = 4.0;
+
+    /* le terrain se vide : c'est lui, maintenant */
+    guepes = []; sangliers = []; champis = []; spores = [];
+    mimics = []; balls = []; slimes = [];
+
+    player.invincible = Math.max(player.invincible, 4.4);
+
+    stickReset();
+
+    sound(60, 1.8, "sine", .09);
+
+}
+
+
+function spawnGardien(){
+
+    const a = playArea();
+
+    gard = {
+        x:(a.x0 + a.x1) / 2,
+        y:a.y0 + (a.y1 - a.y0) * .27,
+        r:Math.min(W, H) * .13,
+        hp:1,
+        t:0,
+        fire:2.2,
+        slam:0,
+        slamX:0, slamY:0,
+        yeux:0,
+        dead:0,
+        souffle:0
+    };
+
+    gardRoots  = [];
+    gardLeaves = [];
+
+    pickupMessage("🌳 " + T("foe.gardien"), "#7fd14a");
+
+    sound(90, 1.2, "sawtooth", .08);
+
+    buzz([90, 60, 90]);
+
+}
+
+
+/* ---------------------------------------------------------
+   LE GARDIEN
+
+   RACINES  : des cercles s'allument au sol, puis les
+              racines sortent. On les voit venir.
+   FEUILLES : des lames tournent TOUTES dans le meme sens,
+              annoncees par un trait fin.
+   FUREUR   : les deux, plus un abattage sur un point
+              VERROUILLE — il ne suit plus.
+--------------------------------------------------------- */
+
+/*
+Il ne regagne du terrain que si le coup porte vraiment.
+Sans ce garde-fou il se soignait a chaque image tant qu'on
+le touchait — invincible compris — et la barre remontait
+toute seule.
+*/
+function gardHit(src){
+
+    if(!playing || player.invincible > 0){
+        return;
+    }
+
+    loseLife(src);
+
+    if(gard){
+        gard.hp = Math.min(1, gard.hp + GARD_PUNCH);
+    }
+
+}
+
+
+function updateGard(dt){
+
+    if(!gard){ return; }
+
+    const a = playArea();
+
+    gard.t       += dt;
+    gard.souffle += dt;
+
+    /* il oscille doucement, comme un arbre dans le vent */
+    gard.x = (a.x0 + a.x1) / 2 + Math.sin(gard.t * .55) * (a.x1 - a.x0) * .17;
+
+    /* ---- la mort ---- */
+    if(gard.dead > 0){
+
+        gard.dead -= dt;
+
+        if(rnd() < .55){
+            burst(
+                gard.x + (rnd() - .5) * gard.r * 2,
+                gard.y + (rnd() - .5) * gard.r * 2,
+                8, rnd() < .5 ? "#7fd14a" : "#ffd76a"
+            );
+        }
+
+        if(gard.dead <= 0){
+
+            burst(gard.x, gard.y, 70, "#7fd14a");
+            burst(gard.x, gard.y, 50, "#ffe89a");
+
+            gard       = null;
+            gardRoots  = [];
+            gardLeaves = [];
+
+            foretCleared = true;
+
+            records.boss = (records.boss || 0) + 1;
+            saveProgress();
+
+            pickupMessage("🌳 " + T("foret.beaten"), "#ffffff");
+
+            unlockExclusive("foret");
+
+            /* l'ejection prend le relais */
+            foretEject = 4.2;
+
+            player.invincible = 6;
+
+            stickReset();
+
+            sound(70, 1.8, "sine", .09);
+            buzz([60, 80, 60, 80, 140]);
+
+        }
+
+        return;
+
+    }
+
+    /* ---- l'usure ---- */
+    gard.hp -= dt / GARD_TIME;
+
+    if(gard.hp <= 0){
+        gard.hp    = 0;
+        gard.dead  = 2.4;
+        gardRoots  = [];
+        gardLeaves = [];
+        return;
+    }
+
+    const ph = gardPhase();
+
+    /* ---- il attaque ---- */
+    gard.fire -= dt;
+
+    if(gard.fire <= 0){
+
+        if(ph === 0){
+
+            /* trois racines, marquees au sol */
+            for(let i = 0; i < 3; i++){
+                gardRoots.push({
+                    x:a.x0 + (a.x1 - a.x0) * (.15 + rnd() * .7),
+                    y:a.y0 + (a.y1 - a.y0) * (.30 + rnd() * .62),
+                    r:(40 + rnd() * 16) * unit,
+                    t:1.15,
+                    phase:"marque",
+                    grow:0
+                });
+            }
+
+            gard.fire = 2.5;
+
+            sound(150, .3, "sawtooth", .05);
+
+        }else if(ph === 1){
+
+            /* deux lames, MEME SENS de rotation : jamais de ciseaux */
+            const sens = rnd() < .5 ? -1 : 1;
+            const base = rnd() * 6.28;
+
+            for(let i = 0; i < 2; i++){
+                gardLeaves.push({
+                    a:base + i * Math.PI,
+                    spin:sens * .30,
+                    grow:0,
+                    life:2.6
+                });
+            }
+
+            gard.fire = 2.8;
+
+            sound(420, .3, "triangle", .05);
+
+        }else{
+
+            /* les deux, en alternance, plus l'abattage */
+            if(rnd() < .5){
+
+                for(let i = 0; i < 4; i++){
+                    gardRoots.push({
+                        x:a.x0 + (a.x1 - a.x0) * (.12 + rnd() * .76),
+                        y:a.y0 + (a.y1 - a.y0) * (.28 + rnd() * .66),
+                        r:(40 + rnd() * 14) * unit,
+                        t:1.05,
+                        phase:"marque",
+                        grow:0
+                    });
+                }
+
+            }else{
+
+                const sens = rnd() < .5 ? -1 : 1;
+                const base = rnd() * 6.28;
+
+                for(let i = 0; i < 2; i++){
+                    gardLeaves.push({a:base + i * Math.PI, spin:sens * .38, grow:0, life:2.4});
+                }
+
+            }
+
+            /* l'abattage : il verrouille un POINT, il ne te suit pas */
+            if(gard.slam <= 0){
+                gard.slam  = 1.5;
+                gard.slamX = player.x;
+                gard.slamY = player.y;
+                sound(200, .4, "square", .05);
+            }
+
+            gard.fire = 2.2;
+
+        }
+
+    }
+
+    /* ---- l'abattage ---- */
+    if(gard.slam > 0){
+
+        gard.slam -= dt;
+
+        if(gard.slam <= 0){
+
+            burst(gard.slamX, gard.slamY, 34, "#8a5a2a");
+
+            foretShake = .5;
+
+            sound(70, .5, "square", .08);
+
+            if(Math.hypot(player.x - gard.slamX, player.y - gard.slamY) < 74 * unit){
+                gardHit("gardien");
+            }
+
+        }
+
+    }
+
+    /* ---- les racines ---- */
+    for(const r of gardRoots){
+
+        r.t -= dt;
+
+        if(r.phase === "marque"){
+
+            if(r.t <= 0){
+                r.phase = "sort";
+                r.t     = .75;
+                burst(r.x, r.y, 12, "#6a4a2a");
+            }
+
+        }else if(r.phase === "sort"){
+
+            r.grow = Math.min(1, r.grow + dt / .25);
+
+            if(r.grow > .5 && Math.hypot(player.x - r.x, player.y - r.y) < r.r * .78 + player.r * .5){
+                gardHit("racine");
+            }
+
+            if(r.t <= 0){
+                r.phase = "rentre";
+                r.t     = .35;
+            }
+
+        }else{
+
+            r.grow = Math.max(0, r.grow - dt / .35);
+
+            if(r.t <= 0){ r.mort = true; }
+
+        }
+
+    }
+
+    gardRoots = gardRoots.filter(r => !r.mort);
+
+    /* ---- les lames de feuilles ---- */
+    const cx = (a.x0 + a.x1) / 2;
+    const cy = (a.y0 + a.y1) / 2;
+    const lg = Math.hypot(a.x1 - a.x0, a.y1 - a.y0) * .6;
+
+    for(const l of gardLeaves){
+
+        l.life -= dt;
+        l.grow  = Math.min(1, l.grow + dt / .8);
+        l.a    += l.spin * dt;
+
+        if(l.grow >= 1){
+
+            /* distance du joueur a la droite qui passe par le centre */
+            const dx = player.x - cx, dy = player.y - cy;
+            const d  = Math.abs(dx * Math.sin(l.a) - dy * Math.cos(l.a));
+
+            if(d < 15 * unit + player.r * .5 &&
+               Math.hypot(dx, dy) < lg){
+                gardHit("feuille");
+            }
+
+        }
+
+    }
+
+    gardLeaves = gardLeaves.filter(l => l.life > 0);
+
+    /* ---- le contact direct ---- */
+    if(Math.hypot(player.x - gard.x, player.y - gard.y) < gard.r * .8 + player.r * .7){
+        gardHit("gardien");
+    }
+
+}
+
+
+function drawGard(){
+
+    const a = playArea();
+
+    /* --- les racines --- */
+    for(const r of gardRoots){
+
+        if(r.phase === "marque"){
+
+            ctx.save();
+            ctx.globalAlpha = .28 + Math.sin(r.t * 18) * .2;
+            ctx.strokeStyle = "#c98a3a";
+            ctx.lineWidth   = 3 * unit;
+            ctx.setLineDash([8 * unit, 7 * unit]);
+            ctx.beginPath();
+            ctx.arc(r.x, r.y, r.r, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.setLineDash([]);
+            ctx.restore();
+
+            continue;
+
+        }
+
+        ctx.save();
+        ctx.translate(r.x, r.y);
+
+        ctx.globalAlpha = 1;
+        ctx.strokeStyle = "#5a3a1c";
+        ctx.lineWidth   = 8 * unit;
+        ctx.lineCap     = "round";
+
+        for(let i = 0; i < 5; i++){
+
+            const ang = i / 5 * 6.28 + r.x * .01;
+            const l   = r.r * r.grow;
+
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.quadraticCurveTo(
+                Math.cos(ang + .6) * l * .5, Math.sin(ang + .6) * l * .5,
+                Math.cos(ang) * l, Math.sin(ang) * l
+            );
+            ctx.stroke();
+
+        }
+
+        ctx.fillStyle = "#3f2a14";
+        ctx.beginPath();
+        ctx.arc(0, 0, r.r * .3 * r.grow, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.restore();
+
+    }
+
+    /* --- les lames de feuilles --- */
+    const cx = (a.x0 + a.x1) / 2;
+    const cy = (a.y0 + a.y1) / 2;
+    const lg = Math.hypot(a.x1 - a.x0, a.y1 - a.y0) * .6;
+
+    for(const l of gardLeaves){
+
+        ctx.save();
+        ctx.translate(cx, cy);
+        ctx.rotate(l.a);
+
+        if(l.grow < 1){
+
+            ctx.globalAlpha = .35 * l.grow;
+            ctx.strokeStyle = "#ffd76a";
+            ctx.lineWidth   = 2 * unit;
+            ctx.setLineDash([10 * unit, 8 * unit]);
+            ctx.beginPath();
+            ctx.moveTo(-lg, 0);
+            ctx.lineTo(lg, 0);
+            ctx.stroke();
+            ctx.setLineDash([]);
+
+        }else{
+
+            const gr = ctx.createLinearGradient(-lg, 0, lg, 0);
+            gr.addColorStop(0,  "rgba(255,180,60,0)");
+            gr.addColorStop(.5, "rgba(180,240,120,.95)");
+            gr.addColorStop(1,  "rgba(255,180,60,0)");
+
+            ctx.globalAlpha = Math.min(1, l.life * 1.6);
+            ctx.strokeStyle = gr;
+            ctx.lineWidth   = 13 * unit;
+            ctx.lineCap     = "round";
+            ctx.shadowBlur  = 18 * unit;
+            ctx.shadowColor = "#9fe86a";
+
+            ctx.beginPath();
+            ctx.moveTo(-lg, 0);
+            ctx.lineTo(lg, 0);
+            ctx.stroke();
+
+            ctx.shadowBlur = 0;
+
+        }
+
+        ctx.restore();
+
+    }
+
+    /* --- l'abattage annonce --- */
+    if(gard && gard.slam > 0){
+
+        const k = 1 - gard.slam / 1.5;
+
+        ctx.save();
+        ctx.globalAlpha = .25 + k * .45;
+        ctx.strokeStyle = "#ff8a3a";
+        ctx.lineWidth   = 4 * unit;
+        ctx.beginPath();
+        ctx.arc(gard.slamX, gard.slamY, 74 * unit, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.globalAlpha = .18 + k * .28;
+        ctx.fillStyle   = "#ff8a3a";
+        ctx.beginPath();
+        ctx.arc(gard.slamX, gard.slamY, 74 * unit * k, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+    }
+
+    if(!gard){ return; }
+
+    /* --- le gardien --- */
+    ctx.save();
+    ctx.translate(gard.x, gard.y);
+
+    const mourant = gard.dead > 0;
+    const r = gard.r;
+
+    if(mourant){
+        ctx.globalAlpha = Math.max(0, gard.dead / 2.4);
+        ctx.rotate((1 - gard.dead / 2.4) * .5);
+    }
+
+    /* les bras-branches */
+    ctx.strokeStyle = "#4a3018";
+    ctx.lineWidth   = r * .22;
+    ctx.lineCap     = "round";
+
+    [-1, 1].forEach(s => {
+
+        const bal = Math.sin(gard.souffle * .9 + s) * .2;
+
+        ctx.beginPath();
+        ctx.moveTo(s * r * .55, r * .1);
+        ctx.quadraticCurveTo(
+            s * r * 1.5, r * (.5 + bal),
+            s * r * 1.75, r * (1.15 + bal)
+        );
+        ctx.stroke();
+
+    });
+
+    /* le tronc */
+    const tg = ctx.createLinearGradient(-r, -r, r, r);
+    tg.addColorStop(0,  "#6a4a26");
+    tg.addColorStop(.5, "#422c14");
+    tg.addColorStop(1,  "#22160a");
+
+    ctx.fillStyle = tg;
+    ctx.beginPath();
+    ctx.moveTo(-r * .78, r * 1.25);
+    ctx.quadraticCurveTo(-r * .95, -r * .2, -r * .5, -r * .85);
+    ctx.quadraticCurveTo(0, -r * 1.15, r * .5, -r * .85);
+    ctx.quadraticCurveTo(r * .95, -r * .2, r * .78, r * 1.25);
+    ctx.closePath();
+    ctx.fill();
+
+    /* les bois */
+    ctx.strokeStyle = "#8a6a3a";
+    ctx.lineWidth   = r * .1;
+
+    [-1, 1].forEach(s => {
+
+        ctx.beginPath();
+        ctx.moveTo(s * r * .4, -r * .8);
+        ctx.lineTo(s * r * .72, -r * 1.5);
+        ctx.moveTo(s * r * .58, -r * 1.16);
+        ctx.lineTo(s * r * .98, -r * 1.28);
+        ctx.moveTo(s * r * .68, -r * 1.34);
+        ctx.lineTo(s * r * .62, -r * 1.85);
+        ctx.stroke();
+
+    });
+
+    /* la mousse */
+    ctx.globalAlpha = mourant ? .4 : .8;
+    ctx.fillStyle   = "#3f6a24";
+
+    for(let i = 0; i < 7; i++){
+        const ang = i * 1.3;
+        ctx.beginPath();
+        ctx.ellipse(
+            Math.cos(ang) * r * .45,
+            Math.sin(ang) * r * .6 + r * .2,
+            r * .22, r * .12, ang, 0, Math.PI * 2
+        );
+        ctx.fill();
+    }
+
+    ctx.globalAlpha = mourant ? Math.max(0, gard.dead / 2.4) : 1;
+
+    /* le creux du visage */
+    ctx.fillStyle = "#100a04";
+    ctx.beginPath();
+    ctx.ellipse(0, -r * .18, r * .52, r * .44, 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    /* les yeux */
+    const ph  = GARD_PHASES[gardPhase()];
+    const puls = .75 + Math.sin(gard.t * 3) * .25;
+
+    ctx.shadowBlur  = r * .5 * puls;
+    ctx.shadowColor = ph.col;
+    ctx.fillStyle   = ph.col;
+
+    [-1, 1].forEach(s => {
+        ctx.beginPath();
+        ctx.ellipse(s * r * .2, -r * .22, r * .11, r * .15, 0, 0, Math.PI * 2);
+        ctx.fill();
+    });
+
+    ctx.shadowBlur = 0;
+
+    /* la bouche : une fente qui s'ouvre avec la colere */
+    ctx.fillStyle = "#000000";
+    ctx.beginPath();
+    ctx.ellipse(0, r * .08, r * .2, r * (.04 + gardPhase() * .05), 0, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.restore();
+
+}
+
+
+function gardBar(){
+
+    const el = document.getElementById("bossBar");
+
+    if(!el){ return false; }
+
+    if(!gard){ return false; }
+
+    const ph = GARD_PHASES[gardPhase()];
+
+    el.style.display = "block";
+
+    document.getElementById("bossName").textContent  = "🌳 " + T("foe.gardien");
+    document.getElementById("bossPhase").textContent = T(ph.k);
+    document.getElementById("bossPhase").style.color = ph.col;
+
+    const f = document.getElementById("bossFill");
+
+    f.style.width      = (gard.hp * 100).toFixed(1) + "%";
+    f.style.background = "linear-gradient(90deg,#12240a," + ph.col + ")";
+
+    return true;
+
+}
+
+
+/* ---------------------------------------------------------
+   LA BOUCLE DE LA FORÊT
+--------------------------------------------------------- */
+
+function updateForest(dt){
+
+    if(zone !== "foret" && zone !== "clairiere"){ return; }
+
+    if(foretShake > 0){ foretShake -= dt; }
+
+    /* les lucioles vivent tout le temps */
+    const a = playArea();
+
+    for(const l of lucioles){
+        l.a += dt * l.sp;
+        l.x += Math.cos(l.a) * 14 * unit * dt;
+        l.y += Math.sin(l.a * .7) * 12 * unit * dt;
+        l.x = Math.max(a.x0, Math.min(a.x1, l.x));
+        l.y = Math.max(a.y0, Math.min(a.y1, l.y));
+    }
+
+    /* --- l'animation d'entree --- */
+    if(foretIntro > 0){
+
+        foretIntro -= dt;
+
+        foretShake = Math.max(foretShake, .3);
+
+        if(foretIntro <= 1.4 && !gard){
+            spawnGardien();
+        }
+
+        if(foretIntro <= 0){
+            foretIntro = 0;
+        }
+
+        return;
+
+    }
+
+    /* --- l'animation d'ejection --- */
+    if(foretEject > 0){
+
+        foretEject -= dt;
+
+        /* le joueur est aspire vers le haut */
+        player.y += (a.y0 - player.y) * Math.min(1, dt * 1.1);
+
+        if(rnd() < .8){
+            burst(
+                player.x + (rnd() - .5) * 90 * unit,
+                a.y1 - rnd() * (a.y1 - a.y0) * .5,
+                3, rnd() < .5 ? "#ffe89a" : "#9fe86a"
+            );
+        }
+
+        if(foretEject <= 0){
+            foretEject = 0;
+            enterClairiere();
+        }
+
+        return;
+
+    }
+
+    if(gard){
+        updateGard(dt);
+        return;
+    }
+
+    /* --- le declenchement du boss --- */
+    if(zone === "foret" && !foretCleared && level > FORET_LEVELS){
+        startGardIntro();
+        return;
+    }
+
+    updateGuepes(dt);
+    updateSangliers(dt);
+    updateRonces(dt);
+    updateChampis(dt);
+
+}
+
+
+/* les creatures arrivent une par une, un niveau apres l'autre */
+function foretPeuple(){
+
+    if(zone !== "foret" && zone !== "clairiere"){ return; }
+
+    if(gard || foretIntro > 0 || foretEject > 0){ return; }
+
+    const n = zone === "clairiere" ? 4 : level;
+
+    /*
+    L'arene est petite : deux sangliers lances en meme temps
+    ne laissent aucune place. Ils n'arrivent a deux qu'au
+    dernier niveau, quand on a appris a lire leur couloir.
+    */
+    if(n >= 1 && guepes.length    < 2)               { spawnGuepe();    }
+    if(n >= 2 && sangliers.length < (n >= 4 ? 2 : 1)){ spawnSanglier(); }
+    if(n >= 3 && ronces.length    < (n >= 4 ? 3 : 2)){ spawnRonce();    }
+    if(n >= 4 && champis.length   < 2)               { spawnChampi();   }
+
+}
+
+
+function drawForest(){
+
+    if(zone !== "foret" && zone !== "clairiere"){ return; }
+
+    /* les lucioles, derriere tout le reste */
+    for(const l of lucioles){
+
+        const k = .35 + Math.abs(Math.sin(l.a * 1.6 + l.ph)) * .65;
+
+        ctx.save();
+        ctx.globalAlpha = k * .9;
+        ctx.fillStyle   = "#dfff9a";
+        ctx.shadowBlur  = 12 * unit;
+        ctx.shadowColor = "#b6ff5a";
+        ctx.beginPath();
+        ctx.arc(l.x, l.y, l.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+
+    }
+
+    drawRonces();
+    drawChampis();
+    drawSangliers();
+    drawGuepes();
+    drawGard();
+
+    /* --- le voile des animations --- */
+    if(foretIntro > 0){
+
+        const k = 1 - Math.abs(foretIntro - 2) / 2;
+
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, Math.min(.72, k));
+        ctx.fillStyle   = "#040a04";
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+
+    }
+
+    if(foretEject > 0){
+
+        const a = playArea();
+
+        /* la colonne de lumiere */
+        const col = ctx.createLinearGradient(0, a.y1, 0, a.y0);
+        col.addColorStop(0, "rgba(255,240,170,0)");
+        col.addColorStop(1, "rgba(255,250,220,.85)");
+
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, (4.2 - foretEject) / 1.2);
+        ctx.fillStyle   = col;
+        ctx.fillRect(player.x - 70 * unit, a.y0, 140 * unit, a.y1 - a.y0);
+
+        /* le blanc final */
+        if(foretEject < 1){
+            ctx.globalAlpha = 1 - foretEject;
+            ctx.fillStyle   = "#ffffff";
+            ctx.fillRect(0, 0, W, H);
+        }
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   LES SOLS
+--------------------------------------------------------- */
+
+function paintForest(c){
+
+    /* la terre, sombre sous les arbres */
+    const sol = c.createLinearGradient(0, 0, 0, H);
+    sol.addColorStop(0,   "#0d1f0e");
+    sol.addColorStop(.45, "#152a13");
+    sol.addColorStop(1,   "#0a170a");
+
+    c.fillStyle = sol;
+    c.fillRect(0, 0, W, H);
+
+    /* les grands troncs du fond */
+    for(let i = 0; i < 9; i++){
+
+        const x = (i + .5) / 9 * W + Math.sin(i * 2.1) * W * .04;
+        const w = W * (.030 + (i % 3) * .012);
+
+        const tg = c.createLinearGradient(x - w, 0, x + w, 0);
+        tg.addColorStop(0,  "rgba(0,0,0,.55)");
+        tg.addColorStop(.5, "rgba(48,34,18,.85)");
+        tg.addColorStop(1,  "rgba(0,0,0,.55)");
+
+        c.fillStyle = tg;
+        c.fillRect(x - w, 0, w * 2, H);
+
+        /* l'ecorce */
+        c.globalAlpha = .25;
+        c.strokeStyle = "#1a1108";
+        c.lineWidth   = Math.max(1, W * .002);
+
+        for(let k = 0; k < 4; k++){
+            const px = x - w + (k + .5) / 4 * w * 2;
+            c.beginPath();
+            c.moveTo(px, 0);
+            for(let y = 0; y <= H; y += H / 6){
+                c.lineTo(px + Math.sin(y * .012 + k * 2 + i) * w * .22, y);
+            }
+            c.stroke();
+        }
+
+        c.globalAlpha = 1;
+
+    }
+
+    /* les rais de lumiere qui percent la canopee */
+    for(let i = 0; i < 4; i++){
+
+        const x = (i + .3) / 4 * W;
+
+        c.save();
+        c.translate(x, 0);
+        c.rotate(.28);
+
+        const rg = c.createLinearGradient(0, 0, 0, H);
+        rg.addColorStop(0,  "rgba(220,255,170,.14)");
+        rg.addColorStop(1,  "rgba(220,255,170,0)");
+
+        c.fillStyle = rg;
+        c.fillRect(-W * .045, 0, W * .09, H * 1.4);
+
+        c.restore();
+
+    }
+
+    /* les fougeres au sol */
+    for(let i = 0; i < 34; i++){
+
+        const x = ((i * 97) % 100) / 100 * W;
+        const y = ((i * 61) % 100) / 100 * H;
+        const s = H * (.020 + ((i * 7) % 3) * .008);
+
+        c.save();
+        c.translate(x, y);
+        c.rotate(Math.sin(i) * .6);
+
+        c.globalAlpha = .30;
+        c.strokeStyle = "#3f7a2a";
+        c.lineWidth   = Math.max(1, s * .12);
+        c.lineCap     = "round";
+
+        for(let k = -2; k <= 2; k++){
+            c.beginPath();
+            c.moveTo(0, 0);
+            c.quadraticCurveTo(k * s * .5, -s * .6, k * s * .8, -s * 1.1);
+            c.stroke();
+        }
+
+        c.restore();
+
+    }
+
+    /* les feuilles mortes */
+    c.globalAlpha = .22;
+
+    for(let i = 0; i < 60; i++){
+
+        const x = ((i * 131) % 100) / 100 * W;
+        const y = ((i * 47)  % 100) / 100 * H;
+
+        c.fillStyle = ["#6a4a1c", "#8a5a20", "#4a3a14"][i % 3];
+
+        c.beginPath();
+        c.ellipse(x, y, H * .012, H * .006, i, 0, Math.PI * 2);
+        c.fill();
+
+    }
+
+    c.globalAlpha = 1;
+
+    /* le vignettage : la foret se referme sur les bords */
+    const vg = c.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .25,
+                                      W / 2, H / 2, Math.max(W, H) * .72);
+    vg.addColorStop(0, "rgba(0,0,0,0)");
+    vg.addColorStop(1, "rgba(0,0,0,.62)");
+
+    c.fillStyle = vg;
+    c.fillRect(0, 0, W, H);
+
+}
+
+
+function paintClairiere(c){
+
+    /* une trouee dans la foret : plus claire, plus ouverte */
+    const sol = c.createLinearGradient(0, 0, 0, H);
+    sol.addColorStop(0,   "#1c3320");
+    sol.addColorStop(.5,  "#2a4a26");
+    sol.addColorStop(1,   "#172c18");
+
+    c.fillStyle = sol;
+    c.fillRect(0, 0, W, H);
+
+    /* la lumiere qui tombe au centre */
+    const lu = c.createRadialGradient(W / 2, H * .42, 0, W / 2, H * .42, Math.max(W, H) * .55);
+    lu.addColorStop(0,  "rgba(255,250,200,.20)");
+    lu.addColorStop(.6, "rgba(255,250,200,.05)");
+    lu.addColorStop(1,  "rgba(255,250,200,0)");
+
+    c.fillStyle = lu;
+    c.fillRect(0, 0, W, H);
+
+    /* les hautes herbes */
+    for(let i = 0; i < 90; i++){
+
+        const x = ((i * 73) % 100) / 100 * W;
+        const y = ((i * 37) % 100) / 100 * H;
+        const s = H * (.03 + ((i * 5) % 3) * .012);
+
+        c.globalAlpha = .28;
+        c.strokeStyle = ["#5f9a3a", "#7fb84a", "#4a7a2a"][i % 3];
+        c.lineWidth   = Math.max(1, s * .1);
+        c.lineCap     = "round";
+
+        c.beginPath();
+        c.moveTo(x, y);
+        c.quadraticCurveTo(x + s * .3, y - s * .6, x + s * .55, y - s);
+        c.stroke();
+
+    }
+
+    /* quelques fleurs */
+    c.globalAlpha = .55;
+
+    for(let i = 0; i < 22; i++){
+
+        const x = ((i * 149) % 100) / 100 * W;
+        const y = ((i * 89)  % 100) / 100 * H;
+
+        c.fillStyle = ["#ffd86a", "#ffffff", "#ff9ec4"][i % 3];
+
+        for(let k = 0; k < 5; k++){
+            const ang = k / 5 * 6.28;
+            c.beginPath();
+            c.arc(x + Math.cos(ang) * H * .008, y + Math.sin(ang) * H * .008, H * .006, 0, Math.PI * 2);
+            c.fill();
+        }
+
+    }
+
+    c.globalAlpha = 1;
+
+    const vg = c.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .3,
+                                      W / 2, H / 2, Math.max(W, H) * .74);
+    vg.addColorStop(0, "rgba(0,0,0,0)");
+    vg.addColorStop(1, "rgba(0,0,0,.5)");
+
+    c.fillStyle = vg;
+    c.fillRect(0, 0, W, H);
 
 }
 
