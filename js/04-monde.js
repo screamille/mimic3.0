@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "10.5";
+const VERSION = "10.6";
 
 (function(){
 
@@ -10876,6 +10876,8 @@ let lucioles  = [];
 
 let gard       = null;
 let gardRoots  = [];
+let gardEpines = [];   /* la canopee d'epines, pendant le combat */
+let gardVoute  = 0;    /* 0 a 1 : elle descend quand il arrive */
 
 let foretIntro   = 0;      /* animation d'entree du boss */
 let foretEject   = 0;      /* animation d'ejection */
@@ -10904,7 +10906,7 @@ function clearForet(){
     guepes = []; sangliers = []; ronces = []; champis = []; spores = [];
     /* le sanglier et le champignon sont retires du jeu : leur code
        reste, mais plus rien ne les fait naitre */
-    lucioles = []; gardRoots = [];
+    lucioles = []; gardRoots = []; gardEpines = []; gardVoute = 0;
 
     gard       = null;
     foretIntro = 0;
@@ -11869,6 +11871,21 @@ function spawnGardien(){
 
     gardRoots = [];
 
+    /*
+    Une voute d'epines descend du haut. Sans elle, il suffisait
+    de se coller en haut de l'arene : toutes ses attaques
+    sortent du sol, donc le haut etait un refuge gratuit.
+    */
+    gardEpines = [];
+    gardVoute  = 0;
+
+    for(let i = 0; i <= 22; i++){
+        gardEpines.push({
+            u:i / 22,
+            d:Math.min(1, .50 + Math.abs(Math.sin(i * 1.7)) * .38 + Math.sin(i * .8) * .14)
+        });
+    }
+
     pickupMessage("🌳 " + T("foe.gardien"), "#7fd14a");
 
     sound(90, 1.2, "sawtooth", .08);
@@ -11988,7 +12005,7 @@ function updateGard(dt){
 
             /* trois racines isolees, hauteurs inegales */
             for(let i = 0; i < 3; i++){
-                const hh = (a.y1 - a.y0) * (.30 + rnd() * .32);
+                const hh = (a.y1 - a.y0) * (.28 + rnd() * .28);
 
                 pousseRacine(
                     a.x0 + (a.x1 - a.x0) * (.10 + rnd() * .80),
@@ -12010,7 +12027,7 @@ function updateGard(dt){
 
                 const k = gauche ? i : n - 1 - i;
 
-                const hh = (a.y1 - a.y0) * (.34 + rnd() * .26);
+                const hh = (a.y1 - a.y0) * (.30 + rnd() * .24);
 
                 pousseRacine(
                     a.x0 + (a.x1 - a.x0) * (.07 + k / (n - 1) * .86),
@@ -12040,7 +12057,7 @@ function updateGard(dt){
                 pousseRacine(
                     a.x0 + (a.x1 - a.x0) * ((i + .5) / n),
                     (a.x1 - a.x0) / n * .86,
-                    (a.y1 - a.y0) * (.44 + rnd() * .30),
+                    (a.y1 - a.y0) * (.38 + rnd() * .18),
                     1.05
                 );
 
@@ -12048,7 +12065,7 @@ function updateGard(dt){
 
             /* et deux retardataires, pour ne pas rester plante */
             for(let i = 0; i < 2; i++){
-                const hh = (a.y1 - a.y0) * (.32 + rnd() * .28);
+                const hh = (a.y1 - a.y0) * (.30 + rnd() * .24);
 
                 pousseRacine(
                     a.x0 + (a.x1 - a.x0) * (.12 + rnd() * .76),
@@ -12202,7 +12219,101 @@ function pousseRacine(x, w, h, delai){
    CE QUI SORT DU SOL, DEVANT
 --------------------------------------------------------- */
 
+/* jusqu'ou descendent les epines, a cette abscisse */
+function epineBas(x){
+
+    if(!gardEpines.length){ return 0; }
+
+    const a  = playArea();
+    const H0 = (a.y1 - a.y0) * .20 * gardVoute;
+
+    const u = Math.max(0, Math.min(1, (x - a.x0) / (a.x1 - a.x0)));
+    const f = u * (gardEpines.length - 1);
+    const i = Math.min(gardEpines.length - 2, Math.floor(f));
+    const k = f - i;
+
+    return (gardEpines[i].d * (1 - k) + gardEpines[i + 1].d * k) * H0;
+
+}
+
+
+function drawEpines(){
+
+    if(!gardEpines.length || gardVoute <= 0){ return; }
+
+    const a  = playArea();
+    const H0 = (a.y1 - a.y0) * .20 * gardVoute;
+
+    ctx.save();
+
+    ctx.beginPath();
+    ctx.moveTo(a.x0, a.y0 - 4 * unit);
+
+    for(const e of gardEpines){
+        ctx.lineTo(a.x0 + (a.x1 - a.x0) * e.u, a.y0 + e.d * H0);
+    }
+
+    ctx.lineTo(a.x1, a.y0 - 4 * unit);
+    ctx.closePath();
+
+    const vg = ctx.createLinearGradient(0, a.y0, 0, a.y0 + H0);
+    vg.addColorStop(0,   "#14200e");
+    vg.addColorStop(.55, "#0d1608");
+    vg.addColorStop(1,   "#060c04");
+
+    ctx.fillStyle = vg;
+    ctx.fill();
+
+    /* les epines, tournees vers le bas */
+    for(let i = 0; i < gardEpines.length; i++){
+
+        const e  = gardEpines[i];
+        const x  = a.x0 + (a.x1 - a.x0) * e.u;
+        const y  = a.y0 + e.d * H0;
+        const lg = (a.x1 - a.x0) / gardEpines.length * .55;
+
+        ctx.fillStyle = "#0a1206";
+        ctx.beginPath();
+        ctx.moveTo(x - lg, y - lg * .9);
+        ctx.lineTo(x + lg, y - lg * .9);
+        ctx.lineTo(x, y);
+        ctx.closePath();
+        ctx.fill();
+
+    }
+
+    /*
+    Le liseret du bord bas : c'est LA ligne a ne pas franchir,
+    elle doit se lire d'un coup d'oeil.
+    */
+    const puls = .55 + Math.sin((gard ? gard.t : 0) * 3) * .25;
+
+    ctx.strokeStyle = "rgba(159,232,106," + puls.toFixed(3) + ")";
+    ctx.lineWidth   = 2.4 * unit;
+    ctx.shadowBlur  = 10 * unit;
+    ctx.shadowColor = "#7fd14a";
+
+    ctx.beginPath();
+
+    for(let i = 0; i < gardEpines.length; i++){
+        const e = gardEpines[i];
+        const x = a.x0 + (a.x1 - a.x0) * e.u;
+        const y = a.y0 + e.d * H0;
+        if(i === 0){ ctx.moveTo(x, y); }else{ ctx.lineTo(x, y); }
+    }
+
+    ctx.stroke();
+    ctx.shadowBlur = 0;
+
+    ctx.restore();
+
+}
+
+
 function drawGardFront(){
+
+    drawEpines();
+
 
     const a = playArea();
 
@@ -13132,8 +13243,20 @@ function updateForest(dt){
     }
 
     if(gard){
+
+        /* la voute descend en trois secondes, puis elle mord */
+        gardVoute = Math.min(1, gardVoute + dt / 3);
+
+        const av = playArea();
+
+        if(gardVoute > .25 && player.y - player.r * .55 < av.y0 + epineBas(player.x)){
+            gardHit("epines");
+        }
+
         updateGard(dt);
+
         return;
+
     }
 
     /* --- le declenchement du boss --- */

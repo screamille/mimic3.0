@@ -2404,74 +2404,174 @@ function paintSkinInner(c, skin, w, h, r, t, f){
 
     const e = skin.effect;
 
-    /* ---------- GARDIEN : ecorce et mousse ---------- */
+    /* ---------- GARDIEN : l'ecorce et le coeur ---------- */
     if(e === "gardien"){
 
-        const bois = c.createLinearGradient(-w, -h, w, h);
-        bois.addColorStop(0,   "#7a5c33");
-        bois.addColorStop(.45, "#4a3620");
-        bois.addColorStop(1,   "#241a0e");
+        /* le bois : sombre, humide, eclaire d'un seul cote */
+        const bois = c.createLinearGradient(-w * 1.1, 0, w * 1.1, 0);
+        bois.addColorStop(0,   "#100a05");
+        bois.addColorStop(.28, "#3d2a15");
+        bois.addColorStop(.55, "#54391d");
+        bois.addColorStop(.80, "#2a1b0d");
+        bois.addColorStop(1,   "#0b0704");
 
         c.globalAlpha = 1;
         c.fillStyle   = bois;
         c.fillRect(-w * 1.4, -h * 1.5, w * 2.8, h * 3);
 
-        /* les veines de l'ecorce */
-        c.globalAlpha = .35;
-        c.strokeStyle = "#1a1208";
-        c.lineWidth   = Math.max(1, r * .026);
+        /* les fibres verticales du tronc */
+        c.globalAlpha = .40;
+        c.strokeStyle = "#160e06";
+        c.lineWidth   = Math.max(1, r * .022);
         c.lineCap     = "round";
 
-        for(let i = 0; i < 7; i++){
+        for(let i = -5; i <= 5; i++){
 
-            const x0 = -w * 1.1 + i * w * .34;
+            const x0 = i * w * .19;
 
             c.beginPath();
             c.moveTo(x0, -h * 1.3);
 
             for(let k = 1; k <= 4; k++){
-                c.lineTo(x0 + Math.sin(k * 1.9 + i) * w * .12, -h * 1.3 + k * h * .65);
+                c.lineTo(x0 + Math.sin(k * 1.8 + i) * w * .055, -h * 1.3 + k * h * .65);
             }
 
             c.stroke();
 
         }
 
-        /* la mousse, cote ombre */
+        /* un noeud dans le bois, en haut a droite */
+        c.globalAlpha = .55;
+        c.fillStyle   = "#1d1208";
+        c.beginPath();
+        c.ellipse(w * .46, -h * .42, w * .17, h * .12, .5, 0, Math.PI * 2);
+        c.fill();
+
+        c.globalAlpha = .35;
+        c.strokeStyle = "#000000";
+        c.lineWidth   = Math.max(1, r * .018);
+
+        for(let i = 1; i <= 2; i++){
+            c.beginPath();
+            c.ellipse(w * .46, -h * .42, w * .17 * (1 + i * .55), h * .12 * (1 + i * .55), .5, 0, Math.PI * 2);
+            c.stroke();
+        }
+
+        /* la mousse, en bas et cote ombre */
         c.globalAlpha = .8;
 
-        for(let i = 0; i < 9; i++){
+        for(let i = 0; i < 10; i++){
 
-            const a = i * 1.4 + .4;
+            const a2 = 3.35 + i * .27;
 
-            c.fillStyle = (i % 2) ? "#3f6a24" : "#5f9a3a";
+            c.fillStyle = (i % 2) ? "#24401a" : "#375e24";
             c.beginPath();
             c.ellipse(
-                Math.cos(a) * w * .6 - w * .12,
-                Math.sin(a) * h * .55 + h * .18,
-                w * .22, h * .13, a, 0, Math.PI * 2
+                Math.cos(a2) * w * .78,
+                Math.sin(a2) * h * .74 + h * .22,
+                w * .16, h * .075, a2 * .4, 0, Math.PI * 2
             );
             c.fill();
 
         }
 
-        /* une pousse qui sort du crane */
+        /* --- LE COEUR : le meme que celui du GARDIEN --- */
+        const bat = .6 + Math.abs(Math.sin(t * 1.9)) * .4;
+
         c.globalAlpha = 1;
-        c.strokeStyle = "#6a4a26";
-        c.lineWidth   = Math.max(1, r * .045);
 
+        /* la cavite */
+        /*
+        Le coeur est sous le visage, et sa lueur reste courte :
+        etalee, elle effacait toute l'ecorce.
+        */
+        const hx = 0, hy = h * .50;
+
+        /* la fente dans le bois */
+        c.fillStyle = "#0a0603";
         c.beginPath();
-        c.moveTo(w * .1, -h * .78);
-        c.quadraticCurveTo(w * .3, -h * 1.05, w * .18, -h * 1.3);
-        c.stroke();
+        c.moveTo(hx, hy - h * .20);
+        c.quadraticCurveTo(hx + w * .15, hy, hx, hy + h * .20);
+        c.quadraticCurveTo(hx - w * .15, hy, hx, hy - h * .20);
+        c.closePath();
+        c.fill();
 
-        c.fillStyle = "#7fd14a";
+        const hg = c.createRadialGradient(hx, hy, 0, hx, hy, w * .42);
+        hg.addColorStop(0,   "rgba(159,232,106," + (.75 * bat).toFixed(3) + ")");
+        hg.addColorStop(.45, "rgba(127,209,74," + (.22 * bat).toFixed(3) + ")");
+        hg.addColorStop(1,   "rgba(127,209,74,0)");
 
-        for(let i = 0; i < 3; i++){
+        c.fillStyle = hg;
+        c.beginPath();
+        c.arc(hx, hy, w * .42, 0, Math.PI * 2);
+        c.fill();
+
+        c.shadowBlur  = r * .30 * bat;
+        c.shadowColor = "#7fd14a";
+
+        c.fillStyle = "#9fe86a";
+        c.beginPath();
+        c.ellipse(hx, hy, w * .055 * bat, h * .10 * bat, 0, 0, Math.PI * 2);
+        c.fill();
+
+        c.fillStyle = "#f2ffe0";
+        c.beginPath();
+        c.ellipse(hx, hy, w * .022 * bat, h * .042 * bat, 0, 0, Math.PI * 2);
+        c.fill();
+
+        c.shadowBlur = 0;
+
+        /* --- LES BOIS, en petit, sur le crane --- */
+        c.strokeStyle = "#a07a44";
+        c.lineJoin    = "round";
+        c.lineCap     = "round";
+
+        c.shadowBlur  = r * .12;
+        c.shadowColor = "rgba(0,0,0,.7)";
+
+        [-1, 1].forEach(sg => {
+
+            c.lineWidth = Math.max(2, r * .075);
+
             c.beginPath();
-            c.ellipse(w * (.2 + i * .04), -h * (1.05 + i * .1), w * .1, h * .05, .5 - i * .4, 0, Math.PI * 2);
+            c.moveTo(sg * w * .30, -h * .58);
+            c.quadraticCurveTo(sg * w * .60, -h * .84, sg * w * .52, -h * 1.14);
+            c.stroke();
+
+            c.lineWidth = Math.max(1.5, r * .048);
+
+            c.beginPath();
+            c.moveTo(sg * w * .48, -h * .82);
+            c.lineTo(sg * w * .84, -h * .94);
+            c.moveTo(sg * w * .55, -h * 1.04);
+            c.lineTo(sg * w * .82, -h * 1.26);
+            c.stroke();
+
+        });
+
+        c.shadowBlur = 0;
+
+        /* --- DEUX PETITS CHAMPIGNONS --- */
+        [[-.72, .30, .85], [.66, .46, .65]].forEach(m => {
+
+            const mx = m[0] * w, my = m[1] * h, ms = m[2];
+
+            c.fillStyle = "#e8dcc4";
+            c.fillRect(mx - w * .035 * ms, my - h * .10 * ms, w * .07 * ms, h * .12 * ms);
+
+            c.fillStyle = "#c2452f";
+            c.beginPath();
+            c.ellipse(mx, my - h * .10 * ms, w * .11 * ms, h * .075 * ms, 0, Math.PI, 0);
             c.fill();
-        }
+
+            c.fillStyle = "#fff0e0";
+            c.beginPath();
+            c.arc(mx - w * .04 * ms, my - h * .13 * ms, w * .022 * ms, 0, Math.PI * 2);
+            c.fill();
+
+        });
+
+        c.globalAlpha = 1;
 
         return;
 
