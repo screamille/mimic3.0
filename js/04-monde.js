@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "10.6";
+const VERSION = "10.7";
 
 (function(){
 
@@ -11882,7 +11882,7 @@ function spawnGardien(){
     for(let i = 0; i <= 22; i++){
         gardEpines.push({
             u:i / 22,
-            d:Math.min(1, .50 + Math.abs(Math.sin(i * 1.7)) * .38 + Math.sin(i * .8) * .14)
+            d:Math.min(1, .76 + Math.abs(Math.sin(i * 1.7)) * .20 + Math.sin(i * .8) * .08)
         });
     }
 
@@ -12225,7 +12225,7 @@ function epineBas(x){
     if(!gardEpines.length){ return 0; }
 
     const a  = playArea();
-    const H0 = (a.y1 - a.y0) * .20 * gardVoute;
+    const H0 = (a.y1 - a.y0) * .25 * gardVoute;
 
     const u = Math.max(0, Math.min(1, (x - a.x0) / (a.x1 - a.x0)));
     const f = u * (gardEpines.length - 1);
@@ -12242,21 +12242,23 @@ function drawEpines(){
     if(!gardEpines.length || gardVoute <= 0){ return; }
 
     const a  = playArea();
-    const H0 = (a.y1 - a.y0) * .20 * gardVoute;
+    const H0 = (a.y1 - a.y0) * .25 * gardVoute;
 
     ctx.save();
 
+    /* elle est accrochee tout en haut de l'ecran, pas au bord
+       de l'aire de jeu : on doit la voir pendre du plafond */
     ctx.beginPath();
-    ctx.moveTo(a.x0, a.y0 - 4 * unit);
+    ctx.moveTo(a.x0, 0);
 
     for(const e of gardEpines){
         ctx.lineTo(a.x0 + (a.x1 - a.x0) * e.u, a.y0 + e.d * H0);
     }
 
-    ctx.lineTo(a.x1, a.y0 - 4 * unit);
+    ctx.lineTo(a.x1, 0);
     ctx.closePath();
 
-    const vg = ctx.createLinearGradient(0, a.y0, 0, a.y0 + H0);
+    const vg = ctx.createLinearGradient(0, 0, 0, a.y0 + H0);
     vg.addColorStop(0,   "#14200e");
     vg.addColorStop(.55, "#0d1608");
     vg.addColorStop(1,   "#060c04");

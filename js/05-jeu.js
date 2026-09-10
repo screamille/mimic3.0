@@ -1040,36 +1040,13 @@ function update(dt){
 
         if(collide(player, o)){
 
-            for(const m of mimics){
+            /*
+            Une seule liste : chaque fois qu'une creature
+            arrivait, on oubliait de l'ajouter ici et l'ORBE
+            ne la gelait pas. Le GARDIEN n'y est pas.
+            */
+            for(const m of stunnableCreatures()){
                 m.stunned = 3.2;
-            }
-
-            for(const b of blobs){
-                b.stunned = 3.2;
-            }
-
-            for(const g of gloutons){
-                g.stunned = 3.2;
-            }
-
-            for(const g of guimauves){
-                g.stunned = 3.2;
-            }
-
-            for(const e of anguilles){
-                e.stunned = 3.2;
-            }
-
-            for(const l of lanternes){
-                l.stunned = 3.2;
-            }
-
-            for(const e of w69Creatures()){
-                e.stunned = 3.2;
-            }
-
-            for(const e of theatreCreatures()){
-                e.stunned = 3.2;
             }
 
             burst(o.x, o.y, 28, "#a855ff");
