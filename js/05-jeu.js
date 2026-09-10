@@ -1022,6 +1022,7 @@ function update(dt){
     updateTheatre(dt);
     updateW69(dt);
     updateForest(dt);
+    if(zone === "ruines"){ updateRuines(dt); }
     updateGuimauves(dt);
     updateAnguilles(dt);
     updateLanternes(dt);
@@ -1065,7 +1066,12 @@ function update(dt){
 
     orbs = orbs.filter(o => !o.taken);
 
-    if(orbs.length === 0){
+    /*
+    L'ORBE est retiree de la foret et des ruines. Sans cette
+    garde le minuteur la faisait reapparaitre toute seule
+    quelques secondes plus tard.
+    */
+    if(orbs.length === 0 && zone !== "foret" && zone !== "ruines"){
 
         orbTimer -= dt;
 
@@ -1182,9 +1188,13 @@ function update(dt){
         }
 
         /* la foret n'a pas de blocs : ce sont les ronces le terrain */
-        if(zone === "foret" || zone === "clairiere"){
+        if(zone === "foret"){
 
             foretPeuple();
+
+        }else if(zone === "ruines"){
+
+            ruinesPeuple();
 
         }else if(zone === "neant" || zone === "desert" || zone === "forge" ||
            zone === "biblio" || zone === "horloge"){
@@ -1293,7 +1303,7 @@ function update(dt){
     }
 
     paintDashButton();
-    if(!gardBar() && !mimBar()){
+    if(!gardBar() && !colBar() && !mimBar()){
         bossBar();
     }
 
@@ -1444,6 +1454,7 @@ function drawRaw(){
 
     drawFloor();
     drawGardBack();
+    drawColBack();
 
 
     /* CRÉATURES QUI DÉRIVENT DERRIÈRE LE MENU */
@@ -1861,6 +1872,7 @@ function drawRaw(){
 
     drawW69();
     drawForest();
+    if(zone === "ruines"){ drawRuines(); }
 
 
     /* LE NÉANT */

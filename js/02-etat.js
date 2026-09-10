@@ -112,7 +112,7 @@ const MAX_LANTERNES = 3;    /* lanternes simultanées */
 /* la carte des mondes : elle sert au HUD et a la progression */
 const WORLDS = [
     {zone:"foret",     k:"w.foret",     n:1, name:"LA FORÊT",      from:1, to:5,    col:"#7fd14a"},
-    {zone:"clairiere", k:"w.clairiere", n:2, name:"LA CLAIRIÈRE",  from:5, to:null, col:"#ffd76a"}
+    {zone:"ruines",    k:"w.ruines",    n:2, name:"LES RUINES SUSPENDUES", from:1, to:null, col:"#6ad0ff"}
 ];
 
 

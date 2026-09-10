@@ -92,6 +92,7 @@ const SKINS = [
     {id:"mimic",     name:"MIMIC SLIME",     color:"#1b1424", color2:"#c86aff", price:0,    effect:"mimic",     rarity:4, exclusive:true},
     {id:"pantin",    name:"MARIONNETTE",     color:"#2b2038", color2:"#b06cff", price:600,  effect:"pantin",    rarity:3},
     {id:"foret",     name:"GARDIEN SLIME",   color:"#5a4426", color2:"#1d1409", price:0,    effect:"gardien",   rarity:4, exclusive:true},
+    {id:"ruines",    name:"COLOSSE SLIME",   color:"#5d6e85", color2:"#151d27", price:0,    effect:"colosse",   rarity:4, exclusive:true},
 
     /* --- vague 9 : 30 motifs nets, lisibles meme en tout petit --- */
     {id:"damier",    name:"DAMIER SLIME",    color:"#f2f4f8", color2:"#1a1d26", price:250,  effect:"damier",    rarity:1},
@@ -2403,6 +2404,115 @@ function paintSkinInner(c, skin, w, h, r, t, f){
     c.globalAlpha = 1;
 
     const e = skin.effect;
+
+    /* ---------- COLOSSE : la pierre et ses veines ---------- */
+    if(e === "colosse"){
+
+        const pierre = c.createLinearGradient(-w * 1.1, -h, w * 1.1, h);
+        pierre.addColorStop(0,   "#9fb2c6");
+        pierre.addColorStop(.35, "#5d6e85");
+        pierre.addColorStop(.72, "#33404f");
+        pierre.addColorStop(1,   "#151d27");
+
+        c.globalAlpha = 1;
+        c.fillStyle   = pierre;
+        c.fillRect(-w * 1.4, -h * 1.5, w * 2.8, h * 3);
+
+        /* le pavage : des blocs tailles */
+        c.globalAlpha = .45;
+        c.strokeStyle = "#101822";
+        c.lineWidth   = Math.max(1, r * .030);
+
+        for(let i = -2; i <= 2; i++){
+            c.beginPath();
+            c.moveTo(-w * 1.4, i * h * .42);
+            c.lineTo(w * 1.4, i * h * .42 + h * .05);
+            c.stroke();
+        }
+
+        for(let i = -2; i <= 2; i++){
+            const dx = (i % 2) ? w * .21 : 0;
+            c.beginPath();
+            c.moveTo(i * w * .46 + dx, -h * 1.4);
+            c.lineTo(i * w * .46 + dx, h * 1.4);
+            c.stroke();
+        }
+
+        /* les eclats manquants */
+        c.globalAlpha = .5;
+        c.fillStyle   = "#0d141d";
+
+        for(let i = 0; i < 4; i++){
+            const a2 = 1.1 + i * 1.6;
+            c.beginPath();
+            c.moveTo(Math.cos(a2) * w * .55, Math.sin(a2) * h * .5);
+            c.lineTo(Math.cos(a2 + .4) * w * .78, Math.sin(a2 + .3) * h * .62);
+            c.lineTo(Math.cos(a2 + .1) * w * .84, Math.sin(a2 + .7) * h * .74);
+            c.closePath();
+            c.fill();
+        }
+
+        /* la mousse dans les joints */
+        c.globalAlpha = .5;
+
+        for(let i = 0; i < 6; i++){
+            const a2 = 3.4 + i * .4;
+            c.fillStyle = (i % 2) ? "#2f5240" : "#3c6a4e";
+            c.beginPath();
+            c.ellipse(Math.cos(a2) * w * .75, Math.sin(a2) * h * .7 + h * .2,
+                      w * .17, h * .07, a2 * .3, 0, Math.PI * 2);
+            c.fill();
+        }
+
+        /* les veines de lumiere, qui pulsent */
+        const bat = .6 + Math.abs(Math.sin(t * 1.7)) * .4;
+
+        c.globalAlpha = bat;
+        c.strokeStyle = "#6ad0ff";
+        c.lineWidth   = Math.max(1.5, r * .050);
+        c.lineCap     = "round";
+        c.shadowBlur  = r * .35 * bat;
+        c.shadowColor = "#6ad0ff";
+
+        c.beginPath();
+        c.moveTo(-w * .70, -h * .55);
+        c.lineTo(-w * .30, h * .05);
+        c.lineTo(-w * .58, h * .70);
+        c.moveTo(w * .62, -h * .48);
+        c.lineTo(w * .24, h * .18);
+        c.lineTo(w * .52, h * .82);
+        c.stroke();
+
+        c.shadowBlur  = 0;
+        c.globalAlpha = 1;
+
+        /* le noyau, entre les deux */
+        c.fillStyle = "#0a1018";
+        c.beginPath();
+        c.ellipse(0, h * .46, w * .17, h * .17, 0, 0, Math.PI * 2);
+        c.fill();
+
+        const ng = c.createRadialGradient(0, h * .46, 0, 0, h * .46, w * .45);
+        ng.addColorStop(0,  "rgba(106,208,255," + (.75 * bat).toFixed(3) + ")");
+        ng.addColorStop(.5, "rgba(106,208,255," + (.20 * bat).toFixed(3) + ")");
+        ng.addColorStop(1,  "rgba(106,208,255,0)");
+
+        c.fillStyle = ng;
+        c.beginPath();
+        c.arc(0, h * .46, w * .45, 0, Math.PI * 2);
+        c.fill();
+
+        c.shadowBlur  = r * .3 * bat;
+        c.shadowColor = "#6ad0ff";
+        c.fillStyle   = "#bfe9ff";
+        c.beginPath();
+        c.ellipse(0, h * .46, w * .06 * bat, h * .07 * bat, 0, 0, Math.PI * 2);
+        c.fill();
+        c.shadowBlur = 0;
+
+        return;
+
+    }
 
     /* ---------- GARDIEN : l'ecorce et le coeur ---------- */
     if(e === "gardien"){

@@ -40,7 +40,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
 On repart de 1.00 et on monte de 0.01 a chaque livraison :
 10.8 donnait l'impression d'un jeu fini alors qu'il commence.
 */
-const VERSION = "1.00";
+const VERSION = "1.01";
 
 (function(){
 
@@ -1441,8 +1441,8 @@ function buildFloor(){
 
     if(zone === "foret"){
         paintForest(c);
-    }else if(zone === "clairiere"){
-        paintClairiere(c);
+    }else if(zone === "ruines" || zone === "clairiere"){
+        paintRuines(c);
     }else if(zone === "marais"){
         paintEarth(c);
     }else if(zone === "bonbon"){
@@ -1979,7 +1979,7 @@ function hexA(hex, a){
 function portalTarget(){
 
     /* la foret ne se quitte que par le GARDIEN */
-    if(zone === "foret" || zone === "clairiere"){
+    if(zone === "foret" || zone === "ruines"){
         return null;
     }
 
@@ -2298,6 +2298,10 @@ let daily      = loadJSON("mimicDaily", null);
 if(!records || typeof records !== "object"){ records = {best:{}, bestTime:0, boss:0}; }
 if(!records.best) { records.best = {}; }
 if(!Array.isArray(worldsSeen) || !worldsSeen.length){ worldsSeen = ["foret"]; }
+
+/* les parties d'avant connaissaient LA CLAIRIERE : elle est devenue LES RUINES */
+worldsSeen = worldsSeen.map(z => z === "clairiere" ? "ruines" : z);
+if(lastZone === "clairiere"){ lastZone = "ruines"; }
 
 /* les compteurs de la partie en cours */
 let runCoins = 0, runGraze = 0, runCombo = 0, runNoHit = 0, runWorld = 1;
@@ -3141,9 +3145,35 @@ function renderRank(){
 }
 
 
-function openRank(){
+let rankFrom = "menu";
+
+
+function openRank(from){
+
+    /*
+    Meme piege que pour le profil : ouvrir le rang cachait
+    l'ecran d'ou l'on venait, et le fermer ne rouvrait rien.
+    On retient donc l'origine.
+    */
+    rankFrom = from || "menu";
+
     renderRank();
+
     document.getElementById("rankScreen").style.display = "flex";
+
+}
+
+
+function closeRank(){
+
+    document.getElementById("rankScreen").style.display = "none";
+
+    if(rankFrom === "settings"){
+        document.getElementById("settings").style.display = "flex";
+    }else if(!playing){
+        document.getElementById("mainMenu").style.display = "block";
+    }
+
 }
 
 
@@ -4102,9 +4132,14 @@ function worldProgress(){
 
     }
 
-    if(wd.zone === "clairiere"){
+    if(wd.zone === "ruines"){
+
+        if(col){ return 1 - col.hp; }
+
         const dedans = Math.min(1, levelTimer / FORET_SECS);
-        return Math.max(0, Math.min(1, (((level - 5) % 4) + dedans) / 4));
+
+        return Math.max(0, Math.min(1, (level - 1 + dedans) / RUIN_LEVELS));
+
     }
 
     /* dans le NEANT, la progression c'est l'usure du boss */
@@ -10895,6 +10930,8 @@ let gard       = null;
 let gardRoots  = [];
 let gardEpines = [];   /* la canopee d'epines, pendant le combat */
 let gardLianes = [];   /* les lianes qui balaient le couloir */
+let gardPics   = [];   /* les pics qui jaillissent de la voute */
+let gardPicT   = 0;
 let gardVoute  = 0;    /* 0 a 1 : elle descend quand il arrive */
 
 let foretIntro   = 0;      /* animation d'entree du boss */
@@ -10924,7 +10961,7 @@ function clearForet(){
     guepes = []; sangliers = []; ronces = []; champis = []; spores = [];
     /* le sanglier et le champignon sont retires du jeu : leur code
        reste, mais plus rien ne les fait naitre */
-    lucioles = []; gardRoots = []; gardEpines = []; gardLianes = []; gardVoute = 0;
+    lucioles = []; gardRoots = []; gardEpines = []; gardLianes = []; gardPics = []; gardVoute = 0;
 
     gard       = null;
     foretIntro = 0;
@@ -10937,7 +10974,7 @@ function clearForet(){
 /* combien de secondes dure un niveau, selon la zone */
 function levelSecs(){
 
-    return (zone === "foret" || zone === "clairiere") ? FORET_SECS : 12;
+    return (zone === "foret" || zone === "ruines") ? FORET_SECS : 12;
 
 }
 
@@ -10978,8 +11015,8 @@ function foretEnter(zoneId){
         });
     }
 
+    /* pas d'ORBE : le gel a la demande est retire */
     addCoin();
-    addOrb();
 
     /*
     Le "true" est ce qui manquait : sans lui le monde etait
@@ -11005,9 +11042,9 @@ function enterForet(){
 }
 
 
+/* l'ancien nom : la clairiere est devenue LES RUINES SUSPENDUES */
 function enterClairiere(){
-    foretEnter("clairiere");
-    guepes = [];
+    enterRuines();
 }
 
 
@@ -11905,6 +11942,8 @@ function spawnGardien(){
     sortent du sol, donc le haut etait un refuge gratuit.
     */
     gardEpines = [];
+    gardPics   = [];
+    gardPicT   = 1.5;
     gardVoute  = 0;
 
     for(let i = 0; i <= 22; i++){
@@ -12319,6 +12358,142 @@ function pousseRacine(x, w, h, delai){
    CE QUI SORT DU SOL, DEVANT
 --------------------------------------------------------- */
 
+/*
+LES PICS
+
+Ils sortent de la voute, plongent vers le sol, tiennent une
+demi-seconde puis remontent. C'est ce qui empeche de longer
+le plafond tranquillement.
+*/
+function majPics(dt){
+
+    const a = playArea();
+
+    for(const p of gardPics){
+
+        p.t -= dt;
+
+        if(p.phase === "marque"){
+
+            if(p.t <= 0){
+                p.phase = "sort";
+                p.t     = .45;
+                sound(760, .10, "square", .03);
+            }
+
+        }else if(p.phase === "sort"){
+
+            p.grow = Math.min(1, p.grow + dt / .14);
+
+            if(p.t <= 0){
+                p.phase = "rentre";
+                p.t     = .35;
+            }
+
+        }else{
+
+            p.grow = Math.max(0, p.grow - dt / .35);
+
+            if(p.t <= 0){ p.mort = true; }
+
+        }
+
+        if(p.grow > .3){
+
+            const px   = a.x0 + (a.x1 - a.x0) * p.u;
+            const larg = (a.x1 - a.x0) * p.larg;
+            const haut = a.y0 + epineBas(px);
+            const bout = haut + p.len * p.grow;
+
+            if(Math.abs(player.x - px) < larg * .5 + player.r * .5 &&
+               player.y - player.r * .5 < bout){
+
+                gardHit("pic");
+
+            }
+
+        }
+
+    }
+
+    gardPics = gardPics.filter(p => !p.mort);
+
+}
+
+
+function drawPics(){
+
+    const a = playArea();
+
+    for(const p of gardPics){
+
+        const px   = a.x0 + (a.x1 - a.x0) * p.u;
+        const larg = (a.x1 - a.x0) * p.larg;
+        const haut = a.y0 + epineBas(px);
+
+        if(p.phase === "marque"){
+
+            ctx.save();
+            ctx.globalAlpha = .35 + Math.sin(p.t * 26) * .3;
+            ctx.strokeStyle = "#9fe86a";
+            ctx.lineWidth   = 2.4 * unit;
+            ctx.setLineDash([6 * unit, 6 * unit]);
+
+            ctx.beginPath();
+            ctx.moveTo(px, haut);
+            ctx.lineTo(px, haut + p.len);
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+            ctx.globalAlpha = .55;
+            ctx.fillStyle   = "#9fe86a";
+            ctx.beginPath();
+            ctx.moveTo(px - larg * .4, haut);
+            ctx.lineTo(px + larg * .4, haut);
+            ctx.lineTo(px, haut + larg * .7);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+
+            continue;
+
+        }
+
+        const bout = haut + p.len * p.grow;
+
+        ctx.save();
+
+        const pg = ctx.createLinearGradient(px - larg, 0, px + larg, 0);
+        pg.addColorStop(0,   "#12200c");
+        pg.addColorStop(.4,  "#3f6a24");
+        pg.addColorStop(1,   "#0b1207");
+
+        ctx.fillStyle = pg;
+        ctx.beginPath();
+        ctx.moveTo(px - larg * .5, haut - 4 * unit);
+        ctx.lineTo(px + larg * .5, haut - 4 * unit);
+        ctx.lineTo(px + larg * .14, bout - larg * .5);
+        ctx.lineTo(px, bout);
+        ctx.lineTo(px - larg * .14, bout - larg * .5);
+        ctx.closePath();
+        ctx.fill();
+
+        /* l'arete claire */
+        ctx.strokeStyle = "rgba(200,240,160,.55)";
+        ctx.lineWidth   = 2 * unit;
+        ctx.beginPath();
+        ctx.moveTo(px - larg * .18, haut);
+        ctx.lineTo(px - larg * .04, bout - larg * .4);
+        ctx.stroke();
+
+        ctx.restore();
+
+    }
+
+}
+
+
 /* jusqu'ou descendent les epines, a cette abscisse */
 function epineBas(x){
 
@@ -12535,6 +12710,7 @@ function drawLianes(){
 function drawGardFront(){
 
     drawEpines();
+    drawPics();
     drawLianes();
 
 
@@ -13406,7 +13582,7 @@ function gardBar(){
 
 function updateForest(dt){
 
-    if(zone !== "foret" && zone !== "clairiere"){ return; }
+    if(zone !== "foret"){ return; }
 
     if(foretShake > 0){ foretShake -= dt; }
 
@@ -13467,8 +13643,36 @@ function updateForest(dt){
 
     if(gard){
 
-        /* la voute descend en trois secondes, puis elle mord */
+        /* la voute descend en trois secondes */
         gardVoute = Math.min(1, gardVoute + dt / 3);
+
+        /* et elle crache des pics, souvent */
+        if(gardVoute > .6){
+
+            gardPicT -= dt;
+
+            if(gardPicT <= 0){
+
+                const n = 1 + Math.floor(rnd() * 2);
+
+                for(let i = 0; i < n; i++){
+                    gardPics.push({
+                        u:.06 + rnd() * .88,
+                        larg:.035 + rnd() * .025,
+                        len:(playArea().y1 - playArea().y0) * (.22 + rnd() * .18),
+                        phase:"marque",
+                        t:.75,
+                        grow:0
+                    });
+                }
+
+                gardPicT = .55 + rnd() * .55;
+
+            }
+
+        }
+
+        majPics(dt);
 
         /*
         La voute est un plafond, pas un piege : elle arrete,
@@ -13506,16 +13710,11 @@ function updateForest(dt){
 /* les creatures arrivent une par une, un niveau apres l'autre */
 function foretPeuple(){
 
-    if(zone !== "foret" && zone !== "clairiere"){ return; }
+    if(zone !== "foret"){ return; }
 
     if(gard || foretIntro > 0 || foretEject > 0){ return; }
 
-    const n = zone === "clairiere" ? 4 : level;
-
-    /* la clairiere n'a pas de guepes : elles restent dans la foret */
-    if(zone === "clairiere"){
-        return;
-    }
+    const n = level;
 
     /* le terrain reste degage : rien qui bloque le passage */
     if(guepes.length < Math.min(4, 1 + n)){ spawnGuepe(); }
@@ -13525,7 +13724,7 @@ function foretPeuple(){
 
 function drawForest(){
 
-    if(zone !== "foret" && zone !== "clairiere"){ return; }
+    if(zone !== "foret"){ return; }
 
     /* les lucioles, derriere tout le reste */
     for(const l of lucioles){
@@ -13752,6 +13951,1690 @@ function paintClairiere(c){
     vg.addColorStop(1, "rgba(0,0,0,.5)");
 
     c.fillStyle = vg;
+    c.fillRect(0, 0, W, H);
+
+}
+
+
+
+/* =========================================================
+   MONDE 2 : LES RUINES SUSPENDUES
+
+   La colonne de lumiere t'a arrache a la foret et deposé
+   plus haut : des ruines de pierre qui flottent au-dessus
+   des arbres, dans une brume froide.
+
+   Tout y est le contraire du monde 1 — la pierre au lieu du
+   bois, le bleu au lieu du vert, et les attaques qui
+   tombent du ciel au lieu de sortir du sol.
+========================================================= */
+
+const RUIN_LEVELS = 4;
+const COL_TIME    = 75;    /* secondes pour user LE COLOSSE */
+const COL_PUNCH   = .05;
+
+let sentinelles = [];
+let gargouilles = [];
+let gravats     = [];
+let poussieres  = [];
+
+let col        = null;
+let colBras    = [];
+let ruinIntro  = 0;
+let ruinEject  = 0;
+let ruinCleared = false;
+
+
+const COL_PHASES = [
+    {k:"cp.0", name:"ÉVEIL",        col:"#6ad0ff"},
+    {k:"cp.1", name:"COLÈRE",       col:"#a98cff"},
+    {k:"cp.2", name:"EFFONDREMENT", col:"#ff6a5a"}
+];
+
+
+function colPhase(){
+    if(!col){ return 0; }
+    return col.hp > .66 ? 0 : col.hp > .33 ? 1 : 2;
+}
+
+
+function clearRuines(){
+
+    sentinelles = []; gargouilles = []; gravats = []; poussieres = [];
+    colBras = [];
+
+    col        = null;
+    ruinIntro  = 0;
+    ruinEject  = 0;
+
+}
+
+
+function ruinesCreatures(){
+    return (typeof sentinelles === "undefined") ? [] : [].concat(sentinelles, gargouilles);
+}
+
+
+/* ---------------------------------------------------------
+   LA SENTINELLE
+
+   Une statue qui dort. Approche-toi et ses fissures
+   s'allument : c'est le signal. Elle charge en ligne
+   droite, puis s'effondre en gravats — et la, elle ne peut
+   plus rien.
+--------------------------------------------------------- */
+
+function spawnSentinelle(){
+
+    if(sentinelles.length >= 3){ return; }
+
+    const r = 26 * unit;
+    const p = findSpot(r, 260) || findSpot(r, 170);
+
+    if(!p){ return; }
+
+    sentinelles.push({
+        x:p.x, y:p.y, r:r,
+        ang:rnd() * 6.28,
+        phase:"dort", t:1.6 + rnd() * 1.4,
+        vx:0, vy:0,
+        stunned:0,
+        lueur:0,
+        eclats:Array.from({length:7}, (_, i) => ({
+            a:i / 7 * 6.28 + rnd(),
+            d:.5 + rnd() * .5,
+            s:.5 + rnd() * .6
+        }))
+    });
+
+}
+
+
+function updateSentinelles(dt){
+
+    const a = playArea();
+
+    for(const s of sentinelles){
+
+        if(s.stunned > 0){
+            s.stunned -= dt;
+            s.phase = "gravats";
+            s.t     = Math.max(s.t, .5);
+            continue;
+        }
+
+        s.t -= dt;
+
+        if(s.phase === "dort"){
+
+            s.lueur = Math.max(0, s.lueur - dt * 2);
+
+            /* elle se reveille toute seule, ou si on la frole */
+            if(s.t <= 0 || Math.hypot(player.x - s.x, player.y - s.y) < 150 * unit){
+
+                s.phase = "reveil";
+                s.t     = 1.3;
+
+                sound(140, .25, "square", .04);
+
+            }
+
+        }else if(s.phase === "reveil"){
+
+            s.lueur = Math.min(1, s.lueur + dt / 1.3);
+
+            /* elle vise pendant la premiere moitie, puis se fige */
+            if(s.t > .55){
+                const cible = lureTarget();
+                s.ang = Math.atan2(cible.y - s.y, cible.x - s.x);
+            }
+
+            if(s.t <= 0){
+
+                s.vx = Math.cos(s.ang) * 640 * unit;
+                s.vy = Math.sin(s.ang) * 640 * unit;
+
+                s.phase = "charge";
+                s.t     = 1.0;
+
+                sound(90, .3, "sawtooth", .055);
+
+            }
+
+        }else if(s.phase === "charge"){
+
+            s.x += s.vx * dt;
+            s.y += s.vy * dt;
+
+            let mur = false;
+
+            if(s.x < a.x0 + s.r){ s.x = a.x0 + s.r; mur = true; }
+            if(s.x > a.x1 - s.r){ s.x = a.x1 - s.r; mur = true; }
+            if(s.y < a.y0 + s.r){ s.y = a.y0 + s.r; mur = true; }
+            if(s.y > a.y1 - s.r){ s.y = a.y1 - s.r; mur = true; }
+
+            if(mur || s.t <= 0){
+
+                s.phase = "gravats";
+                s.t     = 1.7;
+
+                burst(s.x, s.y, 22, "#9fb4c9");
+                sound(80, .3, "square", .05);
+
+            }
+
+            if(Math.hypot(player.x - s.x, player.y - s.y) < s.r * .78 + player.r * .6){
+
+                loseLife("sentinelle");
+
+                const dx = s.x - player.x, dy = s.y - player.y;
+                const d  = Math.hypot(dx, dy) || 1;
+
+                s.x += dx / d * 100 * unit;
+                s.y += dy / d * 100 * unit;
+
+                s.phase = "gravats";
+                s.t     = 1.7;
+
+            }
+
+        }else{
+
+            /* en gravats : inoffensive, c'est la fenetre */
+            s.lueur = Math.max(0, s.lueur - dt * 1.5);
+
+            if(s.t <= 0){
+
+                const p = findSpot(s.r, 240) || findSpot(s.r, 150);
+
+                if(p){ s.x = p.x; s.y = p.y; }
+
+                s.phase = "dort";
+                s.t     = 1.8 + rnd() * 1.6;
+
+            }
+
+        }
+
+    }
+
+}
+
+
+function drawSentinelles(){
+
+    for(const s of sentinelles){
+
+        const brise = s.phase === "gravats";
+
+        /* le couloir de charge, annonce */
+        if(s.phase === "reveil"){
+
+            const k = 1 - s.t / 1.3;
+            const a = playArea();
+
+            ctx.save();
+            ctx.translate(s.x, s.y);
+            ctx.rotate(s.ang);
+
+            const lg = ctx.createLinearGradient(0, 0, Math.hypot(a.x1 - a.x0, a.y1 - a.y0), 0);
+            lg.addColorStop(0, "rgba(106,208,255," + (.10 + k * .22).toFixed(3) + ")");
+            lg.addColorStop(1, "rgba(106,208,255,0)");
+
+            ctx.fillStyle = lg;
+            ctx.fillRect(0, -s.r * .75, Math.hypot(a.x1 - a.x0, a.y1 - a.y0), s.r * 1.5);
+
+            ctx.restore();
+
+        }
+
+        ctx.save();
+        ctx.translate(s.x, s.y);
+
+        /* l'ombre */
+        ctx.globalAlpha = .32;
+        ctx.fillStyle   = "#000000";
+        ctx.beginPath();
+        ctx.ellipse(0, s.r * .62, s.r * .95, s.r * .28, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.globalAlpha = 1;
+
+        if(brise){
+
+            /* les morceaux, eparpilles au sol */
+            ctx.fillStyle = "#6d7f95";
+
+            for(const e of s.eclats){
+                ctx.save();
+                ctx.translate(Math.cos(e.a) * s.r * e.d, Math.sin(e.a) * s.r * e.d * .5 + s.r * .3);
+                ctx.rotate(e.a);
+                ctx.fillRect(-s.r * .18 * e.s, -s.r * .12 * e.s, s.r * .36 * e.s, s.r * .24 * e.s);
+                ctx.restore();
+            }
+
+            ctx.restore();
+            continue;
+
+        }
+
+        ctx.rotate(s.ang + Math.PI / 2);
+
+        /* le corps : un bloc taille, epaules larges */
+        const pg = ctx.createLinearGradient(-s.r, -s.r, s.r, s.r);
+        pg.addColorStop(0,   "#8fa3ba");
+        pg.addColorStop(.5,  "#5d6e85");
+        pg.addColorStop(1,   "#33404f");
+
+        ctx.fillStyle = pg;
+
+        ctx.beginPath();
+        ctx.moveTo(-s.r * .62, s.r * .85);
+        ctx.lineTo(-s.r * .74, -s.r * .30);
+        ctx.lineTo(-s.r * .40, -s.r * .78);
+        ctx.lineTo(s.r * .40, -s.r * .78);
+        ctx.lineTo(s.r * .74, -s.r * .30);
+        ctx.lineTo(s.r * .62, s.r * .85);
+        ctx.closePath();
+        ctx.fill();
+
+        /* la mousse qui a pris sur la pierre */
+        ctx.globalAlpha = .35;
+        ctx.fillStyle   = "#4a6a54";
+
+        for(let i = 0; i < 3; i++){
+            ctx.beginPath();
+            ctx.ellipse(-s.r * .3 + i * s.r * .3, s.r * (.5 - i * .1), s.r * .2, s.r * .09, i, 0, Math.PI * 2);
+            ctx.fill();
+        }
+
+        ctx.globalAlpha = 1;
+
+        /* les fissures : elles s'allument avant la charge */
+        if(s.lueur > .02){
+
+            ctx.strokeStyle = "#6ad0ff";
+            ctx.lineWidth   = Math.max(1, s.r * .07);
+            ctx.lineCap     = "round";
+            ctx.globalAlpha = s.lueur;
+            ctx.shadowBlur  = s.r * .5 * s.lueur;
+            ctx.shadowColor = "#6ad0ff";
+
+            ctx.beginPath();
+            ctx.moveTo(-s.r * .34, -s.r * .55);
+            ctx.lineTo(-s.r * .10, -s.r * .10);
+            ctx.lineTo(-s.r * .30, s.r * .35);
+            ctx.moveTo(s.r * .30, -s.r * .48);
+            ctx.lineTo(s.r * .08, s.r * .05);
+            ctx.lineTo(s.r * .28, s.r * .62);
+            ctx.stroke();
+
+            ctx.shadowBlur  = 0;
+            ctx.globalAlpha = 1;
+
+        }
+
+        /* les yeux, deux fentes */
+        ctx.fillStyle = s.lueur > .3 ? "#bfe9ff" : "#26313d";
+
+        if(s.lueur > .3){
+            ctx.shadowBlur  = s.r * .4;
+            ctx.shadowColor = "#6ad0ff";
+        }
+
+        [-1, 1].forEach(k => {
+            ctx.beginPath();
+            ctx.ellipse(k * s.r * .22, -s.r * .48, s.r * .09, s.r * .05, 0, 0, Math.PI * 2);
+            ctx.fill();
+        });
+
+        ctx.shadowBlur = 0;
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   LA GARGOUILLE
+
+   Elle entre par un cote a une hauteur annoncee, traverse
+   en planant et ressort. Elle ne te suit jamais : sa
+   trajectoire est decidee avant qu'elle arrive.
+--------------------------------------------------------- */
+
+function spawnGargouille(){
+
+    if(gargouilles.length >= 2){ return; }
+
+    const a   = playArea();
+    const dir = rnd() < .5 ? 1 : -1;
+
+    gargouilles.push({
+        y:a.y0 + (a.y1 - a.y0) * (.18 + rnd() * .64),
+        dir:dir,
+        x:dir > 0 ? a.x0 - 90 * unit : a.x1 + 90 * unit,
+        r:20 * unit,
+        amp:(a.y1 - a.y0) * (.05 + rnd() * .08),
+        onde:rnd() * 6.28,
+        aile:0,
+        stunned:0,
+        phase:"annonce", t:1.1
+    });
+
+}
+
+
+function updateGargouilles(dt){
+
+    const a = playArea();
+
+    for(const g of gargouilles){
+
+        g.aile += dt * 9;
+
+        if(g.stunned > 0){
+            g.stunned -= dt;
+            continue;
+        }
+
+        if(g.phase === "annonce"){
+
+            g.t -= dt;
+
+            if(g.t <= 0){
+                g.phase = "passe";
+                sound(260, .25, "triangle", .04);
+            }
+
+            continue;
+
+        }
+
+        g.x    += g.dir * 430 * unit * dt;
+        g.onde += dt * 2.4;
+
+        const yy = g.y + Math.sin(g.onde) * g.amp;
+
+        if(Math.hypot(player.x - g.x, player.y - yy) < g.r * .8 + player.r * .6){
+            loseLife("gargouille");
+        }
+
+        if((g.dir > 0 && g.x > a.x1 + 120 * unit) ||
+           (g.dir < 0 && g.x < a.x0 - 120 * unit)){
+            g.mort = true;
+        }
+
+    }
+
+    gargouilles = gargouilles.filter(g => !g.mort);
+
+}
+
+
+function drawGargouilles(){
+
+    const a = playArea();
+
+    for(const g of gargouilles){
+
+        /* l'annonce : sa hauteur et son cote */
+        if(g.phase === "annonce"){
+
+            ctx.save();
+            ctx.globalAlpha = .3 + Math.sin(g.t * 20) * .22;
+            ctx.strokeStyle = "#a98cff";
+            ctx.lineWidth   = 2.2 * unit;
+            ctx.setLineDash([10 * unit, 9 * unit]);
+
+            ctx.beginPath();
+            ctx.moveTo(a.x0, g.y);
+            ctx.lineTo(a.x1, g.y);
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+            ctx.globalAlpha = .65;
+            ctx.fillStyle   = "#a98cff";
+
+            const fx = g.dir > 0 ? a.x0 + 16 * unit : a.x1 - 16 * unit;
+
+            ctx.beginPath();
+            ctx.moveTo(fx, g.y - 9 * unit);
+            ctx.lineTo(fx, g.y + 9 * unit);
+            ctx.lineTo(fx + g.dir * 15 * unit, g.y);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+
+            continue;
+
+        }
+
+        const yy = g.y + Math.sin(g.onde) * g.amp;
+
+        ctx.save();
+        ctx.translate(g.x, yy);
+        ctx.scale(g.dir, 1);
+
+        if(g.stunned > 0){ ctx.globalAlpha = .55; }
+
+        const r = g.r;
+
+        /* les ailes */
+        const bat = Math.sin(g.aile) * .5;
+
+        ctx.fillStyle = "#4a5768";
+
+        [-1, 1].forEach(sg => {
+            ctx.save();
+            ctx.rotate(sg * (.35 + bat * .5));
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.quadraticCurveTo(-r * .9, sg * r * 1.1, -r * 1.9, sg * r * .5);
+            ctx.quadraticCurveTo(-r * 1.1, sg * r * .18, 0, 0);
+            ctx.closePath();
+            ctx.fill();
+            ctx.restore();
+        });
+
+        /* le corps */
+        const cg = ctx.createLinearGradient(0, -r, 0, r);
+        cg.addColorStop(0, "#8394a8");
+        cg.addColorStop(1, "#2f3b49");
+
+        ctx.fillStyle = cg;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, r * .95, r * .68, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        /* la gueule */
+        ctx.fillStyle = "#202934";
+        ctx.beginPath();
+        ctx.moveTo(r * .55, -r * .1);
+        ctx.lineTo(r * 1.25, r * .06);
+        ctx.lineTo(r * .55, r * .3);
+        ctx.closePath();
+        ctx.fill();
+
+        /* l'oeil */
+        ctx.fillStyle   = "#c0a4ff";
+        ctx.shadowBlur  = r * .5;
+        ctx.shadowColor = "#a98cff";
+        ctx.beginPath();
+        ctx.arc(r * .32, -r * .2, r * .16, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.shadowBlur = 0;
+
+        /* les cornes */
+        ctx.strokeStyle = "#5c6b7d";
+        ctx.lineWidth   = r * .12;
+        ctx.lineCap     = "round";
+        ctx.beginPath();
+        ctx.moveTo(-r * .1, -r * .55);
+        ctx.lineTo(-r * .35, -r * .95);
+        ctx.moveTo(r * .18, -r * .5);
+        ctx.lineTo(r * .1, -r * .95);
+        ctx.stroke();
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   LE GRAVAT
+
+   Un cercle d'ombre se resserre au sol : c'est la ou le
+   bloc va tomber. A l'impact, une onde courte part du
+   point de chute.
+--------------------------------------------------------- */
+
+function tombeGravat(x, y, taille, delai){
+
+    gravats.push({
+        x:x, y:y,
+        r:taille,
+        t:delai,
+        marque:delai,
+        phase:"ombre",
+        onde:0,
+        h:0,
+        rot:rnd() * 6.28
+    });
+
+}
+
+
+function spawnGravat(){
+
+    if(gravats.length >= 3){ return; }
+
+    const a = playArea();
+
+    tombeGravat(
+        a.x0 + (a.x1 - a.x0) * (.08 + rnd() * .84),
+        a.y0 + (a.y1 - a.y0) * (.12 + rnd() * .80),
+        (30 + rnd() * 16) * unit,
+        1.25
+    );
+
+}
+
+
+function updateGravats(dt){
+
+    for(const g of gravats){
+
+        g.t -= dt;
+
+        if(g.phase === "ombre"){
+
+            g.h = Math.max(0, g.t / g.marque);
+
+            if(g.t <= 0){
+
+                g.phase = "impact";
+                g.t     = .55;
+                g.onde  = 0;
+
+                burst(g.x, g.y, 24, "#9fb4c9");
+
+                sound(70, .35, "square", .07);
+
+                if(typeof foretShake !== "undefined"){
+                    foretShake = Math.max(foretShake, .3);
+                }
+
+            }
+
+        }else if(g.phase === "impact"){
+
+            g.onde += dt / .55;
+
+            /* seul l'anneau blesse : au centre, l'impact est passe */
+            const d  = Math.hypot(player.x - g.x, player.y - g.y);
+            const rr = g.r * (.5 + g.onde * 2.1);
+
+            if(g.onde < .9 && Math.abs(d - rr) < 13 * unit + player.r * .5){
+                if(col){ colHit("gravat"); }else{ loseLife("gravat"); }
+            }
+
+            if(g.t <= 0){
+                g.phase = "reste";
+                g.t     = 2.2;
+            }
+
+        }else{
+
+            if(g.t <= 0){ g.mort = true; }
+
+        }
+
+    }
+
+    gravats = gravats.filter(g => !g.mort);
+
+}
+
+
+function drawGravats(){
+
+    for(const g of gravats){
+
+        if(g.phase === "ombre"){
+
+            const k = 1 - g.h;
+
+            ctx.save();
+
+            /* le cercle qui se resserre */
+            ctx.globalAlpha = .25 + k * .35;
+            ctx.fillStyle   = "#0a1018";
+            ctx.beginPath();
+            ctx.arc(g.x, g.y, g.r * (1 - k * .35), 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.globalAlpha = .4 + Math.sin(g.t * 20) * .25;
+            ctx.strokeStyle = "#a98cff";
+            ctx.lineWidth   = 2.6 * unit;
+            ctx.beginPath();
+            ctx.arc(g.x, g.y, g.r * (1.5 - k * .5), 0, Math.PI * 2);
+            ctx.stroke();
+
+            /* le bloc qui tombe, vu d'en haut */
+            ctx.globalAlpha = 1;
+            ctx.save();
+            ctx.translate(g.x, g.y - g.h * 200 * unit);
+            ctx.rotate(g.rot + g.h * 4);
+
+            const bl = g.r * (.5 + (1 - g.h) * .35);
+
+            ctx.fillStyle = "#7c8da3";
+            ctx.beginPath();
+            ctx.moveTo(-bl, -bl * .7);
+            ctx.lineTo(bl * .8, -bl);
+            ctx.lineTo(bl, bl * .6);
+            ctx.lineTo(-bl * .6, bl);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.fillStyle = "#3c4959";
+            ctx.beginPath();
+            ctx.moveTo(-bl, -bl * .7);
+            ctx.lineTo(-bl * .1, -bl * .3);
+            ctx.lineTo(-bl * .6, bl);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+            ctx.restore();
+
+            continue;
+
+        }
+
+        if(g.phase === "impact"){
+
+            const rr = g.r * (.5 + g.onde * 2.1);
+
+            ctx.save();
+            ctx.globalAlpha = Math.max(0, 1 - g.onde) * .95;
+            ctx.strokeStyle = "#cfe4ff";
+            ctx.lineWidth   = 10 * unit;
+            ctx.shadowBlur  = 14 * unit;
+            ctx.shadowColor = "#9fb4c9";
+            ctx.beginPath();
+            ctx.arc(g.x, g.y, rr, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.restore();
+
+        }
+
+        /* le bloc pose */
+        ctx.save();
+        ctx.translate(g.x, g.y);
+        ctx.rotate(g.rot);
+
+        ctx.globalAlpha = g.phase === "reste" ? Math.min(1, g.t / .6) : 1;
+
+        const bl = g.r * .78;
+
+        ctx.fillStyle = "#5b6b7f";
+        ctx.beginPath();
+        ctx.moveTo(-bl, -bl * .6);
+        ctx.lineTo(bl * .8, -bl * .9);
+        ctx.lineTo(bl, bl * .55);
+        ctx.lineTo(-bl * .55, bl * .9);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = "#2c3644";
+        ctx.beginPath();
+        ctx.moveTo(-bl, -bl * .6);
+        ctx.lineTo(-bl * .1, -bl * .25);
+        ctx.lineTo(-bl * .55, bl * .9);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   LE COLOSSE
+--------------------------------------------------------- */
+
+function colHit(src){
+
+    if(!playing || player.invincible > 0){ return; }
+
+    loseLife(src);
+
+    if(col){
+        col.hp = Math.min(1, col.hp + COL_PUNCH);
+    }
+
+}
+
+
+function startColIntro(){
+
+    if(ruinIntro > 0 || col){ return; }
+
+    ruinIntro = 4.0;
+
+    sentinelles = []; gargouilles = []; gravats = [];
+    mimics = []; balls = []; slimes = [];
+
+    player.invincible = Math.max(player.invincible, 4.4);
+
+    stickReset();
+
+    sound(55, 2.0, "sine", .09);
+
+}
+
+
+function spawnColosse(){
+
+    const a = playArea();
+
+    col = {
+        x:(a.x0 + a.x1) / 2,
+        hp:1,
+        t:0,
+        fire:2.2,
+        poing:0,
+        poingX:0, poingY:0,
+        dead:0
+    };
+
+    colBras = [];
+
+    pickupMessage("🗿 " + T("foe.colosse"), "#6ad0ff");
+
+    sound(80, 1.4, "sawtooth", .08);
+
+    buzz([90, 60, 90]);
+
+}
+
+
+function lanceBras(delai){
+
+    const a = playArea();
+
+    const dir = rnd() < .5 ? 1 : -1;
+
+    colBras.push({
+        y:a.y0 + (a.y1 - a.y0) * (.25 + rnd() * .55),
+        dir:dir,
+        x:dir > 0 ? a.x0 - 200 * unit : a.x1 + 200 * unit,
+        lg:170 * unit,
+        ep:40 * unit,
+        phase:"marque",
+        t:delai,
+        marque:delai
+    });
+
+}
+
+
+function updateColosse(dt){
+
+    if(!col){ return; }
+
+    const a = playArea();
+
+    col.t += dt;
+
+    col.x = (a.x0 + a.x1) / 2 + Math.sin(col.t * .35) * (a.x1 - a.x0) * .10;
+
+    /* ---- la chute ---- */
+    if(col.dead > 0){
+
+        col.dead -= dt;
+
+        if(rnd() < .6){
+            burst(
+                a.x0 + rnd() * (a.x1 - a.x0),
+                a.y0 + rnd() * (a.y1 - a.y0) * .5,
+                8, rnd() < .5 ? "#9fb4c9" : "#6ad0ff"
+            );
+        }
+
+        if(col.dead <= 0){
+
+            burst((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2, 70, "#9fb4c9");
+            burst((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2, 50, "#cfe4ff");
+
+            col     = null;
+            colBras = [];
+            gravats = [];
+
+            ruinCleared = true;
+
+            records.boss = (records.boss || 0) + 1;
+            saveProgress();
+
+            pickupMessage("🗿 " + T("ruines.beaten"), "#ffffff");
+
+            unlockExclusive("ruines");
+
+            ruinEject = 4.2;
+
+            player.invincible = 6;
+
+            stickReset();
+
+            sound(60, 2.0, "sine", .09);
+            buzz([60, 80, 60, 80, 140]);
+
+        }
+
+        return;
+
+    }
+
+    /* ---- l'usure ---- */
+    col.hp -= dt / COL_TIME;
+
+    if(col.hp <= 0){
+        col.hp   = 0;
+        col.dead = 2.6;
+        colBras  = [];
+        return;
+    }
+
+    const ph = colPhase();
+
+    /* ---- les attaques ---- */
+    col.fire -= dt;
+
+    if(col.fire <= 0){
+
+        if(ph === 0){
+
+            /* le poing : il vise un POINT, il ne suit pas */
+            col.poing  = 1.4;
+            col.poingX = player.x;
+            col.poingY = player.y;
+
+            sound(180, .3, "square", .05);
+
+            col.fire = 2.6;
+
+        }else if(ph === 1){
+
+            if(rnd() < .5){
+
+                /* l'eboulement */
+                for(let i = 0; i < 4; i++){
+                    tombeGravat(
+                        a.x0 + (a.x1 - a.x0) * (.08 + rnd() * .84),
+                        a.y0 + (a.y1 - a.y0) * (.12 + rnd() * .80),
+                        (30 + rnd() * 14) * unit,
+                        1.2 + i * .18
+                    );
+                }
+
+            }else{
+
+                lanceBras(1.2);
+
+            }
+
+            col.fire = 2.6;
+
+        }else{
+
+            /* tout, et plus vite */
+            col.poing  = 1.25;
+            col.poingX = player.x;
+            col.poingY = player.y;
+
+            for(let i = 0; i < 3; i++){
+                tombeGravat(
+                    a.x0 + (a.x1 - a.x0) * (.08 + rnd() * .84),
+                    a.y0 + (a.y1 - a.y0) * (.12 + rnd() * .80),
+                    (30 + rnd() * 14) * unit,
+                    1.5 + i * .22
+                );
+            }
+
+            lanceBras(1.1);
+
+            col.fire = 3.1;
+
+        }
+
+    }
+
+    /* ---- le poing ---- */
+    if(col.poing > 0){
+
+        col.poing -= dt;
+
+        if(col.poing <= 0){
+
+            burst(col.poingX, col.poingY, 40, "#9fb4c9");
+
+            if(typeof foretShake !== "undefined"){
+                foretShake = Math.max(foretShake, .55);
+            }
+
+            sound(60, .55, "square", .09);
+
+            if(Math.hypot(player.x - col.poingX, player.y - col.poingY) < 82 * unit){
+                colHit("colosse");
+            }
+
+        }
+
+    }
+
+    /* ---- le bras qui balaie ---- */
+    for(const b of colBras){
+
+        b.t -= dt;
+
+        if(b.phase === "marque"){
+
+            if(b.t <= 0){
+                b.phase = "passe";
+                sound(120, .4, "sawtooth", .06);
+            }
+
+            continue;
+
+        }
+
+        b.x += b.dir * 560 * unit * dt;
+
+        if(Math.abs(player.y - b.y) < b.ep * .5 + player.r * .5 &&
+           Math.abs(player.x - b.x) < b.lg * .5 + player.r * .5){
+            colHit("bras");
+        }
+
+        if((b.dir > 0 && b.x > a.x1 + b.lg) || (b.dir < 0 && b.x < a.x0 - b.lg)){
+            b.mort = true;
+        }
+
+    }
+
+    colBras = colBras.filter(b => !b.mort);
+
+}
+
+
+function colBar(){
+
+    const el = document.getElementById("bossBar");
+
+    if(!el || !col){ return false; }
+
+    const ph = COL_PHASES[colPhase()];
+
+    el.style.display = "block";
+
+    document.getElementById("bossName").textContent  = "🗿 " + T("foe.colosse");
+    document.getElementById("bossPhase").textContent = T(ph.k);
+    document.getElementById("bossPhase").style.color = ph.col;
+
+    const f = document.getElementById("bossFill");
+
+    f.style.width      = (col.hp * 100).toFixed(1) + "%";
+    f.style.background = "linear-gradient(90deg,#0d1626," + ph.col + ")";
+
+    return true;
+
+}
+
+
+/* --- LE COLOSSE, AU FOND --- */
+function drawColBack(){
+
+    if(zone !== "ruines" || (!col && ruinIntro <= 0)){ return; }
+
+    const a = playArea();
+
+    let sortie = 1;
+
+    if(ruinIntro > 0){ sortie = Math.max(0, Math.min(1, (4.0 - ruinIntro) / 2.4)); }
+    if(col && col.dead > 0){ sortie = Math.max(0, col.dead / 2.6); }
+
+    if(sortie <= 0){ return; }
+
+    const cx = col ? col.x : (a.x0 + a.x1) / 2;
+    const r  = Math.min(W, H) * .32;
+    const cy = a.y0 + (a.y1 - a.y0) * .36 + (1 - sortie) * (a.y1 - a.y0) * .5;
+
+    const t   = col ? col.t : 0;
+    const ph  = COL_PHASES[colPhase()];
+    const bat = .65 + Math.abs(Math.sin(t * 1.6)) * .35;
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.globalAlpha = sortie;
+
+    /* la brume froide derriere lui */
+    const halo = ctx.createRadialGradient(0, -r * .2, r * .1, 0, -r * .2, r * 2.2);
+    halo.addColorStop(0,  "rgba(150,190,230,.24)");
+    halo.addColorStop(.4, "rgba(110,150,200,.12)");
+    halo.addColorStop(1,  "rgba(90,130,180,0)");
+
+    ctx.fillStyle = halo;
+    ctx.fillRect(-r * 2.6, -r * 2.6, r * 5.2, r * 5.2);
+
+    /* les epaules et le torse : de gros blocs empiles */
+    const pg = ctx.createLinearGradient(-r, -r, r, r * 2);
+    pg.addColorStop(0,   "#3d4b5c");
+    pg.addColorStop(.45, "#25303d");
+    pg.addColorStop(1,   "#121922");
+
+    ctx.fillStyle = pg;
+
+    /* le torse */
+    ctx.beginPath();
+    ctx.moveTo(-r * 1.05, r * 2.3);
+    ctx.lineTo(-r * 1.20, r * .45);
+    ctx.lineTo(-r * .70, r * .05);
+    ctx.lineTo(r * .70, r * .05);
+    ctx.lineTo(r * 1.20, r * .45);
+    ctx.lineTo(r * 1.05, r * 2.3);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(170,205,240,.4)";
+    ctx.lineWidth   = r * .018;
+    ctx.stroke();
+
+    /* les joints entre les blocs */
+    ctx.strokeStyle = "rgba(10,16,24,.85)";
+    ctx.lineWidth   = r * .03;
+
+    for(let i = 1; i <= 4; i++){
+        const y = r * (.05 + i * .45);
+        ctx.beginPath();
+        ctx.moveTo(-r * (1.18 - i * .03), y);
+        ctx.lineTo(r * (1.18 - i * .03), y);
+        ctx.stroke();
+    }
+
+    for(let i = 0; i < 3; i++){
+        const y0 = r * (.05 + i * .45);
+        const x  = (i % 2 ? -1 : 1) * r * .38;
+        ctx.beginPath();
+        ctx.moveTo(x, y0);
+        ctx.lineTo(x, y0 + r * .45);
+        ctx.stroke();
+    }
+
+    /* les veines de lumiere dans les fissures */
+    ctx.strokeStyle = ph.col;
+    ctx.lineWidth   = r * .026;
+    ctx.globalAlpha = sortie * bat;
+    ctx.shadowBlur  = r * .28 * bat;
+    ctx.shadowColor = ph.col;
+
+    ctx.beginPath();
+    ctx.moveTo(-r * .55, r * .2);
+    ctx.lineTo(-r * .2, r * .75);
+    ctx.lineTo(-r * .45, r * 1.3);
+    ctx.moveTo(r * .5, r * .3);
+    ctx.lineTo(r * .18, r * .95);
+    ctx.lineTo(r * .42, r * 1.55);
+    ctx.stroke();
+
+    ctx.shadowBlur  = 0;
+    ctx.globalAlpha = sortie;
+
+    /* la tete : un bloc, sans visage, deux fentes de lumiere */
+    ctx.fillStyle = pg;
+    ctx.beginPath();
+    ctx.moveTo(-r * .48, r * .05);
+    ctx.lineTo(-r * .42, -r * .72);
+    ctx.lineTo(-r * .18, -r * .92);
+    ctx.lineTo(r * .18, -r * .92);
+    ctx.lineTo(r * .42, -r * .72);
+    ctx.lineTo(r * .48, r * .05);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(170,205,240,.45)";
+    ctx.lineWidth   = r * .018;
+    ctx.stroke();
+
+    ctx.shadowBlur  = r * .55 * bat;
+    ctx.shadowColor = ph.col;
+
+    [-1, 1].forEach(sg => {
+
+        const ex = sg * r * .20, ey = -r * .40;
+
+        const og = ctx.createRadialGradient(ex, ey, 0, ex, ey, r * .24);
+        og.addColorStop(0, hexA(ph.col, .6));
+        og.addColorStop(1, hexA(ph.col, 0));
+
+        ctx.fillStyle = og;
+        ctx.beginPath();
+        ctx.arc(ex, ey, r * .24, 0, Math.PI * 2);
+        ctx.fill();
+
+        ctx.fillStyle = ph.col;
+        ctx.beginPath();
+        ctx.moveTo(ex - r * .14, ey - r * .04);
+        ctx.lineTo(ex + r * .14, ey + r * .01);
+        ctx.lineTo(ex + r * .14, ey + r * .07);
+        ctx.lineTo(ex - r * .14, ey + r * .04);
+        ctx.closePath();
+        ctx.fill();
+
+    });
+
+    ctx.shadowBlur = 0;
+
+    /* les bras, poses de part et d'autre */
+    ctx.strokeStyle = "#1b242f";
+    ctx.lineCap     = "round";
+    ctx.lineJoin    = "round";
+    ctx.shadowBlur  = r * .09;
+    ctx.shadowColor = "rgba(170,205,240,.5)";
+
+    [-1, 1].forEach(sg => {
+
+        const lev = (col && col.poing > 0 && ((sg > 0) === (col.poingX > cx))) ? -r * .35 : 0;
+
+        ctx.lineWidth = r * .22;
+
+        ctx.beginPath();
+        ctx.moveTo(sg * r * .95, r * .25 + lev);
+        ctx.quadraticCurveTo(sg * r * 1.75, r * (.8 + lev * .01), sg * r * 1.85, r * (1.75 + lev * .01));
+        ctx.stroke();
+
+        ctx.lineWidth = r * .16;
+
+        ctx.beginPath();
+        ctx.moveTo(sg * r * 1.85, r * 1.75);
+        ctx.quadraticCurveTo(sg * r * 1.95, r * 2.2, sg * r * 1.70, r * 2.5);
+        ctx.stroke();
+
+    });
+
+    ctx.shadowBlur = 0;
+
+    ctx.restore();
+
+    /* sa presence pese sur l'arene */
+    ctx.save();
+    ctx.globalAlpha = sortie * .15;
+    ctx.fillStyle   = "#040810";
+    ctx.fillRect(0, 0, W, H);
+    ctx.restore();
+
+}
+
+
+function drawColFront(){
+
+    const a = playArea();
+
+    /* --- le poing annonce --- */
+    if(col && col.poing > 0){
+
+        const k = 1 - col.poing / 1.4;
+
+        ctx.save();
+
+        ctx.globalAlpha = .25 + k * .45;
+        ctx.strokeStyle = "#a98cff";
+        ctx.lineWidth   = 4 * unit;
+        ctx.beginPath();
+        ctx.arc(col.poingX, col.poingY, 82 * unit, 0, Math.PI * 2);
+        ctx.stroke();
+
+        ctx.globalAlpha = .16 + k * .30;
+        ctx.fillStyle   = "#a98cff";
+        ctx.beginPath();
+        ctx.arc(col.poingX, col.poingY, 82 * unit * k, 0, Math.PI * 2);
+        ctx.fill();
+
+        /* le poing qui descend */
+        ctx.globalAlpha = 1;
+        ctx.save();
+        ctx.translate(col.poingX, col.poingY - (1 - k) * 260 * unit);
+
+        const pr = 46 * unit;
+
+        ctx.fillStyle = "#5b6b7f";
+        ctx.beginPath();
+        ctx.moveTo(-pr, -pr * .7);
+        ctx.lineTo(pr * .85, -pr * .95);
+        ctx.lineTo(pr, pr * .6);
+        ctx.lineTo(-pr * .7, pr * .9);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.fillStyle = "#2c3644";
+        ctx.beginPath();
+        ctx.moveTo(-pr, -pr * .7);
+        ctx.lineTo(-pr * .15, -pr * .3);
+        ctx.lineTo(-pr * .7, pr * .9);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
+        ctx.restore();
+
+    }
+
+    /* --- le bras qui balaie --- */
+    for(const b of colBras){
+
+        if(b.phase === "marque"){
+
+            const k = 1 - b.t / b.marque;
+
+            ctx.save();
+
+            const lg = ctx.createLinearGradient(a.x0, 0, a.x1, 0);
+            lg.addColorStop(0,  "rgba(169,140,255,0)");
+            lg.addColorStop(.5, "rgba(169,140,255," + (.10 + k * .18).toFixed(3) + ")");
+            lg.addColorStop(1,  "rgba(169,140,255,0)");
+
+            ctx.fillStyle = lg;
+            ctx.fillRect(a.x0, b.y - b.ep * .5, a.x1 - a.x0, b.ep);
+
+            ctx.globalAlpha = .35 + Math.sin(b.t * 20) * .25;
+            ctx.strokeStyle = "#a98cff";
+            ctx.lineWidth   = 3 * unit;
+            ctx.setLineDash([12 * unit, 10 * unit]);
+
+            ctx.beginPath();
+            ctx.moveTo(a.x0, b.y);
+            ctx.lineTo(a.x1, b.y);
+            ctx.stroke();
+
+            ctx.setLineDash([]);
+            ctx.globalAlpha = .6;
+            ctx.fillStyle   = "#a98cff";
+
+            const fx = b.dir > 0 ? a.x0 + 18 * unit : a.x1 - 18 * unit;
+
+            ctx.beginPath();
+            ctx.moveTo(fx, b.y - 11 * unit);
+            ctx.lineTo(fx, b.y + 11 * unit);
+            ctx.lineTo(fx + b.dir * 18 * unit, b.y);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+
+            continue;
+
+        }
+
+        ctx.save();
+        ctx.translate(b.x, b.y);
+
+        const pg = ctx.createLinearGradient(0, -b.ep * .5, 0, b.ep * .5);
+        pg.addColorStop(0,   "#7b8b9f");
+        pg.addColorStop(.5,  "#44525f");
+        pg.addColorStop(1,   "#1b242f");
+
+        ctx.fillStyle = pg;
+        ctx.fillRect(-b.lg * .5, -b.ep * .5, b.lg, b.ep);
+
+        /* les joints */
+        ctx.strokeStyle = "#131a24";
+        ctx.lineWidth   = 3 * unit;
+
+        for(let i = 1; i < 4; i++){
+            const x = -b.lg * .5 + b.lg * i / 4;
+            ctx.beginPath();
+            ctx.moveTo(x, -b.ep * .5);
+            ctx.lineTo(x, b.ep * .5);
+            ctx.stroke();
+        }
+
+        /* le poing, en tete */
+        const px = b.dir > 0 ? b.lg * .5 : -b.lg * .5;
+
+        ctx.fillStyle = "#5b6b7f";
+        ctx.beginPath();
+        ctx.ellipse(px, 0, b.ep * .62, b.ep * .68, 0, 0, Math.PI * 2);
+        ctx.fill();
+
+        /* la trainee */
+        ctx.globalAlpha = .3;
+        ctx.strokeStyle = "#a98cff";
+        ctx.lineWidth   = b.ep * .3;
+        ctx.beginPath();
+        ctx.moveTo(-b.dir * b.lg * .5, 0);
+        ctx.lineTo(-b.dir * b.lg * 1.6, 0);
+        ctx.stroke();
+
+        ctx.restore();
+
+    }
+
+}
+
+
+/* ---------------------------------------------------------
+   LA BOUCLE DU MONDE 2
+--------------------------------------------------------- */
+
+function updateRuines(dt){
+
+    const a = playArea();
+
+    /* la poussiere qui monte : le monde flotte */
+    for(const p of poussieres){
+        p.y -= p.sp * dt;
+        p.x += Math.sin(p.a + gameTime * .6) * 8 * unit * dt;
+        if(p.y < a.y0){ p.y = a.y1; p.x = a.x0 + rnd() * (a.x1 - a.x0); }
+    }
+
+    /* --- l'arrivee du COLOSSE --- */
+    if(ruinIntro > 0){
+
+        ruinIntro -= dt;
+
+        if(typeof foretShake !== "undefined"){
+            foretShake = Math.max(foretShake, .3);
+        }
+
+        if(ruinIntro <= 1.4 && !col){ spawnColosse(); }
+
+        if(ruinIntro <= 0){ ruinIntro = 0; }
+
+        return;
+
+    }
+
+    /* --- la chute des ruines --- */
+    if(ruinEject > 0){
+
+        ruinEject -= dt;
+
+        player.y += (a.y1 - player.y) * Math.min(1, dt * .9);
+
+        if(rnd() < .8){
+            burst(
+                a.x0 + rnd() * (a.x1 - a.x0),
+                a.y0 + rnd() * (a.y1 - a.y0) * .4,
+                3, rnd() < .5 ? "#cfe4ff" : "#9fb4c9"
+            );
+        }
+
+        if(ruinEject <= 0){
+
+            ruinEject = 0;
+
+            /* la suite n'existe pas encore : on repart en boucle,
+               plus dur, et on le dit clairement */
+            ruinCleared = false;
+            level       = 1;
+
+            enterRuines();
+
+            pickupMessage("🗿 " + T("ruines.next"), "#cfe4ff");
+
+        }
+
+        return;
+
+    }
+
+    if(col){
+        updateGravats(dt);
+        updateColosse(dt);
+        return;
+    }
+
+    if(zone === "ruines" && !ruinCleared && level > RUIN_LEVELS){
+        startColIntro();
+        return;
+    }
+
+    updateSentinelles(dt);
+    updateGargouilles(dt);
+    updateGravats(dt);
+
+}
+
+
+function ruinesPeuple(){
+
+    if(zone !== "ruines"){ return; }
+
+    if(col || ruinIntro > 0 || ruinEject > 0){ return; }
+
+    const n = level;
+
+    if(sentinelles.length < Math.min(3, n)){ spawnSentinelle(); }
+
+    if(n >= 2 && gargouilles.length < 2){ spawnGargouille(); }
+
+    if(n >= 3 && gravats.length < 2){ spawnGravat(); }
+
+}
+
+
+function drawRuines(){
+
+    /* la poussiere, derriere */
+    for(const p of poussieres){
+        ctx.save();
+        ctx.globalAlpha = p.al * (.4 + Math.abs(Math.sin(p.a + gameTime)) * .6);
+        ctx.fillStyle   = "#cfe4ff";
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
+        ctx.fill();
+        ctx.restore();
+    }
+
+    drawGravats();
+    drawSentinelles();
+    drawGargouilles();
+    drawColFront();
+
+    if(ruinIntro > 0){
+        const k = 1 - Math.abs(ruinIntro - 2) / 2;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, Math.min(.7, k));
+        ctx.fillStyle   = "#040810";
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+    }
+
+    if(ruinEject > 0){
+        ctx.save();
+        ctx.globalAlpha = Math.min(1, (4.2 - ruinEject) / 2.2);
+        ctx.fillStyle   = "#040810";
+        ctx.fillRect(0, 0, W, H);
+        ctx.restore();
+    }
+
+}
+
+
+function enterRuines(){
+
+    zone = "ruines";
+
+    portal = null;
+
+    solids = []; orbs = []; coins = []; hearts = []; balls = [];
+    slimes = []; trails = []; mimics = []; archers = []; blobs = [];
+    puddles = []; logs = []; crawlers = []; drips = []; candies = [];
+    gloutons = []; guimauves = []; anguilles = []; lanternes = [];
+    bulles = []; guepes = [];
+
+    trace = [];
+    traceLength = 0;
+
+    clearRuines();
+
+    const a = playArea();
+
+    player.x = (a.x0 + a.x1) / 2;
+    player.y = (a.y0 + a.y1) / 2;
+
+    player.invincible = 2.4;
+
+    poussieres = [];
+
+    for(let i = 0; i < 34; i++){
+        poussieres.push({
+            x:a.x0 + rnd() * (a.x1 - a.x0),
+            y:a.y0 + rnd() * (a.y1 - a.y0),
+            r:(1 + rnd() * 2) * unit,
+            sp:(6 + rnd() * 18) * unit,
+            a:rnd() * 6.28,
+            al:.25 + rnd() * .45
+        });
+    }
+
+    /* pas d'ORBE : le gel a la demande est retire */
+    addCoin();
+
+    noteWorld("ruines", true);
+
+    lastZone = "ruines";
+
+    try{ localStorage.setItem("mimicLastZone", "ruines"); }catch(e){}
+
+    worldBanner("ruines", "🗿");
+
+    sound(240, .6, "triangle", .06);
+
+    ruinesPeuple();
+
+}
+
+
+/* ---------------------------------------------------------
+   LE SOL DES RUINES
+--------------------------------------------------------- */
+
+function paintRuines(c){
+
+    /*
+    La dalle couvre tout : le ciel et les arches que je
+    peignais avant etaient effaces par-dessus. Ici on part
+    directement de la pierre, et la lune vient APRES.
+    */
+    const sol = c.createLinearGradient(0, 0, 0, H);
+    sol.addColorStop(0,   "#161f2c");
+    sol.addColorStop(.45, "#1e2a39");
+    sol.addColorStop(1,   "#0d141e");
+
+    c.fillStyle = sol;
+    c.fillRect(0, 0, W, H);
+
+    /* le pavage, en perspective legere */
+    c.globalAlpha = .5;
+    c.strokeStyle = "#0d1520";
+    c.lineWidth   = Math.max(1, W * .0022);
+
+    const pas = H * .16;
+
+    for(let y = -pas; y < H + pas; y += pas){
+
+        c.beginPath();
+        c.moveTo(0, y);
+        c.lineTo(W, y + H * .012);
+        c.stroke();
+
+    }
+
+    for(let i = -1; i <= 9; i++){
+
+        const x = i / 8 * W;
+
+        c.beginPath();
+        c.moveTo(x, 0);
+        c.lineTo(x + W * .02, H);
+        c.stroke();
+
+    }
+
+    /* quelques dalles manquantes : on voit le vide en dessous */
+    c.globalAlpha = 1;
+
+    const trous = [[.18, .28], [.62, .18], [.42, .72], [.86, .58], [.08, .82]];
+
+    for(const t of trous){
+
+        const x = t[0] * W, y = t[1] * H;
+        const w = W * .075, h = H * .12;
+
+        const vg = c.createRadialGradient(x, y, 0, x, y, w);
+        vg.addColorStop(0,  "#03060c");
+        vg.addColorStop(.7, "#060b14");
+        vg.addColorStop(1,  "rgba(6,11,20,0)");
+
+        c.fillStyle = vg;
+        c.beginPath();
+        c.ellipse(x, y, w, h * .6, 0, 0, Math.PI * 2);
+        c.fill();
+
+        c.globalAlpha = .5;
+        c.strokeStyle = "#3d4d5f";
+        c.lineWidth   = Math.max(1, W * .002);
+        c.beginPath();
+        c.ellipse(x, y, w * .92, h * .55, 0, 0, Math.PI * 2);
+        c.stroke();
+        c.globalAlpha = 1;
+
+    }
+
+    /* les fissures lumineuses dans la pierre */
+    c.globalAlpha = .30;
+    c.strokeStyle = "#6ad0ff";
+    c.lineWidth   = Math.max(1, W * .0025);
+    c.lineCap     = "round";
+
+    for(let i = 0; i < 5; i++){
+
+        const y0 = H * (.12 + i * .19);
+
+        c.beginPath();
+        c.moveTo(0, y0);
+
+        for(let k = 1; k <= 5; k++){
+            c.lineTo(k * W * .2, y0 + Math.sin(k * 2.1 + i * 1.7) * H * .06);
+        }
+
+        c.stroke();
+
+    }
+
+    /* la lune, en haut a droite : elle passe par-dessus la pierre */
+    const lune = c.createRadialGradient(W * .84, H * .14, 0, W * .84, H * .14, W * .42);
+    lune.addColorStop(0,   "rgba(180,215,255,.22)");
+    lune.addColorStop(.35, "rgba(150,190,240,.08)");
+    lune.addColorStop(1,   "rgba(130,175,230,0)");
+
+    c.globalAlpha = 1;
+    c.fillStyle   = lune;
+    c.fillRect(0, 0, W, H);
+
+    /* de la mousse dans les joints */
+    c.globalAlpha = .18;
+
+    for(let i = 0; i < 40; i++){
+
+        const x = ((i * 113) % 100) / 100 * W;
+        const y = ((i * 71)  % 100) / 100 * H;
+
+        c.fillStyle = (i % 2) ? "#2f5240" : "#3c6a4e";
+        c.beginPath();
+        c.ellipse(x, y, W * .012, H * .008, i, 0, Math.PI * 2);
+        c.fill();
+
+    }
+
+    c.globalAlpha = 1;
+
+    /* le vignettage froid */
+    const vg2 = c.createRadialGradient(W / 2, H / 2, Math.min(W, H) * .28,
+                                       W / 2, H / 2, Math.max(W, H) * .74);
+    vg2.addColorStop(0, "rgba(0,0,0,0)");
+    vg2.addColorStop(1, "rgba(2,6,14,.68)");
+
+    c.fillStyle = vg2;
     c.fillRect(0, 0, W, H);
 
 }

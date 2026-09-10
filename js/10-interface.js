@@ -771,9 +771,9 @@ function rejouer(){
 
     startGame();
 
-    if(z === "clairiere"){
-        level = 5;
-        enterClairiere();
+    if(z === "ruines"){
+        level = 1;
+        enterRuines();
     }
 
 }
@@ -799,7 +799,7 @@ function playWorld(zoneId){
 
     level = wd.from;
 
-    if(zoneId === "clairiere"){ enterClairiere(); return; }
+    if(zoneId === "ruines"){ enterRuines(); return; }
 
     if(zoneId === "marais"){ enterMarais(); }
     else if(zoneId === "bonbon"){ enterCandy(); }
@@ -908,13 +908,11 @@ document.getElementById("profileButton").onclick = () => {
 
 document.getElementById("rankButton").onclick = () => {
     document.getElementById("settings").style.display = "none";
-    openRank();
+    openRank("settings");
 };
-document.getElementById("rankPill").onclick = openRank;
+document.getElementById("rankPill").onclick = () => openRank("menu");
 
-document.getElementById("rankClose").onclick = () => {
-    document.getElementById("rankScreen").style.display = "none";
-};
+document.getElementById("rankClose").onclick = closeRank;
 
 document.getElementById("helloName").oninput = e => {
     e.target.value = e.target.value.toUpperCase().replace(/[^A-Z0-9ÀÂÄÉÈÊËÎÏÔÖÙÛÜÇ \-_]/g, "");
