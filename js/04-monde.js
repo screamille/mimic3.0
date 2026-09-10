@@ -40,7 +40,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
 On repart de 1.00 et on monte de 0.01 a chaque livraison :
 10.8 donnait l'impression d'un jeu fini alors qu'il commence.
 */
-const VERSION = "1.01";
+const VERSION = "1.02";
 
 (function(){
 
@@ -14724,15 +14724,24 @@ function startColIntro(){
 }
 
 
+function colClamp(v, a, b){ return v < a ? a : v > b ? b : v; }
+
+
 function spawnColosse(){
 
     const a = playArea();
 
     col = {
         x:(a.x0 + a.x1) / 2,
+        y:a.y0 + (a.y1 - a.y0) * .35,
+        r:66 * unit,
         hp:1,
         t:0,
-        fire:2.2,
+        state:"repos",
+        st:1.6,
+        pas:0,
+        face:1,
+        grab:0,
         poing:0,
         poingX:0, poingY:0,
         dead:0
@@ -14740,7 +14749,7 @@ function spawnColosse(){
 
     colBras = [];
 
-    pickupMessage("🗿 " + T("foe.colosse"), "#6ad0ff");
+    pickupMessage("\ud83d\uddff " + T("foe.colosse"), "#6ad0ff");
 
     sound(80, 1.4, "sawtooth", .08);
 
@@ -14769,6 +14778,82 @@ function lanceBras(delai){
 }
 
 
+function invoqueColosse(ph){
+
+    const a = playArea();
+
+    if(ph === 0){
+
+        col.poing  = 1.4;
+        col.poingX = player.x;
+        col.poingY = player.y;
+
+        sound(180, .3, "square", .05);
+
+    }else if(ph === 1){
+
+        if(rnd() < .5){
+
+            for(let i = 0; i < 4; i++){
+                tombeGravat(
+                    a.x0 + (a.x1 - a.x0) * (.08 + rnd() * .84),
+                    a.y0 + (a.y1 - a.y0) * (.12 + rnd() * .80),
+                    (30 + rnd() * 14) * unit,
+                    1.2 + i * .18
+                );
+            }
+
+        }else{
+
+            lanceBras(1.2);
+
+        }
+
+    }else{
+
+        col.poing  = 1.25;
+        col.poingX = player.x;
+        col.poingY = player.y;
+
+        for(let i = 0; i < 3; i++){
+            tombeGravat(
+                a.x0 + (a.x1 - a.x0) * (.08 + rnd() * .84),
+                a.y0 + (a.y1 - a.y0) * (.12 + rnd() * .80),
+                (30 + rnd() * 14) * unit,
+                1.5 + i * .22
+            );
+        }
+
+        lanceBras(1.1);
+
+    }
+
+    sound(120, .5, "sawtooth", .06);
+
+}
+
+
+function attrapeColosse(){
+
+    if(!col || col.grab > 0){ return; }
+
+    if(!playing || player.invincible > 0){ return; }
+
+    col.grab = 1.15;
+
+    colHit("colosse");
+
+    if(typeof foretShake !== "undefined"){
+        foretShake = Math.max(foretShake, .6);
+    }
+
+    sound(70, .6, "square", .09);
+
+    buzz([120, 60, 120]);
+
+}
+
+
 function updateColosse(dt){
 
     if(!col){ return; }
@@ -14777,8 +14862,6 @@ function updateColosse(dt){
 
     col.t += dt;
 
-    col.x = (a.x0 + a.x1) / 2 + Math.sin(col.t * .35) * (a.x1 - a.x0) * .10;
-
     /* ---- la chute ---- */
     if(col.dead > 0){
 
@@ -14786,16 +14869,16 @@ function updateColosse(dt){
 
         if(rnd() < .6){
             burst(
-                a.x0 + rnd() * (a.x1 - a.x0),
-                a.y0 + rnd() * (a.y1 - a.y0) * .5,
+                col.x + (rnd() - .5) * col.r * 3,
+                col.y + (rnd() - .5) * col.r * 3,
                 8, rnd() < .5 ? "#9fb4c9" : "#6ad0ff"
             );
         }
 
         if(col.dead <= 0){
 
-            burst((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2, 70, "#9fb4c9");
-            burst((a.x0 + a.x1) / 2, (a.y0 + a.y1) / 2, 50, "#cfe4ff");
+            burst(col.x, col.y, 70, "#9fb4c9");
+            burst(col.x, col.y, 50, "#cfe4ff");
 
             col     = null;
             colBras = [];
@@ -14806,7 +14889,7 @@ function updateColosse(dt){
             records.boss = (records.boss || 0) + 1;
             saveProgress();
 
-            pickupMessage("🗿 " + T("ruines.beaten"), "#ffffff");
+            pickupMessage("\ud83d\uddff " + T("ruines.beaten"), "#ffffff");
 
             unlockExclusive("ruines");
 
@@ -14837,63 +14920,104 @@ function updateColosse(dt){
 
     const ph = colPhase();
 
-    /* ---- les attaques ---- */
-    col.fire -= dt;
+    /* =========================================================
+       IL EST SUR LA MAP.
+       Il marche vers toi. S'il te touche, il t'attrape.
+       Puis il s'arrete, il se charge, il invoque, il souffle.
+    ========================================================= */
 
-    if(col.fire <= 0){
+    if(col.grab > 0){
 
-        if(ph === 0){
+        /* il te serre puis il te jette */
+        col.grab -= dt;
 
-            /* le poing : il vise un POINT, il ne suit pas */
-            col.poing  = 1.4;
-            col.poingX = player.x;
-            col.poingY = player.y;
+        player.x += (col.x - player.x) * Math.min(1, dt * 7);
+        player.y += (col.y - player.y) * Math.min(1, dt * 7);
 
-            sound(180, .3, "square", .05);
+        if(rnd() < .5){ burst(player.x, player.y, 4, "#a98cff"); }
 
-            col.fire = 2.6;
+        if(col.grab <= 0){
 
-        }else if(ph === 1){
+            col.grab = 0;
 
-            if(rnd() < .5){
+            const ang = rnd() * 6.28;
 
-                /* l'eboulement */
-                for(let i = 0; i < 4; i++){
-                    tombeGravat(
-                        a.x0 + (a.x1 - a.x0) * (.08 + rnd() * .84),
-                        a.y0 + (a.y1 - a.y0) * (.12 + rnd() * .80),
-                        (30 + rnd() * 14) * unit,
-                        1.2 + i * .18
-                    );
-                }
+            player.x = colClamp(col.x + Math.cos(ang) * 230 * unit, a.x0 + player.r, a.x1 - player.r);
+            player.y = colClamp(col.y + Math.sin(ang) * 230 * unit, a.y0 + player.r, a.y1 - player.r);
 
-            }else{
+            burst(player.x, player.y, 24, "#cfe4ff");
 
-                lanceBras(1.2);
+            col.state = "repos";
+            col.st    = 1.7;
 
+            stickReset();
+
+        }
+
+    }else if(col.state === "marche"){
+
+        const vit = (ph === 0 ? 152 : ph === 1 ? 188 : 226) * unit;
+
+        const dx = player.x - col.x;
+        const dy = player.y - col.y;
+        const d  = Math.hypot(dx, dy) || 1;
+
+        col.x += dx / d * vit * dt;
+        col.y += dy / d * vit * dt;
+
+        col.face = dx < 0 ? -1 : 1;
+        col.pas += dt * (vit / (28 * unit));
+
+        col.x = colClamp(col.x, a.x0 + col.r, a.x1 - col.r);
+        col.y = colClamp(col.y, a.y0 + col.r * .6, a.y1 - col.r * .6);
+
+        if(d < col.r * .82 + player.r){ attrapeColosse(); }
+
+        col.st -= dt;
+
+        if(col.st <= 0){
+            col.state = "charge";
+            col.st    = 1.05;
+            sound(150, .55, "square", .05);
+        }
+
+    }else{
+
+        /* il est immobile : charge / invoque / repos.
+           On ne prend pas de degat au contact, mais il pousse. */
+        const dx = player.x - col.x;
+        const dy = player.y - col.y;
+        const d  = Math.hypot(dx, dy) || 1;
+        const mi = col.r * .82 + player.r;
+
+        if(d < mi){
+            player.x = col.x + dx / d * mi;
+            player.y = col.y + dy / d * mi;
+        }
+
+        col.st -= dt;
+
+        if(col.state === "charge"){
+
+            if(col.st <= 0){
+                col.state = "invoque";
+                col.st    = .85;
+                invoqueColosse(ph);
             }
 
-            col.fire = 2.6;
+        }else if(col.state === "invoque"){
+
+            if(col.st <= 0){
+                col.state = "repos";
+                col.st    = ph === 2 ? 1.0 : 1.4;
+            }
 
         }else{
 
-            /* tout, et plus vite */
-            col.poing  = 1.25;
-            col.poingX = player.x;
-            col.poingY = player.y;
-
-            for(let i = 0; i < 3; i++){
-                tombeGravat(
-                    a.x0 + (a.x1 - a.x0) * (.08 + rnd() * .84),
-                    a.y0 + (a.y1 - a.y0) * (.12 + rnd() * .80),
-                    (30 + rnd() * 14) * unit,
-                    1.5 + i * .22
-                );
+            if(col.st <= 0){
+                col.state = "marche";
+                col.st    = (ph === 2 ? 2.0 : 2.8) + rnd() * 1.4;
             }
-
-            lanceBras(1.1);
-
-            col.fire = 3.1;
 
         }
 
@@ -14983,39 +15107,33 @@ function colBar(){
 /* --- LE COLOSSE, AU FOND --- */
 function drawColBack(){
 
-    if(zone !== "ruines" || (!col && ruinIntro <= 0)){ return; }
+    /* Il n'est plus au fond : le fond ne sert plus qu'a
+       l'eveil, quand la statue se leve avant de descendre
+       dans l'arene. */
+    if(zone !== "ruines" || ruinIntro <= 0){ return; }
 
     const a = playArea();
 
-    let sortie = 1;
-
-    if(ruinIntro > 0){ sortie = Math.max(0, Math.min(1, (4.0 - ruinIntro) / 2.4)); }
-    if(col && col.dead > 0){ sortie = Math.max(0, col.dead / 2.6); }
+    const sortie = Math.max(0, Math.min(1, (4.0 - ruinIntro) / 2.4));
 
     if(sortie <= 0){ return; }
 
-    const cx = col ? col.x : (a.x0 + a.x1) / 2;
-    const r  = Math.min(W, H) * .32;
-    const cy = a.y0 + (a.y1 - a.y0) * .36 + (1 - sortie) * (a.y1 - a.y0) * .5;
-
-    const t   = col ? col.t : 0;
-    const ph  = COL_PHASES[colPhase()];
-    const bat = .65 + Math.abs(Math.sin(t * 1.6)) * .35;
+    const cx = (a.x0 + a.x1) / 2;
+    const r  = Math.min(W, H) * .30;
+    const cy = a.y0 + (a.y1 - a.y0) * .40 + (1 - sortie) * (a.y1 - a.y0) * .6;
 
     ctx.save();
     ctx.translate(cx, cy);
     ctx.globalAlpha = sortie;
 
-    /* la brume froide derriere lui */
     const halo = ctx.createRadialGradient(0, -r * .2, r * .1, 0, -r * .2, r * 2.2);
-    halo.addColorStop(0,  "rgba(150,190,230,.24)");
-    halo.addColorStop(.4, "rgba(110,150,200,.12)");
+    halo.addColorStop(0,  "rgba(150,190,230,.26)");
+    halo.addColorStop(.4, "rgba(110,150,200,.13)");
     halo.addColorStop(1,  "rgba(90,130,180,0)");
 
     ctx.fillStyle = halo;
     ctx.fillRect(-r * 2.6, -r * 2.6, r * 5.2, r * 5.2);
 
-    /* les epaules et le torse : de gros blocs empiles */
     const pg = ctx.createLinearGradient(-r, -r, r, r * 2);
     pg.addColorStop(0,   "#3d4b5c");
     pg.addColorStop(.45, "#25303d");
@@ -15023,7 +15141,6 @@ function drawColBack(){
 
     ctx.fillStyle = pg;
 
-    /* le torse */
     ctx.beginPath();
     ctx.moveTo(-r * 1.05, r * 2.3);
     ctx.lineTo(-r * 1.20, r * .45);
@@ -15034,51 +15151,6 @@ function drawColBack(){
     ctx.closePath();
     ctx.fill();
 
-    ctx.strokeStyle = "rgba(170,205,240,.4)";
-    ctx.lineWidth   = r * .018;
-    ctx.stroke();
-
-    /* les joints entre les blocs */
-    ctx.strokeStyle = "rgba(10,16,24,.85)";
-    ctx.lineWidth   = r * .03;
-
-    for(let i = 1; i <= 4; i++){
-        const y = r * (.05 + i * .45);
-        ctx.beginPath();
-        ctx.moveTo(-r * (1.18 - i * .03), y);
-        ctx.lineTo(r * (1.18 - i * .03), y);
-        ctx.stroke();
-    }
-
-    for(let i = 0; i < 3; i++){
-        const y0 = r * (.05 + i * .45);
-        const x  = (i % 2 ? -1 : 1) * r * .38;
-        ctx.beginPath();
-        ctx.moveTo(x, y0);
-        ctx.lineTo(x, y0 + r * .45);
-        ctx.stroke();
-    }
-
-    /* les veines de lumiere dans les fissures */
-    ctx.strokeStyle = ph.col;
-    ctx.lineWidth   = r * .026;
-    ctx.globalAlpha = sortie * bat;
-    ctx.shadowBlur  = r * .28 * bat;
-    ctx.shadowColor = ph.col;
-
-    ctx.beginPath();
-    ctx.moveTo(-r * .55, r * .2);
-    ctx.lineTo(-r * .2, r * .75);
-    ctx.lineTo(-r * .45, r * 1.3);
-    ctx.moveTo(r * .5, r * .3);
-    ctx.lineTo(r * .18, r * .95);
-    ctx.lineTo(r * .42, r * 1.55);
-    ctx.stroke();
-
-    ctx.shadowBlur  = 0;
-    ctx.globalAlpha = sortie;
-
-    /* la tete : un bloc, sans visage, deux fentes de lumiere */
     ctx.fillStyle = pg;
     ctx.beginPath();
     ctx.moveTo(-r * .48, r * .05);
@@ -15090,27 +15162,14 @@ function drawColBack(){
     ctx.closePath();
     ctx.fill();
 
-    ctx.strokeStyle = "rgba(170,205,240,.45)";
-    ctx.lineWidth   = r * .018;
-    ctx.stroke();
+    const bat = .65 + Math.abs(Math.sin(ruinIntro * 4)) * .35;
 
     ctx.shadowBlur  = r * .55 * bat;
-    ctx.shadowColor = ph.col;
+    ctx.shadowColor = "#6ad0ff";
+    ctx.fillStyle   = "#6ad0ff";
 
     [-1, 1].forEach(sg => {
-
         const ex = sg * r * .20, ey = -r * .40;
-
-        const og = ctx.createRadialGradient(ex, ey, 0, ex, ey, r * .24);
-        og.addColorStop(0, hexA(ph.col, .6));
-        og.addColorStop(1, hexA(ph.col, 0));
-
-        ctx.fillStyle = og;
-        ctx.beginPath();
-        ctx.arc(ex, ey, r * .24, 0, Math.PI * 2);
-        ctx.fill();
-
-        ctx.fillStyle = ph.col;
         ctx.beginPath();
         ctx.moveTo(ex - r * .14, ey - r * .04);
         ctx.lineTo(ex + r * .14, ey + r * .01);
@@ -15118,43 +15177,11 @@ function drawColBack(){
         ctx.lineTo(ex - r * .14, ey + r * .04);
         ctx.closePath();
         ctx.fill();
-
     });
 
     ctx.shadowBlur = 0;
-
-    /* les bras, poses de part et d'autre */
-    ctx.strokeStyle = "#1b242f";
-    ctx.lineCap     = "round";
-    ctx.lineJoin    = "round";
-    ctx.shadowBlur  = r * .09;
-    ctx.shadowColor = "rgba(170,205,240,.5)";
-
-    [-1, 1].forEach(sg => {
-
-        const lev = (col && col.poing > 0 && ((sg > 0) === (col.poingX > cx))) ? -r * .35 : 0;
-
-        ctx.lineWidth = r * .22;
-
-        ctx.beginPath();
-        ctx.moveTo(sg * r * .95, r * .25 + lev);
-        ctx.quadraticCurveTo(sg * r * 1.75, r * (.8 + lev * .01), sg * r * 1.85, r * (1.75 + lev * .01));
-        ctx.stroke();
-
-        ctx.lineWidth = r * .16;
-
-        ctx.beginPath();
-        ctx.moveTo(sg * r * 1.85, r * 1.75);
-        ctx.quadraticCurveTo(sg * r * 1.95, r * 2.2, sg * r * 1.70, r * 2.5);
-        ctx.stroke();
-
-    });
-
-    ctx.shadowBlur = 0;
-
     ctx.restore();
 
-    /* sa presence pese sur l'arene */
     ctx.save();
     ctx.globalAlpha = sortie * .15;
     ctx.fillStyle   = "#040810";
@@ -15164,9 +15191,271 @@ function drawColBack(){
 }
 
 
+/* --- LE COLOSSE, DANS L'ARENE --- */
+
+function drawColosse(){
+
+    if(!col){ return; }
+
+    const r   = col.r;
+    const ph  = COL_PHASES[colPhase()];
+    const bat = .6 + Math.abs(Math.sin(col.t * 2.2)) * .4;
+
+    const imm  = (col.state !== "marche" && col.grab <= 0);
+    const chg  = col.state === "charge";
+    const inv  = col.state === "invoque";
+
+    /* la marche fait tanguer le bloc */
+    const bob = imm ? 0 : Math.sin(col.pas) * r * .07;
+    const inc = imm ? 0 : Math.sin(col.pas) * .05;
+
+    const mort = col.dead > 0 ? (1 - col.dead / 2.6) : 0;
+
+    ctx.save();
+
+    /* l'ombre au sol */
+    ctx.globalAlpha = .38;
+    ctx.fillStyle   = "#03070d";
+    ctx.beginPath();
+    ctx.ellipse(col.x, col.y + r * 1.05, r * 1.05, r * .34, 0, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.globalAlpha = 1;
+
+    /* le cercle d'annonce quand il se charge */
+    if(chg || inv){
+
+        const k = chg ? 1 - col.st / 1.05 : 1;
+
+        ctx.save();
+        ctx.globalAlpha = .20 + k * .35;
+        ctx.strokeStyle = ph.col;
+        ctx.lineWidth   = 4 * unit;
+        ctx.setLineDash([14 * unit, 10 * unit]);
+        ctx.beginPath();
+        ctx.arc(col.x, col.y + r * .9, r * (1.5 + k * .9), 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        ctx.restore();
+
+    }
+
+    ctx.translate(col.x, col.y + bob);
+    ctx.rotate(inc);
+
+    if(mort > 0){
+        ctx.globalAlpha = 1 - mort * .6;
+        ctx.rotate(mort * .5);
+        ctx.translate(0, mort * r * .5);
+    }
+
+    const pg = ctx.createLinearGradient(-r, -r * 1.4, r * .8, r * 1.2);
+    pg.addColorStop(0,   "#4a5a6d");
+    pg.addColorStop(.45, "#2b3745");
+    pg.addColorStop(1,   "#121922");
+
+    /* --- les jambes --- */
+    ctx.fillStyle = pg;
+
+    [-1, 1].forEach(sg => {
+
+        const av = imm ? 0 : Math.sin(col.pas + (sg > 0 ? 0 : Math.PI)) * r * .22;
+
+        ctx.save();
+        ctx.translate(sg * r * .38, r * .45);
+        ctx.beginPath();
+        ctx.moveTo(-r * .24, 0);
+        ctx.lineTo(r * .24, 0);
+        ctx.lineTo(r * .28, r * .58 + av * .2);
+        ctx.lineTo(-r * .30, r * .58 + av * .2);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+
+    });
+
+    /* --- les bras --- */
+    ctx.strokeStyle = "#26313e";
+    ctx.lineCap     = "round";
+    ctx.lineJoin    = "round";
+
+    [-1, 1].forEach(sg => {
+
+        const tend = (col.grab > 0) ? 1 : (inv ? .65 : 0);
+        const bal  = imm ? 0 : Math.sin(col.pas + (sg > 0 ? Math.PI : 0)) * .32;
+
+        ctx.save();
+        ctx.translate(sg * r * .82, -r * .52);
+        ctx.rotate(sg * (bal + tend * 1.15));
+
+        /* le bras : epaule -> coude */
+        ctx.lineWidth = r * .34;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(sg * r * .30, r * .66);
+        ctx.stroke();
+
+        /* coude -> poing */
+        ctx.lineWidth = r * .28;
+        ctx.beginPath();
+        ctx.moveTo(sg * r * .30, r * .66);
+        ctx.lineTo(sg * r * (.44 - tend * .18), r * 1.30);
+        ctx.stroke();
+
+        /* le poing */
+        const px = sg * r * (.44 - tend * .18), py = r * 1.40;
+
+        const fg = ctx.createLinearGradient(px - r * .28, py - r * .28, px + r * .28, py + r * .28);
+        fg.addColorStop(0, "#5f7085");
+        fg.addColorStop(1, "#232d39");
+
+        ctx.fillStyle = fg;
+        ctx.beginPath();
+        ctx.moveTo(px - r * .30, py - r * .22);
+        ctx.lineTo(px + r * .26, py - r * .30);
+        ctx.lineTo(px + r * .32, py + r * .20);
+        ctx.lineTo(px - r * .22, py + r * .28);
+        ctx.closePath();
+        ctx.fill();
+
+        ctx.restore();
+
+    });
+
+    /* --- les epaules : deux gros blocs --- */
+    ctx.fillStyle = pg;
+
+    [-1, 1].forEach(sg => {
+        ctx.beginPath();
+        ctx.moveTo(sg * r * .46, -r * .88);
+        ctx.lineTo(sg * r * 1.16, -r * .74);
+        ctx.lineTo(sg * r * 1.12, -r * .24);
+        ctx.lineTo(sg * r * .52, -r * .34);
+        ctx.closePath();
+        ctx.fill();
+        ctx.strokeStyle = "rgba(175,210,245,.30)";
+        ctx.lineWidth   = r * .035;
+        ctx.stroke();
+    });
+
+    /* --- le torse --- */
+    ctx.fillStyle = pg;
+    ctx.beginPath();
+    ctx.moveTo(-r * .62, r * .52);
+    ctx.lineTo(-r * .82, -r * .52);
+    ctx.lineTo(-r * .52, -r * .84);
+    ctx.lineTo(r * .52, -r * .84);
+    ctx.lineTo(r * .82, -r * .52);
+    ctx.lineTo(r * .62, r * .52);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(175,210,245,.35)";
+    ctx.lineWidth   = r * .04;
+    ctx.stroke();
+
+    /* les joints entre les blocs */
+    ctx.strokeStyle = "rgba(8,13,20,.85)";
+    ctx.lineWidth   = r * .06;
+
+    ctx.beginPath();
+    ctx.moveTo(-r * .74, -r * .18);
+    ctx.lineTo(r * .74, -r * .18);
+    ctx.moveTo(-r * .68, r * .18);
+    ctx.lineTo(r * .68, r * .18);
+    ctx.moveTo(r * .05, -r * .84);
+    ctx.lineTo(r * .05, -r * .18);
+    ctx.moveTo(-r * .22, r * .18);
+    ctx.lineTo(-r * .22, r * .52);
+    ctx.stroke();
+
+    /* --- le coeur : les fissures qui s'allument --- */
+    const feu = chg ? .55 + (1 - col.st / 1.05) * .45 : inv ? 1 : .45;
+
+    ctx.strokeStyle = ph.col;
+    ctx.lineWidth   = r * .06;
+    ctx.globalAlpha = feu * bat;
+    ctx.shadowBlur  = r * .55 * feu;
+    ctx.shadowColor = ph.col;
+
+    ctx.beginPath();
+    ctx.moveTo(-r * .36, -r * .70);
+    ctx.lineTo(-r * .10, -r * .10);
+    ctx.lineTo(-r * .30, r * .40);
+    ctx.moveTo(r * .34, -r * .60);
+    ctx.lineTo(r * .10, r * .02);
+    ctx.lineTo(r * .28, r * .46);
+    ctx.stroke();
+
+    const cg = ctx.createRadialGradient(0, -r * .16, 0, 0, -r * .16, r * .46);
+    cg.addColorStop(0, hexA(ph.col, .75 * feu));
+    cg.addColorStop(1, hexA(ph.col, 0));
+
+    ctx.fillStyle = cg;
+    ctx.beginPath();
+    ctx.arc(0, -r * .16, r * .46, 0, Math.PI * 2);
+    ctx.fill();
+
+    ctx.shadowBlur  = 0;
+    ctx.globalAlpha = 1;
+
+    /* --- la tete --- */
+    ctx.fillStyle = pg;
+    ctx.beginPath();
+    ctx.moveTo(-r * .40, -r * .84);
+    ctx.lineTo(-r * .34, -r * 1.36);
+    ctx.lineTo(-r * .14, -r * 1.52);
+    ctx.lineTo(r * .14, -r * 1.52);
+    ctx.lineTo(r * .34, -r * 1.36);
+    ctx.lineTo(r * .40, -r * .84);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.strokeStyle = "rgba(175,210,245,.4)";
+    ctx.lineWidth   = r * .04;
+    ctx.stroke();
+
+    /* les yeux : deux fentes */
+    ctx.shadowBlur  = r * .7 * feu;
+    ctx.shadowColor = ph.col;
+    ctx.fillStyle   = ph.col;
+
+    [-1, 1].forEach(sg => {
+        const ex = sg * r * .17 + col.face * r * .04, ey = -r * 1.20;
+        ctx.beginPath();
+        ctx.moveTo(ex - r * .12, ey - r * .04);
+        ctx.lineTo(ex + r * .12, ey + r * .01);
+        ctx.lineTo(ex + r * .12, ey + r * .08);
+        ctx.lineTo(ex - r * .12, ey + r * .05);
+        ctx.closePath();
+        ctx.fill();
+    });
+
+    ctx.shadowBlur = 0;
+
+    ctx.restore();
+
+    /* la poigne : il te tient */
+    if(col.grab > 0){
+
+        ctx.save();
+        ctx.globalAlpha = .5 + Math.sin(col.t * 30) * .25;
+        ctx.strokeStyle = "#ff6a5a";
+        ctx.lineWidth   = 5 * unit;
+        ctx.beginPath();
+        ctx.arc(player.x, player.y, player.r + 16 * unit, 0, Math.PI * 2);
+        ctx.stroke();
+        ctx.restore();
+
+    }
+
+}
+
+
 function drawColFront(){
 
     const a = playArea();
+
+    drawColosse();
 
     /* --- le poing annonce --- */
     if(col && col.poing > 0){
@@ -15311,12 +15600,166 @@ function drawColFront(){
 
 
 /* ---------------------------------------------------------
+   L'ORAGE
+
+   Les ruines flottent au milieu des nuages : il pleut, et
+   la foudre tombe. C'est du decor, pas un piege : rien ici
+   ne te blesse. Mais quand l'eclair passe, on voit tout.
+--------------------------------------------------------- */
+
+let orage = null;
+
+
+function initOrage(){
+
+    orage = {
+        flash:0,
+        next:2.2 + rnd() * 3.5,
+        bolt:null,
+        boltT:0,
+        gouttes:[]
+    };
+
+    for(let i = 0; i < 90; i++){
+        orage.gouttes.push({
+            x:rnd() * W * 1.3 - W * .15,
+            y:rnd() * H,
+            lg:(16 + rnd() * 30) * unit,
+            sp:(620 + rnd() * 620) * unit,
+            al:.10 + rnd() * .22
+        });
+    }
+
+}
+
+
+function faisEclair(){
+
+    const pts = [];
+
+    let x = W * (.15 + rnd() * .7);
+    let y = -H * .05;
+
+    const bas = H * (.45 + rnd() * .35);
+
+    while(y < bas){
+        pts.push([x, y]);
+        y += H * (.06 + rnd() * .08);
+        x += (rnd() - .5) * W * .13;
+    }
+
+    pts.push([x, bas]);
+
+    return pts;
+
+}
+
+
+function majOrage(dt){
+
+    if(!orage){ initOrage(); }
+
+    for(const g of orage.gouttes){
+
+        g.y += g.sp * dt;
+        g.x += g.sp * .16 * dt;
+
+        if(g.y > H){
+            g.y = -40 * unit;
+            g.x = rnd() * W * 1.3 - W * .15;
+        }
+
+    }
+
+    if(orage.flash > 0){ orage.flash = Math.max(0, orage.flash - dt * 2.4); }
+    if(orage.boltT > 0){ orage.boltT = Math.max(0, orage.boltT - dt); }
+
+    orage.next -= dt;
+
+    if(orage.next <= 0){
+
+        orage.next  = 3.5 + rnd() * 6.5;
+        orage.flash = 1;
+        orage.bolt  = faisEclair();
+        orage.boltT = .38;
+
+        sound(64, 1.2, "sawtooth", .05);
+        sound(190, .18, "square", .04);
+
+        if(typeof foretShake !== "undefined"){
+            foretShake = Math.max(foretShake, .22);
+        }
+
+        buzz([25]);
+
+    }
+
+}
+
+
+function drawOrage(){
+
+    if(!orage){ return; }
+
+    ctx.save();
+
+    /* la pluie */
+    ctx.strokeStyle = "#bcd8f2";
+    ctx.lineWidth   = Math.max(1, 1.4 * unit);
+
+    for(const g of orage.gouttes){
+        ctx.globalAlpha = g.al * (1 + orage.flash * 1.2);
+        ctx.beginPath();
+        ctx.moveTo(g.x, g.y);
+        ctx.lineTo(g.x - g.lg * .16, g.y - g.lg);
+        ctx.stroke();
+    }
+
+    /* l'eclair */
+    if(orage.boltT > 0 && orage.bolt){
+
+        const k = orage.boltT / .38;
+
+        ctx.globalAlpha = k;
+        ctx.shadowBlur  = 26 * unit;
+        ctx.shadowColor = "#cfe8ff";
+
+        ctx.strokeStyle = "#eaf6ff";
+        ctx.lineWidth   = 4 * unit;
+        ctx.lineJoin    = "round";
+
+        ctx.beginPath();
+        ctx.moveTo(orage.bolt[0][0], orage.bolt[0][1]);
+        for(let i = 1; i < orage.bolt.length; i++){
+            ctx.lineTo(orage.bolt[i][0], orage.bolt[i][1]);
+        }
+        ctx.stroke();
+
+        ctx.shadowBlur = 0;
+
+    }
+
+    /* le ciel qui blanchit */
+    if(orage.flash > 0){
+        ctx.globalAlpha = orage.flash * .30;
+        ctx.fillStyle   = "#dceaff";
+        ctx.fillRect(0, 0, W, H);
+    }
+
+    ctx.restore();
+
+}
+
+
+/* ---------------------------------------------------------
    LA BOUCLE DU MONDE 2
 --------------------------------------------------------- */
 
 function updateRuines(dt){
 
     const a = playArea();
+
+    majOrage(dt);
 
     /* la poussiere qui monte : le monde flotte */
     for(const p of poussieres){
@@ -15429,6 +15872,8 @@ function drawRuines(){
     drawGargouilles();
     drawColFront();
 
+    drawOrage();
+
     if(ruinIntro > 0){
         const k = 1 - Math.abs(ruinIntro - 2) / 2;
         ctx.save();
@@ -15474,6 +15919,8 @@ function enterRuines(){
     player.invincible = 2.4;
 
     poussieres = [];
+
+    orage = null;
 
     for(let i = 0; i < 34; i++){
         poussieres.push({
