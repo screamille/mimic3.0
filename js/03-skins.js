@@ -126,7 +126,14 @@ const SKINS = [
     {id:"matrice",   name:"MATRICE SLIME",   color:"#3fe87a", color2:"#04120a", price:500,  effect:"matrice",   rarity:3},
     {id:"ormassif",  name:"OR MASSIF SLIME", color:"#ffd76a", color2:"#6a4208", price:500,  effect:"ormassif",  rarity:3},
     {id:"trounoir",  name:"TROU NOIR SLIME", color:"#1a1030", color2:"#04020c", price:500,  effect:"trounoir",  rarity:3},
-    {id:"papillon",  name:"PAPILLON SLIME",  color:"#6a8fff", color2:"#2a1a6a", price:500,  effect:"papillon",  rarity:3}
+    {id:"papillon",  name:"PAPILLON SLIME",  color:"#6a8fff", color2:"#2a1a6a", price:500,  effect:"papillon",  rarity:3},
+
+    /* --- les cinq legendaires --- */
+    {id:"demon",     name:"DÉMON SLIME",     color:"#ff3b2f", color2:"#150609", price:800, effect:"demon",     rarity:3},
+    {id:"seraphin",  name:"SÉRAPHIN SLIME",  color:"#fff0bf", color2:"#e0a52c", price:800, effect:"seraphin",  rarity:3},
+    {id:"kraken",    name:"KRAKEN SLIME",    color:"#2fd6b0", color2:"#06222c", price:800, effect:"kraken",    rarity:3},
+    {id:"faucheuse", name:"FAUCHEUSE SLIME", color:"#7bff9c", color2:"#0c0f16", price:800, effect:"faucheuse", rarity:3},
+    {id:"chevalier", name:"CHEVALIER NOIR",  color:"#9aa7bd", color2:"#161b26", price:800, effect:"chevalier", rarity:3}
 ];
 
 
@@ -2365,6 +2372,409 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
 
     }
 
+    /* DÉMON : les cornes et les braises */
+    if(skin.effect === "demon"){
+
+        const bat = .55 + Math.abs(Math.sin(t * 2.2)) * .45;
+
+        /* l'arc de feu derriere */
+        c.globalAlpha = .32 * bat;
+        c.strokeStyle = "#ff3b2f";
+        c.lineWidth   = r * .09;
+        c.shadowBlur  = r * .55;
+        c.shadowColor = "#ff3b2f";
+        c.beginPath();
+        c.arc(0, -h * .05, r * 1.32, Math.PI * 1.12, Math.PI * 1.88);
+        c.stroke();
+        c.globalAlpha = 1;
+        c.shadowBlur  = 0;
+
+        /* les cornes : epaisses a la base, recourbees vers le haut */
+        [-1, 1].forEach(sg => {
+
+            const cg = c.createLinearGradient(sg * w * .3, -h * .5, sg * w * .95, -h * 1.6);
+            cg.addColorStop(0,   "#6b2a1c");
+            cg.addColorStop(.35, "#a84022");
+            cg.addColorStop(.7,  "#d96a2e");
+            cg.addColorStop(1,   "#ffd9a0");
+
+            c.fillStyle = cg;
+
+            c.beginPath();
+            /* bord exterieur : il monte franchement */
+            c.moveTo(sg * w * .10, -h * .56);
+            c.quadraticCurveTo(sg * w * .74, -h * .94, sg * w * .94, -h * 1.66);
+            /* la pointe */
+            c.lineTo(sg * w * .74, -h * 1.62);
+            /* bord interieur : la corne s'epaissit vers la base */
+            c.quadraticCurveTo(sg * w * .48, -h * 1.02, sg * w * .56, -h * .70);
+            c.closePath();
+            c.fill();
+
+            /* le contour, pour qu'elle se detache du corps sombre */
+            c.strokeStyle = "rgba(255,180,110,.55)";
+            c.lineWidth   = r * .035;
+            c.stroke();
+
+            /* les anneaux de la corne */
+            c.strokeStyle = "rgba(60,14,8,.6)";
+            c.lineWidth   = r * .03;
+
+            for(let i = 1; i <= 3; i++){
+                const k = i / 4;
+                c.beginPath();
+                c.moveTo(sg * w * (.14 + .74 * k), -h * (.62 + .72 * k));
+                c.lineTo(sg * w * (.50 + .30 * k), -h * (.76 + .70 * k));
+                c.stroke();
+            }
+
+        });
+
+        /* les braises */
+        for(let i = 0; i < 7; i++){
+
+            const k = (t * .8 + i * .14) % 1;
+
+            c.globalAlpha = (1 - k) * .9;
+            c.fillStyle   = k < .45 ? "#ffe08a" : "#ff5a1f";
+
+            c.beginPath();
+            c.arc(
+                Math.sin(i * 2.1 + t * 1.4) * w * .9,
+                -h * .4 - k * r * 1.8,
+                r * (.06 - k * .03), 0, Math.PI * 2
+            );
+            c.fill();
+
+        }
+
+        c.globalAlpha = 1;
+
+    }
+
+    /* SÉRAPHIN : les ailes de plumes et l'aureole */
+    if(skin.effect === "seraphin"){
+
+        const bat = Math.sin(t * 2.2) * .12;
+
+        c.shadowBlur  = r * .5;
+        c.shadowColor = "#ffeab0";
+
+        [-1, 1].forEach(sg => {
+
+            c.save();
+            c.translate(sg * w * .58, -h * .18);
+            c.rotate(sg * bat);
+
+            /* quatre plumes, de la plus longue a la plus courte */
+            [[1.00, -.62], [.88, -.30], [.72, -.02], [.55, .26]].forEach((pl, n) => {
+
+                const lg = pl[0];
+                const an = pl[1];
+
+                const pg = c.createLinearGradient(0, 0, sg * w * 1.9 * lg, -h * .5);
+                pg.addColorStop(0,   "#ffffff");
+                pg.addColorStop(.55, "#fff6d8");
+                pg.addColorStop(1,   "#efc363");
+
+                c.fillStyle = pg;
+
+                c.save();
+                c.rotate(sg * an);
+
+                c.beginPath();
+                c.moveTo(0, h * .02);
+                c.quadraticCurveTo(sg * w * 1.05 * lg, -h * .52 * lg, sg * w * 1.86 * lg, -h * .34 * lg);
+                c.quadraticCurveTo(sg * w * 1.55 * lg, -h * .04 * lg, sg * w * 1.00 * lg, h * .20 * lg);
+                c.quadraticCurveTo(sg * w * .50 * lg, h * .26 * lg, 0, h * .22);
+                c.closePath();
+                c.fill();
+
+                /* la nervure */
+                c.strokeStyle = "rgba(205,150,45,.45)";
+                c.lineWidth   = r * .028;
+                c.beginPath();
+                c.moveTo(0, h * .08);
+                c.quadraticCurveTo(sg * w * 1.05 * lg, -h * .18 * lg, sg * w * 1.80 * lg, -h * .24 * lg);
+                c.stroke();
+
+                c.restore();
+
+            });
+
+            c.restore();
+
+        });
+
+        c.shadowBlur = 0;
+
+        /* l'aureole */
+        c.strokeStyle = "#ffd76a";
+        c.lineWidth   = r * .09;
+        c.shadowBlur  = r * .55;
+        c.shadowColor = "#ffe9a8";
+
+        c.beginPath();
+        c.ellipse(0, -h * 1.22 + Math.sin(t * 1.6) * r * .05, w * .60, h * .16, 0, 0, Math.PI * 2);
+        c.stroke();
+
+        c.shadowBlur = 0;
+
+    }
+
+    /* KRAKEN : les tentacules */
+    if(skin.effect === "kraken"){
+
+        /* le nuage d'encre, derriere */
+        for(let i = 0; i < 3; i++){
+            const k = (t * .3 + i * .33) % 1;
+            c.globalAlpha = (1 - k) * .22;
+            c.fillStyle   = "#031014";
+            c.beginPath();
+            c.arc(Math.sin(i * 2 + t * .6) * w * .8, h * .3 + k * h * .6, r * (.3 + k * .6), 0, Math.PI * 2);
+            c.fill();
+        }
+
+        c.globalAlpha = 1;
+
+        /* cinq tentacules : une file de disques qui s'affinent */
+        for(let i = 0; i < 5; i++){
+
+            const sg = (i - 2) / 2;
+            const bx = (i - 2) * w * .40;
+            const on = Math.sin(t * 1.8 + i * 1.05);
+
+            /* les points de controle de la courbe */
+            const x1 = bx + sg * w * .95 + on * w * .18;
+            const y1 = h * .78;
+            const x2 = bx + sg * w * .62 + on * w * .42;
+            const y2 = h * 1.52;
+
+            for(let k = 0; k <= 16; k++){
+
+                const p  = k / 16;
+                const q  = 1 - p;
+
+                const px = q * q * bx + 2 * q * p * x1 + p * p * x2;
+                const py = q * q * (h * .38) + 2 * q * p * y1 + p * p * y2;
+
+                const ep = r * (.24 - p * p * .195);
+
+                c.fillStyle = "rgb(" +
+                    Math.round(47 + (6 - 47) * p) + "," +
+                    Math.round(214 + (34 - 214) * p) + "," +
+                    Math.round(176 + (44 - 176) * p) + ")";
+
+                c.beginPath();
+                c.arc(px, py, ep, 0, Math.PI * 2);
+                c.fill();
+
+                /* les ventouses, sur le dessous */
+                if(k > 4 && k % 3 === 0){
+                    c.fillStyle = "#b6ffee";
+                    c.globalAlpha = .85;
+                    c.beginPath();
+                    c.arc(px, py + ep * .45, ep * .28, 0, Math.PI * 2);
+                    c.fill();
+                    c.globalAlpha = 1;
+                }
+
+            }
+
+        }
+
+    }
+
+    /* FAUCHEUSE : la faux et la capuche */
+    if(skin.effect === "faucheuse"){
+
+        /* la faux, derriere */
+        c.save();
+        c.rotate(Math.sin(t * .8) * .04);
+
+        /* le manche */
+        const mg = c.createLinearGradient(w * .9, h * 1.1, w * .5, -h * 1.6);
+        mg.addColorStop(0, "#1a140e");
+        mg.addColorStop(1, "#453423");
+
+        c.strokeStyle = mg;
+        c.lineCap     = "round";
+        c.lineWidth   = r * .09;
+
+        c.beginPath();
+        c.moveTo(w * .92, h * 1.15);
+        c.lineTo(w * .58, -h * 1.62);
+        c.stroke();
+
+        /* la lame : un croissant qui part du manche et finit en pointe */
+        c.shadowBlur  = r * .5;
+        c.shadowColor = "#7bff9c";
+
+        const lam = c.createLinearGradient(w * .6, -h * 1.7, -w * 1.4, -h * 1.0);
+        lam.addColorStop(0,   "#f2fff6");
+        lam.addColorStop(.45, "#8dffb0");
+        lam.addColorStop(1,   "#1f8f52");
+
+        c.fillStyle = lam;
+
+        c.beginPath();
+        c.moveTo(w * .58, -h * 1.62);
+        c.quadraticCurveTo(-w * .30, -h * 2.15, -w * 1.55, -h * 1.30);
+        c.quadraticCurveTo(-w * .70, -h * 1.62, w * .50, -h * 1.30);
+        c.closePath();
+        c.fill();
+
+        /* le fil de la lame */
+        c.strokeStyle = "rgba(255,255,255,.75)";
+        c.lineWidth   = r * .03;
+        c.beginPath();
+        c.moveTo(w * .58, -h * 1.62);
+        c.quadraticCurveTo(-w * .30, -h * 2.15, -w * 1.55, -h * 1.30);
+        c.stroke();
+
+        c.shadowBlur = 0;
+        c.restore();
+
+        /* la capuche : elle coiffe le haut, les yeux restent dessous */
+        const cap = c.createLinearGradient(0, -h * 1.45, 0, -h * .45);
+        cap.addColorStop(0,  "#242c36");
+        cap.addColorStop(.6, "#12171e");
+        cap.addColorStop(1,  "#06090d");
+
+        c.fillStyle = cap;
+
+        c.beginPath();
+        c.moveTo(-w * .88, -h * .48);
+        c.quadraticCurveTo(-w * .96, -h * 1.34, 0, -h * 1.50);
+        c.quadraticCurveTo(w * .96, -h * 1.34, w * .88, -h * .48);
+        c.quadraticCurveTo(w * .44, -h * .74, 0, -h * .72);
+        c.quadraticCurveTo(-w * .44, -h * .74, -w * .88, -h * .48);
+        c.closePath();
+        c.fill();
+
+        /* la lueur verte sous la capuche */
+        c.globalAlpha = .55;
+
+        const lu = c.createLinearGradient(0, -h * .78, 0, -h * .40);
+        lu.addColorStop(0, "rgba(123,255,156,.55)");
+        lu.addColorStop(1, "rgba(123,255,156,0)");
+
+        c.fillStyle = lu;
+        c.beginPath();
+        c.moveTo(-w * .80, -h * .50);
+        c.quadraticCurveTo(0, -h * .70, w * .80, -h * .50);
+        c.quadraticCurveTo(0, -h * .30, -w * .80, -h * .50);
+        c.closePath();
+        c.fill();
+
+        c.globalAlpha = 1;
+
+        /* le bord de la capuche */
+        c.strokeStyle = "rgba(123,255,156,.30)";
+        c.lineWidth   = r * .035;
+        c.beginPath();
+        c.moveTo(-w * .88, -h * .48);
+        c.quadraticCurveTo(-w * .96, -h * 1.34, 0, -h * 1.50);
+        c.quadraticCurveTo(w * .96, -h * 1.34, w * .88, -h * .48);
+        c.stroke();
+
+    }
+
+    /* CHEVALIER NOIR : le heaume et les epaulieres */
+    if(skin.effect === "chevalier"){
+
+        const mg = c.createLinearGradient(-w * .8, -h * 1.5, w * .8, -h * .3);
+        mg.addColorStop(0,   "#8f9db3");
+        mg.addColorStop(.42, "#454f60");
+        mg.addColorStop(1,   "#141924");
+
+        /* les epaulieres : des plaques posees sur les epaules */
+        [-1, 1].forEach(sg => {
+
+            c.fillStyle = mg;
+
+            c.beginPath();
+            c.moveTo(sg * w * .46, -h * .10);
+            c.quadraticCurveTo(sg * w * 1.34, -h * .26, sg * w * 1.26, h * .52);
+            c.quadraticCurveTo(sg * w * .86, h * .66, sg * w * .50, h * .40);
+            c.closePath();
+            c.fill();
+
+            c.strokeStyle = "rgba(190,205,225,.35)";
+            c.lineWidth   = r * .03;
+            c.stroke();
+
+            /* la nervure de la plaque */
+            c.beginPath();
+            c.moveTo(sg * w * .62, h * .08);
+            c.quadraticCurveTo(sg * w * 1.09, 0, sg * w * 1.16, h * .40);
+            c.stroke();
+
+            /* la pointe, plantee dans la plaque */
+            const pg = c.createLinearGradient(sg * w * 1.0, -h * .40, sg * w * 1.5, -h * .90);
+            pg.addColorStop(0, "#3c4553");
+            pg.addColorStop(1, "#c3d0e2");
+
+            c.fillStyle = pg;
+
+            c.beginPath();
+            c.moveTo(sg * w * .98, -h * .16);
+            c.lineTo(sg * w * 1.54, -h * .78);
+            c.lineTo(sg * w * 1.20, h * .10);
+            c.closePath();
+            c.fill();
+
+        });
+
+        /* le heaume, en haut : il ne descend pas sur les yeux */
+        c.fillStyle = mg;
+
+        c.beginPath();
+        c.moveTo(-w * .78, -h * .60);
+        c.quadraticCurveTo(-w * .86, -h * 1.36, 0, -h * 1.48);
+        c.quadraticCurveTo(w * .86, -h * 1.36, w * .78, -h * .60);
+        c.quadraticCurveTo(w * .40, -h * .82, 0, -h * .80);
+        c.quadraticCurveTo(-w * .40, -h * .82, -w * .78, -h * .60);
+        c.closePath();
+        c.fill();
+
+        c.strokeStyle = "rgba(200,215,235,.4)";
+        c.lineWidth   = r * .035;
+        c.stroke();
+
+        /* le nasal */
+        c.fillStyle = "#5b6678";
+        c.fillRect(-w * .06, -h * 1.34, w * .12, h * .58);
+
+        /* la fente de la visiere */
+        c.shadowBlur  = r * .5;
+        c.shadowColor = "#ff3b2f";
+        c.fillStyle   = "#ff4a3a";
+
+        [-1, 1].forEach(sg => {
+            c.beginPath();
+            c.moveTo(sg * w * .12, -h * 1.14);
+            c.lineTo(sg * w * .56, -h * 1.10);
+            c.lineTo(sg * w * .54, -h * 1.00);
+            c.lineTo(sg * w * .12, -h * 1.02);
+            c.closePath();
+            c.fill();
+        });
+
+        c.shadowBlur = 0;
+
+        /* le cimier */
+        c.fillStyle = "#8b1f1f";
+
+        c.beginPath();
+        c.moveTo(-r * .06, -h * 1.46);
+        c.quadraticCurveTo(0, -h * 2.00, r * .34 + Math.sin(t * 2) * r * .10, -h * 2.08);
+        c.quadraticCurveTo(r * .10, -h * 1.68, r * .12, -h * 1.42);
+        c.closePath();
+        c.fill();
+
+    }
+
     if(skin.effect === "ghost"){
 
         c.globalAlpha = .5;
@@ -2404,6 +2814,283 @@ function paintSkinInner(c, skin, w, h, r, t, f){
     c.globalAlpha = 1;
 
     const e = skin.effect;
+
+    /* ---------- DÉMON : l'obsidienne fendue ---------- */
+    if(e === "demon"){
+
+        const obs = c.createRadialGradient(0, -h * .1, r * .1, 0, 0, r * 1.5);
+        obs.addColorStop(0,   "#3a1013");
+        obs.addColorStop(.45, "#1c080c");
+        obs.addColorStop(1,   "#0a0305");
+
+        c.fillStyle = obs;
+        c.fillRect(-w * 1.5, -h * 1.5, w * 3, h * 3);
+
+        /* le coeur qui bat sous la roche */
+        const bat = .55 + Math.abs(Math.sin(t * 2.2)) * .45;
+
+        const feu = c.createRadialGradient(0, h * .1, 0, 0, h * .1, r * .95);
+        feu.addColorStop(0,  "rgba(255,190,80," + (.55 * bat).toFixed(3) + ")");
+        feu.addColorStop(.5, "rgba(255,80,30," + (.22 * bat).toFixed(3) + ")");
+        feu.addColorStop(1,  "rgba(120,10,0,0)");
+
+        c.fillStyle = feu;
+        c.beginPath();
+        c.arc(0, h * .1, r * .95, 0, Math.PI * 2);
+        c.fill();
+
+        /* les fissures de lave : un tronc, des branches */
+        c.lineCap     = "round";
+        c.shadowBlur  = r * .30 * bat;
+        c.shadowColor = "#ff7a1f";
+
+        for(let i = 0; i < 5; i++){
+
+            const a0 = i * 1.256 + Math.sin(t * .5 + i) * .12;
+
+            c.strokeStyle = i % 2 ? "#ff9a30" : "#ff4a18";
+            c.lineWidth   = r * .055;
+            c.globalAlpha = .55 + bat * .45;
+
+            c.beginPath();
+            c.moveTo(Math.cos(a0) * w * .10, Math.sin(a0) * h * .10);
+
+            let px = 0, py = 0;
+
+            for(let k = 1; k <= 3; k++){
+                const a = a0 + Math.sin(k * 1.7 + i) * .38;
+                px = Math.cos(a) * w * (.34 * k);
+                py = Math.sin(a) * h * (.34 * k);
+                c.lineTo(px, py);
+            }
+
+            c.stroke();
+
+            /* une branche qui repart */
+            c.lineWidth = r * .028;
+            c.beginPath();
+            c.moveTo(px, py);
+            c.lineTo(px + Math.cos(a0 + 1.1) * w * .26, py + Math.sin(a0 + 1.1) * h * .26);
+            c.stroke();
+
+        }
+
+        c.shadowBlur  = 0;
+        c.globalAlpha = 1;
+
+        return;
+
+    }
+
+    /* ---------- SÉRAPHIN : la lumiere en anneaux ---------- */
+    if(e === "seraphin"){
+
+        const ciel = c.createRadialGradient(0, -h * .2, r * .05, 0, 0, r * 1.4);
+        ciel.addColorStop(0,   "#fffdf2");
+        ciel.addColorStop(.5,  "#ffeeb8");
+        ciel.addColorStop(1,   "#e8b845");
+
+        c.fillStyle = ciel;
+        c.fillRect(-w * 1.5, -h * 1.5, w * 3, h * 3);
+
+        /* les rayons qui tournent */
+        c.globalAlpha = .30;
+        c.fillStyle   = "#fffbe6";
+
+        for(let i = 0; i < 12; i++){
+
+            const a = i * Math.PI / 6 + t * .22;
+
+            c.beginPath();
+            c.moveTo(0, 0);
+            c.lineTo(Math.cos(a) * w * 1.6, Math.sin(a) * h * 1.6);
+            c.lineTo(Math.cos(a + .16) * w * 1.6, Math.sin(a + .16) * h * 1.6);
+            c.closePath();
+            c.fill();
+
+        }
+
+        /* les anneaux d'or */
+        c.globalAlpha = .5;
+        c.strokeStyle = "#e6a521";
+
+        for(let i = 0; i < 3; i++){
+            c.lineWidth = r * .045;
+            c.beginPath();
+            c.arc(0, 0, r * (.34 + i * .26) + Math.sin(t * 1.6 + i) * r * .03, 0, Math.PI * 2);
+            c.stroke();
+        }
+
+        c.globalAlpha = 1;
+
+        return;
+
+    }
+
+    /* ---------- KRAKEN : l'encre et les abysses ---------- */
+    if(e === "kraken"){
+
+        const eau = c.createLinearGradient(0, -h, 0, h);
+        eau.addColorStop(0,   "#0c4a53");
+        eau.addColorStop(.55, "#083038");
+        eau.addColorStop(1,   "#04161d");
+
+        c.fillStyle = eau;
+        c.fillRect(-w * 1.5, -h * 1.5, w * 3, h * 3);
+
+        /* le tourbillon d'encre */
+        c.globalAlpha = .35;
+        c.strokeStyle = "#031014";
+        c.lineCap     = "round";
+
+        for(let i = 0; i < 3; i++){
+
+            c.lineWidth = r * (.18 - i * .04);
+
+            c.beginPath();
+
+            for(let k = 0; k <= 26; k++){
+                const a  = k * .28 + i * 2.1 + t * .5;
+                const rr = r * (.10 + k * .045);
+                if(rr > r * 1.3){ break; }
+                c.lineTo(Math.cos(a) * rr, Math.sin(a) * rr * .85);
+            }
+
+            c.stroke();
+
+        }
+
+        /* la bioluminescence */
+        c.globalAlpha = 1;
+
+        for(let i = 0; i < 9; i++){
+
+            const a  = i * 1.4 + t * .3;
+            const rr = r * (.3 + (i % 3) * .3);
+            const px = Math.cos(a) * rr;
+            const py = Math.sin(a * 1.3) * rr * .8;
+            const sz = r * .08 * (.6 + Math.abs(Math.sin(t * 2 + i)) * .6);
+
+            const g = c.createRadialGradient(px, py, 0, px, py, sz * 3);
+            g.addColorStop(0,  "rgba(120,255,225,.95)");
+            g.addColorStop(.4, "rgba(47,214,176,.35)");
+            g.addColorStop(1,  "rgba(47,214,176,0)");
+
+            c.fillStyle = g;
+            c.beginPath();
+            c.arc(px, py, sz * 3, 0, Math.PI * 2);
+            c.fill();
+
+        }
+
+        return;
+
+    }
+
+    /* ---------- FAUCHEUSE : le vide et les ames ---------- */
+    if(e === "faucheuse"){
+
+        const nuit = c.createRadialGradient(0, -h * .1, r * .05, 0, 0, r * 1.4);
+        nuit.addColorStop(0,   "#1b2230");
+        nuit.addColorStop(.5,  "#0e1219");
+        nuit.addColorStop(1,   "#05070a");
+
+        c.fillStyle = nuit;
+        c.fillRect(-w * 1.5, -h * 1.5, w * 3, h * 3);
+
+        /* les ames qui montent */
+        for(let i = 0; i < 6; i++){
+
+            const k  = (t * .35 + i * .17) % 1;
+            const px = Math.sin(i * 2.3 + t * .8) * w * .55;
+            const py = h * .9 - k * h * 1.9;
+            const sz = r * (.20 - k * .10);
+
+            const g = c.createRadialGradient(px, py, 0, px, py, sz * 2.6);
+            g.addColorStop(0,  "rgba(160,255,180," + ((1 - k) * .55).toFixed(3) + ")");
+            g.addColorStop(.5, "rgba(90,220,130," + ((1 - k) * .22).toFixed(3) + ")");
+            g.addColorStop(1,  "rgba(60,180,110,0)");
+
+            c.fillStyle = g;
+            c.beginPath();
+            c.arc(px, py, sz * 2.6, 0, Math.PI * 2);
+            c.fill();
+
+        }
+
+        /* la brume verte au fond */
+        c.globalAlpha = .18;
+        c.strokeStyle = "#7bff9c";
+        c.lineWidth   = r * .05;
+
+        for(let i = 0; i < 3; i++){
+            c.beginPath();
+            for(let k = -3; k <= 3; k++){
+                c.lineTo(k * w * .28, h * (.2 + i * .3) + Math.sin(k * .9 + t * 1.2 + i) * h * .10);
+            }
+            c.stroke();
+        }
+
+        c.globalAlpha = 1;
+
+        return;
+
+    }
+
+    /* ---------- CHEVALIER NOIR : l'acier ---------- */
+    if(e === "chevalier"){
+
+        const acier = c.createLinearGradient(-w, -h, w, h);
+        acier.addColorStop(0,   "#8e9bb2");
+        acier.addColorStop(.32, "#4e5766");
+        acier.addColorStop(.68, "#2b323e");
+        acier.addColorStop(1,   "#12161f");
+
+        c.fillStyle = acier;
+        c.fillRect(-w * 1.5, -h * 1.5, w * 3, h * 3);
+
+        /* les plaques */
+        c.globalAlpha = .55;
+        c.strokeStyle = "#0b0f16";
+        c.lineWidth   = Math.max(1, r * .035);
+
+        for(let i = -2; i <= 2; i++){
+            c.beginPath();
+            c.moveTo(-w * 1.4, i * h * .40);
+            c.quadraticCurveTo(0, i * h * .40 + h * .12, w * 1.4, i * h * .40);
+            c.stroke();
+        }
+
+        /* les rivets */
+        c.globalAlpha = .7;
+        c.fillStyle   = "#aab6c9";
+
+        for(let i = -2; i <= 2; i++){
+            for(let k = -1; k <= 1; k++){
+                c.beginPath();
+                c.arc(k * w * .52, i * h * .40 - h * .16, r * .032, 0, Math.PI * 2);
+                c.fill();
+            }
+        }
+
+        /* le reflet qui glisse sur le metal */
+        const sh = ((t * .45) % 1) * 2 - 1;
+
+        c.globalAlpha = .28;
+
+        const bril = c.createLinearGradient(sh * w * 1.4 - w * .35, -h, sh * w * 1.4 + w * .35, h);
+        bril.addColorStop(0,  "rgba(255,255,255,0)");
+        bril.addColorStop(.5, "rgba(255,255,255,.9)");
+        bril.addColorStop(1,  "rgba(255,255,255,0)");
+
+        c.fillStyle = bril;
+        c.fillRect(-w * 1.5, -h * 1.5, w * 3, h * 3);
+
+        c.globalAlpha = 1;
+
+        return;
+
+    }
 
     /* ---------- COLOSSE : la pierre et ses veines ---------- */
     if(e === "colosse"){
