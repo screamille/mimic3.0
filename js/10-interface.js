@@ -587,7 +587,36 @@ La table est vide pour l'instant : on remettra des codes plus
 tard. Tout le mecanisme reste en place, il suffit d'ajouter
 une ligne ici pour en recreer un.
 */
+function unlockAllSkins(){
+
+    let n = 0;
+
+    for(const sk of SKINS){
+        if(!ownedSkins.includes(sk.id)){
+            ownedSkins.push(sk.id);
+            n++;
+        }
+    }
+
+    saveGame();
+
+    if(typeof renderShop === "function"){
+        try{ renderShop(); }catch(e){}
+    }
+
+    backFromCode();
+
+    return n;
+
+}
+
+
 const SECRET_CODES = {
+
+    "9999":{
+        get label(){ return T("code.allSkins"); },
+        run:unlockAllSkins
+    }
 
 };
 
@@ -619,27 +648,43 @@ function codeMessage(text, color){
 }
 
 
-function openCode(){
+let codeFrom = "menu";
+
+
+function openCode(from){
 
     playing = false;
     paused  = false;
 
+    codeFrom  = from || "menu";
     codeEntry = "";
 
     refreshCode();
     codeMessage("");
 
     document.getElementById("mainMenu").style.display   = "none";
+    document.getElementById("settings").style.display   = "none";
     document.getElementById("codeScreen").style.display = "flex";
 
 }
 
 
-function closeCode(){
+/* on revient exactement d'ou on venait : sinon, ecran noir */
+function backFromCode(){
 
     document.getElementById("codeScreen").style.display = "none";
-    document.getElementById("mainMenu").style.display   = "block";
 
+    if(codeFrom === "settings"){
+        document.getElementById("settings").style.display = "flex";
+    }else{
+        document.getElementById("mainMenu").style.display = "block";
+    }
+
+}
+
+
+function closeCode(){
+    backFromCode();
 }
 
 
@@ -1135,12 +1180,13 @@ if(!profile.name){
 }
 
 document.getElementById("retryButton").onclick     = () => rejouer();
-/* le bouton cle reviendra avec les prochains codes */
 const codeBtn = document.getElementById("codeButton");
 
 if(codeBtn){
-    codeBtn.onclick = openCode;
+    codeBtn.onclick = () => openCode("menu");
 }
+
+document.getElementById("codeSecretButton").onclick = () => openCode("settings");
 document.getElementById("codeBack").onclick   = closeCode;
 
 document.querySelectorAll(".keypad button").forEach(btn => {
