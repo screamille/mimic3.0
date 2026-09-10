@@ -36,7 +36,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
    du navigateur.
 ========================================================= */
 
-const VERSION = "10.7";
+const VERSION = "10.8";
 
 (function(){
 
@@ -2280,12 +2280,20 @@ function enterCandy(){
 let xpTotal    = Number(localStorage.getItem("mimicXP") || 0);
 let vibrateOn  = localStorage.getItem("mimicVibrate") !== "0";
 let records    = loadJSON("mimicRecords", {best:{}, bestTime:0, boss:0});
-let worldsSeen = loadJSON("mimicWorlds", ["cyber"]);
+let worldsSeen = loadJSON("mimicWorlds", ["foret"]);
+
+/* le dernier monde atteint : c'est la qu'on repart en REJOUANT */
+let lastZone = "foret";
+
+try{
+    const lz = localStorage.getItem("mimicLastZone");
+    if(lz){ lastZone = lz; }
+}catch(e){}
 let daily      = loadJSON("mimicDaily", null);
 
 if(!records || typeof records !== "object"){ records = {best:{}, bestTime:0, boss:0}; }
 if(!records.best) { records.best = {}; }
-if(!Array.isArray(worldsSeen) || !worldsSeen.length){ worldsSeen = ["cyber"]; }
+if(!Array.isArray(worldsSeen) || !worldsSeen.length){ worldsSeen = ["foret"]; }
 
 /* les compteurs de la partie en cours */
 let runCoins = 0, runGraze = 0, runCombo = 0, runNoHit = 0, runWorld = 1;
@@ -3891,7 +3899,7 @@ function worldUnlocked(zoneId){
     return zoneId === "foret" || worldsSeen.indexOf(zoneId) >= 0;
 }
 
-function noteWorld(zoneId){
+function noteWorld(zoneId, force){
 
     /*
     Chaque monde couvre exactement sa tranche de niveaux. En
@@ -3906,7 +3914,12 @@ function noteWorld(zoneId){
         level = w.from;
     }
 
-    if(byPortal && worldsSeen.indexOf(zoneId) < 0){
+    /*
+    "force" sert aux mondes qui ne s'atteignent pas par un
+    portail : la foret et la clairiere y arrivent par leur
+    propre animation.
+    */
+    if((force || byPortal) && worldsSeen.indexOf(zoneId) < 0){
 
         worldsSeen.push(zoneId);
         saveProgress();
@@ -10877,6 +10890,7 @@ let lucioles  = [];
 let gard       = null;
 let gardRoots  = [];
 let gardEpines = [];   /* la canopee d'epines, pendant le combat */
+let gardLianes = [];   /* les lianes qui balaient le couloir */
 let gardVoute  = 0;    /* 0 a 1 : elle descend quand il arrive */
 
 let foretIntro   = 0;      /* animation d'entree du boss */
@@ -10906,7 +10920,7 @@ function clearForet(){
     guepes = []; sangliers = []; ronces = []; champis = []; spores = [];
     /* le sanglier et le champignon sont retires du jeu : leur code
        reste, mais plus rien ne les fait naitre */
-    lucioles = []; gardRoots = []; gardEpines = []; gardVoute = 0;
+    lucioles = []; gardRoots = []; gardEpines = []; gardLianes = []; gardVoute = 0;
 
     gard       = null;
     foretIntro = 0;
@@ -10963,7 +10977,16 @@ function foretEnter(zoneId){
     addCoin();
     addOrb();
 
-    noteWorld(zoneId);
+    /*
+    Le "true" est ce qui manquait : sans lui le monde etait
+    traverse mais jamais enregistre, donc il restait
+    verrouille au menu.
+    */
+    noteWorld(zoneId, true);
+
+    lastZone = zoneId;
+
+    try{ localStorage.setItem("mimicLastZone", zoneId); }catch(e){}
 
     worldBanner(zoneId, zoneId === "foret" ? "🌲" : "🌾");
 
@@ -10980,6 +11003,7 @@ function enterForet(){
 
 function enterClairiere(){
     foretEnter("clairiere");
+    guepes = [];
 }
 
 
@@ -12015,7 +12039,10 @@ function updateGard(dt){
                 );
             }
 
-            gard.fire = 2.4;
+            /* une liane par-dessus, une fois sur deux */
+            if(rnd() < .5){ lanceLiane(1.3); }
+
+            gard.fire = 1.9;
 
         }else if(ph === 1){
 
@@ -12038,7 +12065,9 @@ function updateGard(dt){
 
             }
 
-            gard.fire = 3.4;
+            lanceLiane(1.2);
+
+            gard.fire = 2.7;
 
         }else{
 
@@ -12075,7 +12104,10 @@ function updateGard(dt){
                 );
             }
 
-            gard.fire = 3.6;
+            lanceLiane(1.1);
+            lanceLiane(2.6);
+
+            gard.fire = 2.9;
 
         }
 
@@ -12138,10 +12170,74 @@ function updateGard(dt){
 
     gardRoots = gardRoots.filter(r => !r.mort);
 
+
+    /* ---- les lianes ---- */
+    for(const l of gardLianes){
+
+        l.t -= dt;
+
+        if(l.phase === "marque"){
+
+            if(l.t <= 0){
+                l.phase = "passe";
+                sound(180, .35, "sawtooth", .05);
+            }
+
+            continue;
+
+        }
+
+        l.x += l.dir * 620 * unit * dt;
+
+        if(Math.abs(player.y - l.y) < l.ep * .55 + player.r * .5 &&
+           Math.abs(player.x - l.x) < l.lg * .5 + player.r * .5){
+
+            gardHit("liane");
+
+        }
+
+        if((l.dir > 0 && l.x > a.x1 + l.lg) || (l.dir < 0 && l.x < a.x0 - l.lg)){
+            l.mort = true;
+        }
+
+    }
+
+    gardLianes = gardLianes.filter(l => !l.mort);
+
 }
 
 
 /* une racine : elle sort TOUJOURS du bas, jamais d'ailleurs */
+/*
+LA LIANE : elle balaie le couloir a une hauteur annoncee.
+Les racines montent du sol, la voute ferme le haut — il
+manquait quelque chose qui traverse le milieu.
+*/
+function lanceLiane(delai){
+
+    const a = playArea();
+
+    /* elle passe entre la voute et le sommet des racines */
+    const haut = a.y0 + (a.y1 - a.y0) * .30;
+    const bas  = a.y1 - (a.y1 - a.y0) * .10;
+
+    const dir = rnd() < .5 ? 1 : -1;
+
+    gardLianes.push({
+        y:haut + rnd() * (bas - haut),
+        dir:dir,
+        x:dir > 0 ? a.x0 - 140 * unit : a.x1 + 140 * unit,
+        lg:120 * unit,
+        ep:26 * unit,
+        phase:"marque",
+        t:delai,
+        marque:delai,
+        onde:rnd() * 6.28
+    });
+
+}
+
+
 function pousseRacine(x, w, h, delai){
 
     /*
@@ -12312,9 +12408,130 @@ function drawEpines(){
 }
 
 
+function drawLianes(){
+
+    const a = playArea();
+
+    for(const l of gardLianes){
+
+        /* --- le couloir annonce --- */
+        if(l.phase === "marque"){
+
+            const k = 1 - l.t / l.marque;
+
+            ctx.save();
+
+            const lg = ctx.createLinearGradient(a.x0, 0, a.x1, 0);
+            lg.addColorStop(0,   "rgba(140,220,90,0)");
+            lg.addColorStop(.5,  "rgba(140,220,90," + (.10 + k * .16).toFixed(3) + ")");
+            lg.addColorStop(1,   "rgba(140,220,90,0)");
+
+            ctx.fillStyle = lg;
+            ctx.fillRect(a.x0, l.y - l.ep * .55, a.x1 - a.x0, l.ep * 1.1);
+
+            ctx.globalAlpha = .35 + Math.sin(l.t * 20) * .25;
+            ctx.strokeStyle = "#9fe86a";
+            ctx.lineWidth   = 2.5 * unit;
+            ctx.setLineDash([9 * unit, 8 * unit]);
+
+            ctx.beginPath();
+            ctx.moveTo(a.x0, l.y);
+            ctx.lineTo(a.x1, l.y);
+            ctx.stroke();
+
+            /* la fleche du cote d'ou elle vient */
+            ctx.setLineDash([]);
+            ctx.globalAlpha = .6;
+            ctx.fillStyle   = "#9fe86a";
+
+            const fx = l.dir > 0 ? a.x0 + 16 * unit : a.x1 - 16 * unit;
+
+            ctx.beginPath();
+            ctx.moveTo(fx, l.y - 9 * unit);
+            ctx.lineTo(fx, l.y + 9 * unit);
+            ctx.lineTo(fx + l.dir * 15 * unit, l.y);
+            ctx.closePath();
+            ctx.fill();
+
+            ctx.restore();
+
+            continue;
+
+        }
+
+        /* --- la liane --- */
+        ctx.save();
+        ctx.translate(l.x, l.y);
+
+        const ep = l.ep;
+
+        /* le corps, qui ondule */
+        const cg = ctx.createLinearGradient(0, -ep, 0, ep);
+        cg.addColorStop(0,   "#2a4a18");
+        cg.addColorStop(.45, "#4e7a26");
+        cg.addColorStop(1,   "#16290d");
+
+        ctx.fillStyle = cg;
+        ctx.beginPath();
+
+        for(let i = 0; i <= 12; i++){
+            const u = i / 12;
+            const x = -l.lg * .5 + l.lg * u;
+            const y = Math.sin(u * 6 + l.onde) * ep * .30;
+            const e = ep * .5 * (1 - Math.abs(u - .5) * .5);
+            if(i === 0){ ctx.moveTo(x, y - e); }else{ ctx.lineTo(x, y - e); }
+        }
+
+        for(let i = 12; i >= 0; i--){
+            const u = i / 12;
+            const x = -l.lg * .5 + l.lg * u;
+            const y = Math.sin(u * 6 + l.onde) * ep * .30;
+            const e = ep * .5 * (1 - Math.abs(u - .5) * .5);
+            ctx.lineTo(x, y + e);
+        }
+
+        ctx.closePath();
+        ctx.fill();
+
+        /* les epines, dessus et dessous */
+        ctx.fillStyle = "#c9e8a0";
+
+        for(let i = 1; i < 12; i += 2){
+
+            const u = i / 12;
+            const x = -l.lg * .5 + l.lg * u;
+            const y = Math.sin(u * 6 + l.onde) * ep * .30;
+            const sg = (i % 4 === 1) ? -1 : 1;
+
+            ctx.beginPath();
+            ctx.moveTo(x - ep * .16, y + sg * ep * .3);
+            ctx.lineTo(x + ep * .16, y + sg * ep * .3);
+            ctx.lineTo(x, y + sg * ep * .85);
+            ctx.closePath();
+            ctx.fill();
+
+        }
+
+        /* la trainee derriere elle */
+        ctx.globalAlpha = .3;
+        ctx.strokeStyle = "#9fe86a";
+        ctx.lineWidth   = ep * .18;
+        ctx.beginPath();
+        ctx.moveTo(-l.dir * l.lg * .5, 0);
+        ctx.lineTo(-l.dir * l.lg * 1.6, 0);
+        ctx.stroke();
+
+        ctx.restore();
+
+    }
+
+}
+
+
 function drawGardFront(){
 
     drawEpines();
+    drawLianes();
 
 
     const a = playArea();
@@ -13249,10 +13466,20 @@ function updateForest(dt){
         /* la voute descend en trois secondes, puis elle mord */
         gardVoute = Math.min(1, gardVoute + dt / 3);
 
-        const av = playArea();
+        /*
+        La voute est un plafond, pas un piege : elle arrete,
+        elle ne coute pas de vie. On repousse simplement le
+        joueur sous elle.
+        */
+        const av  = playArea();
+        const bas = av.y0 + epineBas(player.x);
 
-        if(gardVoute > .25 && player.y - player.r * .55 < av.y0 + epineBas(player.x)){
-            gardHit("epines");
+        if(player.y - player.r < bas){
+
+            player.y = bas + player.r;
+
+            if(playerVY < 0){ playerVY = 0; }
+
         }
 
         updateGard(dt);
@@ -13280,6 +13507,11 @@ function foretPeuple(){
     if(gard || foretIntro > 0 || foretEject > 0){ return; }
 
     const n = zone === "clairiere" ? 4 : level;
+
+    /* la clairiere n'a pas de guepes : elles restent dans la foret */
+    if(zone === "clairiere"){
+        return;
+    }
 
     /* le terrain reste degage : rien qui bloque le passage */
     if(guepes.length < Math.min(4, 1 + n)){ spawnGuepe(); }

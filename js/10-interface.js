@@ -761,6 +761,24 @@ function lobbyModeList(){
 
 
 /* lance une partie directement dans un monde donne */
+/*
+REJOUER ne renvoie plus au monde 1 : on repart la ou on en
+etait, si ce monde est bien ouvert.
+*/
+function rejouer(){
+
+    const z = worldUnlocked(lastZone) ? lastZone : "foret";
+
+    startGame();
+
+    if(z === "clairiere"){
+        level = 5;
+        enterClairiere();
+    }
+
+}
+
+
 function playWorld(zoneId){
 
     const wd = WORLDS.find(w => w.zone === zoneId);
@@ -1118,7 +1136,7 @@ if(!profile.name){
     setTimeout(() => openHello(false), 400);
 }
 
-document.getElementById("retryButton").onclick     = () => startGame();
+document.getElementById("retryButton").onclick     = () => rejouer();
 /* le bouton cle reviendra avec les prochains codes */
 const codeBtn = document.getElementById("codeButton");
 
