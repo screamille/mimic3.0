@@ -174,16 +174,44 @@ function skinCard(skin, inShop){
 }
 
 
-/* les vignettes de la boutique s'animent tant qu'elle est ouverte */
+/*
+Les vignettes de la boutique s'animent tant qu'elle est
+ouverte — mais UNIQUEMENT celles qu'on a sous les yeux.
+
+Avec 115 skins au casier, tout repeindre a chaque image
+coutait ~19 ms : le casier tombait a 9 images/seconde et
+tout saccadait. On ne repeint donc que les cartes visibles
+dans la fenetre, et 24 fois par seconde au lieu de 60.
+*/
+let shopIconsLast = 0;
+
+
 function animateShopIcons(){
 
     if(document.getElementById("shop").style.display !== "block"){
         return;
     }
 
-    const t = performance.now() / 1000;
+    const now = performance.now();
+
+    if(now - shopIconsLast < 42){
+        return;
+    }
+
+    shopIconsLast = now;
+
+    const t  = now / 1000;
+    const dp = Math.min(window.devicePixelRatio || 1, 3);
+    const hh = window.innerHeight || 800;
 
     document.querySelectorAll("#shopContent canvas").forEach(cv => {
+
+        /* hors de l'ecran : on ne dessine rien */
+        const box = cv.getBoundingClientRect();
+
+        if(box.bottom < -40 || box.top > hh + 40){
+            return;
+        }
 
         const skin = SKINS.find(sk => sk.id === cv.dataset.skin);
 
@@ -191,7 +219,6 @@ function animateShopIcons(){
             return;
         }
 
-        const dp   = Math.min(window.devicePixelRatio || 1, 3);
         const size = cv.width / dp;
 
         const c = cv.getContext("2d");
@@ -268,13 +295,18 @@ function abilityCard(ab, inShop){
 
     card.appendChild(name);
 
-    const state = document.createElement("div");
+    /* le prix n'a de sens qu'en boutique */
+    if(inShop){
 
-    state.className = "skinPrice";
-    state.innerHTML =
-        '<i class="coinDot"></i> ' + ab.price.toLocaleString("fr-FR");
+        const state = document.createElement("div");
 
-    card.appendChild(state);
+        state.className = "skinPrice";
+        state.innerHTML =
+            '<i class="coinDot"></i> ' + ab.price.toLocaleString("fr-FR");
+
+        card.appendChild(state);
+
+    }
 
     /* le stock : c'est ce qu'il te reste de charges */
     const stock = document.createElement("div");
@@ -290,6 +322,38 @@ function abilityCard(ab, inShop){
     desc.textContent = ab.id === "dash" ? T("ab.dashDesc") : ab.desc;
 
     card.appendChild(desc);
+
+    /* au casier : l'interrupteur */
+    if(!inShop){
+
+        const sw = document.createElement("button");
+
+        const on = abilityEnabled(ab.id);
+
+        sw.className   = "cardButton " + (on ? "equip" : "done");
+        sw.textContent = on ? "\u2713 " + T("ab.on") : T("ab.off");
+
+        sw.onclick = () => {
+
+            toggleAbility(ab.id);
+
+            sound(abilityEnabled(ab.id) ? 780 : 300, .09, "sine", .04);
+
+            pickupMessage(
+                (abilityEnabled(ab.id) ? "\u2705 " : "\u26aa ") + ab.name +
+                " \u2014 " + T(abilityEnabled(ab.id) ? "ab.on" : "ab.off"),
+                abilityEnabled(ab.id) ? ab.color : "#8fa0c8"
+            );
+
+            renderShop();
+
+        };
+
+        card.appendChild(sw);
+
+        return card;
+
+    }
 
     const btn = document.createElement("button");
 
@@ -379,8 +443,8 @@ function renderShop(){
             ? (a, b) => (a.price || 0) - (b.price || 0)
         : shopSort === "rich"
             ? (a, b) => (b.price || 0) - (a.price || 0)
-            : (a, b) => (a.rarity || 0) - (b.rarity || 0) ||
-                        (a.price || 0) - (b.price || 0);
+            : (a, b) => (b.rarity || 0) - (a.rarity || 0) ||
+                        (b.price || 0) - (a.price || 0);
 
     /* la barre n'a de sens qu'en boutique : au casier, tout est a nous */
     const filters = document.getElementById("shopFilters");

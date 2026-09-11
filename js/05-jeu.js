@@ -1461,11 +1461,7 @@ function drawRaw(){
 
     if(!playing){
 
-        if(lobbyVisible()){
-            drawLobbyScene(performance.now() / 1000);
-        }else{
-            drawAmbient();
-        }
+        drawLobbyScene();
 
     }
 

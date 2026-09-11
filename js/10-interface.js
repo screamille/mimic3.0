@@ -216,337 +216,353 @@ function updateAmbient(dt){
    donner de la profondeur.
 ========================================================= */
 
+/*
+Le fond du salon est une IMAGE FIXE : la foret du monde 1
+au premier plan, les ruines suspendues du monde 2 au fond,
+sous la lune. Rien ne bouge — on la peint une seule fois
+dans un calque a part, et ensuite on ne fait que la coller.
+Elle n'est repeinte que si la fenetre change de taille.
+*/
+
 lobbyArt = null;
 
 
 function buildLobbyArt(){
 
-    /* un hasard a part : le decor ne doit pas toucher au jeu */
-    let seed = 20240824;
+    const cv = document.createElement("canvas");
+
+    cv.width  = Math.max(2, Math.round(W));
+    cv.height = Math.max(2, Math.round(H));
+
+    const c = cv.getContext("2d");
+
+    const w = cv.width;
+    const h = cv.height;
+
+    /* un hasard a part, toujours le meme : le decor ne bouge pas */
+    let seed = 20260911;
 
     const rr = () => {
         seed = (seed * 1664525 + 1013904223) >>> 0;
         return seed / 4294967296;
     };
 
-    const stars = [];
+    /* ---------- LE CIEL ---------- */
 
-    for(let i = 0; i < 180; i++){
+    const ciel = c.createLinearGradient(0, 0, 0, h);
+    ciel.addColorStop(0,   "#0a1622");
+    ciel.addColorStop(.38, "#12242e");
+    ciel.addColorStop(.68, "#0d1d1c");
+    ciel.addColorStop(1,   "#050c0c");
 
-        const far = i < 120;
+    c.fillStyle = ciel;
+    c.fillRect(0, 0, w, h);
 
-        stars.push({
-            x:rr() * W,
-            y:rr() * H,
-            r:(far ? .5 + rr() * .8 : 1 + rr() * 1.4) * unit,
-            a:far ? .18 + rr() * .3 : .4 + rr() * .5,
-            sp:.3 + rr() * 1.4,
-            ph:rr() * 9,
-            par:far ? .12 : .3
-        });
+    /* ---------- LES ETOILES ---------- */
+
+    for(let i = 0; i < 90; i++){
+
+        const x = rr() * w;
+        const y = rr() * h * .55;
+
+        c.globalAlpha = .12 + rr() * .45;
+        c.fillStyle   = "#dff0ff";
+
+        c.beginPath();
+        c.arc(x, y, (.5 + rr() * 1.3) * (w / 900), 0, Math.PI * 2);
+        c.fill();
 
     }
 
-    const palettes = [
-        ["#7fa8e0","#2b4d8a","#16203f"],
-        ["#e0a87f","#8a4d2b","#3f2016"],
-        ["#8fe0c0","#2b8a6a","#163f30"],
-        ["#c9a8f0","#5a3a9c","#251640"]
+    c.globalAlpha = 1;
+
+    /* ---------- LA LUNE ---------- */
+
+    const lx = w * .69, ly = h * .23, lr = Math.min(w, h) * .062;
+
+    const halo = c.createRadialGradient(lx, ly, 0, lx, ly, lr * 9);
+    halo.addColorStop(0,   "rgba(190,225,255,.26)");
+    halo.addColorStop(.25, "rgba(150,195,240,.10)");
+    halo.addColorStop(1,   "rgba(130,180,230,0)");
+
+    c.fillStyle = halo;
+    c.fillRect(0, 0, w, h);
+
+    c.fillStyle = "#dce9f7";
+    c.beginPath();
+    c.arc(lx, ly, lr, 0, Math.PI * 2);
+    c.fill();
+
+    c.fillStyle = "#c2d3e6";
+
+    [[-.3, -.2, .26], [.25, .15, .20], [-.05, .45, .15]].forEach(m => {
+        c.beginPath();
+        c.arc(lx + m[0] * lr, ly + m[1] * lr, lr * m[2], 0, Math.PI * 2);
+        c.fill();
+    });
+
+    /* ---------- LES RUINES SUSPENDUES ---------- */
+
+    const iles = [
+        [.17, .40, 1.05],
+        [.56, .30, .76],
+        [.88, .47, .60],
+        [.37, .24, .48]
     ];
 
-    const planets = [];
+    iles.forEach(il => {
 
-    for(let i = 0; i < 4; i++){
+        const x  = il[0] * w;
+        const y  = il[1] * h;
+        const sc = il[2] * Math.min(w, h) * .13;
 
-        const pal = palettes[i % palettes.length];
+        c.save();
+        c.translate(x, y);
 
-        planets.push({
-            x:(.10 + i * .27 + rr() * .06) * W,
-            y:(.18 + (i % 2) * .34 + rr() * .1) * H,
-            r:(46 + rr() * 70) * unit,
-            pal:pal,
-            ring:rr() < .5,
-            tilt:(rr() - .5) * .9,
-            depth:.36 + rr() * .34
+        /* la brume autour */
+        c.globalAlpha = .30;
+        const br = c.createRadialGradient(0, 0, 0, 0, 0, sc * 3);
+        br.addColorStop(0,  "rgba(120,170,210,.28)");
+        br.addColorStop(1,  "rgba(110,160,200,0)");
+        c.fillStyle = br;
+        c.fillRect(-sc * 3, -sc * 3, sc * 6, sc * 6);
+        c.globalAlpha = 1;
+
+        /* la dalle, vue de trois quarts */
+        const pg = c.createLinearGradient(0, -sc * .3, 0, sc * 1.4);
+        pg.addColorStop(0,   "#6d7f95");
+        pg.addColorStop(.35, "#3c4757");
+        pg.addColorStop(1,   "#10161f");
+
+        c.fillStyle = pg;
+
+        c.beginPath();
+        c.moveTo(-sc * 1.5, 0);
+        c.lineTo(sc * 1.5, 0);
+        c.lineTo(sc * 1.0, sc * .30);
+        c.lineTo(-sc * 1.1, sc * .30);
+        c.closePath();
+        c.fill();
+
+        /* la roche arrachee, dessous */
+        c.fillStyle = "#151d27";
+        c.beginPath();
+        c.moveTo(-sc * 1.1, sc * .30);
+        c.lineTo(sc * 1.0, sc * .30);
+        c.lineTo(sc * .45, sc * 1.15);
+        c.lineTo(-sc * .10, sc * .72);
+        c.lineTo(-sc * .55, sc * 1.30);
+        c.closePath();
+        c.fill();
+
+        /* deux colonnes et une arche brisee */
+        c.fillStyle = "#4b5768";
+
+        [-.85, -.15, .75].forEach((cxp, n) => {
+
+            const ht = sc * (n === 1 ? .95 : .68);
+
+            c.fillRect(cxp * sc - sc * .10, -ht, sc * .20, ht);
+
+            /* le chapiteau */
+            c.fillStyle = "#5c6a7d";
+            c.fillRect(cxp * sc - sc * .16, -ht - sc * .08, sc * .32, sc * .09);
+            c.fillStyle = "#4b5768";
+
         });
+
+        /* l'arche entre les deux premieres colonnes */
+        c.strokeStyle = "#556375";
+        c.lineWidth   = sc * .12;
+        c.beginPath();
+        c.arc(-sc * .50, -sc * .66, sc * .36, Math.PI, 0);
+        c.stroke();
+
+        /* le liseré de lune sur les aretes */
+        c.strokeStyle = "rgba(200,230,255,.35)";
+        c.lineWidth   = Math.max(1, sc * .03);
+        c.beginPath();
+        c.moveTo(-sc * 1.5, 0);
+        c.lineTo(sc * 1.5, 0);
+        c.stroke();
+
+        c.restore();
+
+    });
+
+    /* ---------- LA BRUME QUI SEPARE LES DEUX MONDES ---------- */
+
+    const brume = c.createLinearGradient(0, h * .38, 0, h * .68);
+    brume.addColorStop(0,  "rgba(120,165,200,0)");
+    brume.addColorStop(.5, "rgba(120,165,200,.16)");
+    brume.addColorStop(1,  "rgba(90,130,160,0)");
+
+    c.fillStyle = brume;
+    c.fillRect(0, h * .38, w, h * .30);
+
+    /* ---------- LA FORET ---------- */
+
+    /* les troncs lointains, presque noyes */
+    for(let i = 0; i < 9; i++){
+
+        const x  = (i / 8) * w + (rr() - .5) * w * .05;
+        const lw = (18 + rr() * 22) * (w / 900);
+
+        c.globalAlpha = .30;
+        c.fillStyle   = "#16281f";
+        c.fillRect(x - lw / 2, h * .40, lw, h * .60);
 
     }
 
-    const blocks = [];
+    c.globalAlpha = 1;
 
-    for(let i = 0; i < 7; i++){
+    /* les rais de lumiere entre les arbres */
+    for(let i = 0; i < 5; i++){
 
-        blocks.push({
-            x:rr() * W,
-            y:H - (10 + rr() * 46) * unit,
-            w:(50 + rr() * 130) * unit,
-            h:(26 + rr() * 60) * unit
-        });
+        const x = (.08 + i * .21) * w;
+
+        const rg = c.createLinearGradient(x, h * .30, x + w * .10, h);
+        rg.addColorStop(0, "rgba(180,255,190,.10)");
+        rg.addColorStop(1, "rgba(140,220,150,0)");
+
+        c.fillStyle = rg;
+
+        c.beginPath();
+        c.moveTo(x - w * .028, h * .30);
+        c.lineTo(x + w * .028, h * .30);
+        c.lineTo(x + w * .105, h);
+        c.lineTo(x - w * .030, h);
+        c.closePath();
+        c.fill();
 
     }
 
-    lobbyArt = {stars:stars, planets:planets, blocks:blocks, w:W, h:H};
+    /* les gros troncs du premier plan, sur les cotes */
+    const troncs = [
+        [.03, 1.35], [.14, .95], [.885, 1.05], [.975, 1.45], [.80, .70], [.28, .62]
+    ];
 
-}
+    troncs.forEach(tr => {
 
+        const x  = tr[0] * w;
+        const lw = tr[1] * 52 * (w / 900);
 
-function paintLobbyPlanet(pl, t){
+        const tg = c.createLinearGradient(x - lw, 0, x + lw, 0);
+        tg.addColorStop(0,   "#030705");
+        tg.addColorStop(.32, "#1b3123");
+        tg.addColorStop(.55, "#2c4b33");
+        tg.addColorStop(.78, "#13251a");
+        tg.addColorStop(1,   "#030705");
 
-    ctx.save();
-    ctx.translate(pl.x, pl.y);
+        c.fillStyle = tg;
 
-    ctx.globalAlpha = pl.depth;
+        c.beginPath();
+        c.moveTo(x - lw * .5, h * .22);
+        c.quadraticCurveTo(x - lw * .72, h * .62, x - lw * .60, h);
+        c.lineTo(x + lw * .60, h);
+        c.quadraticCurveTo(x + lw * .70, h * .62, x + lw * .5, h * .22);
+        c.closePath();
+        c.fill();
 
-    /* atmosphere */
-    const halo = ctx.createRadialGradient(0, 0, pl.r * .9, 0, 0, pl.r * 1.6);
-    halo.addColorStop(0, "rgba(150,190,255,.22)");
-    halo.addColorStop(1, "rgba(150,190,255,0)");
+        /* l'ecorce */
+        c.globalAlpha = .35;
+        c.strokeStyle = "#0a120d";
+        c.lineWidth   = Math.max(1, lw * .05);
 
-    ctx.fillStyle = halo;
-    ctx.beginPath();
-    ctx.arc(0, 0, pl.r * 1.6, 0, Math.PI * 2);
-    ctx.fill();
+        for(let k = -1; k <= 1; k++){
+            c.beginPath();
+            c.moveTo(x + k * lw * .22, h * .24);
+            c.quadraticCurveTo(x + k * lw * .30, h * .60, x + k * lw * .20, h);
+            c.stroke();
+        }
 
-    /* le globe */
-    const g = ctx.createRadialGradient(
-        -pl.r * .35, -pl.r * .38, pl.r * .08,
-        0, 0, pl.r
+        c.globalAlpha = 1;
+
+    });
+
+    /* la voute de feuilles, en haut */
+    c.fillStyle = "#08150e";
+
+    for(let i = 0; i < 34; i++){
+
+        const x = rr() * w;
+        const y = rr() * h * .16;
+        const s2 = (30 + rr() * 90) * (w / 900);
+
+        c.beginPath();
+        c.ellipse(x, y, s2, s2 * .58, rr() * 3, 0, Math.PI * 2);
+        c.fill();
+
+    }
+
+    /* le sol de la foret */
+    const sol = c.createLinearGradient(0, h * .80, 0, h);
+    sol.addColorStop(0, "rgba(6,14,10,0)");
+    sol.addColorStop(1, "rgba(3,8,6,.95)");
+
+    c.fillStyle = sol;
+    c.fillRect(0, h * .80, w, h * .20);
+
+    /* ---------- LES LUCIOLES ---------- */
+
+    for(let i = 0; i < 20; i++){
+
+        const x  = rr() * w;
+        const y  = h * (.46 + rr() * .50);
+        const sz = (1.2 + rr() * 2.2) * (w / 900);
+
+        const g = c.createRadialGradient(x, y, 0, x, y, sz * 6);
+        g.addColorStop(0,  "rgba(214,255,170,.62)");
+        g.addColorStop(.3, "rgba(160,230,120,.30)");
+        g.addColorStop(1,  "rgba(120,200,90,0)");
+
+        c.fillStyle = g;
+        c.beginPath();
+        c.arc(x, y, sz * 6, 0, Math.PI * 2);
+        c.fill();
+
+    }
+
+    /* ---------- LA VIGNETTE ---------- */
+
+    const vg = c.createRadialGradient(
+        w / 2, h * .45, Math.min(w, h) * .26,
+        w / 2, h * .45, Math.max(w, h) * .76
     );
 
-    g.addColorStop(0,   pl.pal[0]);
-    g.addColorStop(.55, pl.pal[1]);
-    g.addColorStop(1,   pl.pal[2]);
+    vg.addColorStop(0, "rgba(0,0,0,0)");
+    vg.addColorStop(1, "rgba(2,5,8,.70)");
 
-    ctx.fillStyle = g;
-    ctx.beginPath();
-    ctx.arc(0, 0, pl.r, 0, Math.PI * 2);
-    ctx.fill();
+    c.fillStyle = vg;
+    c.fillRect(0, 0, w, h);
 
-    /* bandes qui defilent tres lentement */
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(0, 0, pl.r, 0, Math.PI * 2);
-    ctx.clip();
+    /* on assombrit le centre : le slime et les boutons doivent ressortir */
+    const mid = c.createRadialGradient(
+        w / 2, h * .48, 0,
+        w / 2, h * .48, Math.min(w, h) * .55
+    );
 
-    ctx.globalAlpha = pl.depth * .35;
-    ctx.fillStyle   = pl.pal[2];
+    mid.addColorStop(0,  "rgba(2,6,10,.34)");
+    mid.addColorStop(.6, "rgba(2,6,10,.14)");
+    mid.addColorStop(1,  "rgba(2,6,10,0)");
 
-    for(let i = -3; i <= 3; i++){
+    c.fillStyle = mid;
+    c.fillRect(0, 0, w, h);
 
-        const y = i * pl.r * .30 + Math.sin(t * .12 + i) * pl.r * .04;
-
-        ctx.beginPath();
-        ctx.ellipse(0, y, pl.r * 1.1, pl.r * .09, 0, 0, Math.PI * 2);
-        ctx.fill();
-
-    }
-
-    ctx.restore();
-
-    /* le terminateur : le cote nuit */
-    ctx.globalAlpha = pl.depth * .55;
-
-    const night = ctx.createLinearGradient(-pl.r, -pl.r, pl.r, pl.r);
-    night.addColorStop(0,  "rgba(0,0,0,0)");
-    night.addColorStop(.55, "rgba(0,0,0,0)");
-    night.addColorStop(1,  "rgba(2,3,10,.9)");
-
-    ctx.fillStyle = night;
-    ctx.beginPath();
-    ctx.arc(0, 0, pl.r, 0, Math.PI * 2);
-    ctx.fill();
-
-    /* l'anneau */
-    if(pl.ring){
-
-        ctx.globalAlpha = pl.depth * .8;
-        ctx.rotate(pl.tilt);
-        ctx.scale(1, .26);
-
-        ctx.strokeStyle = pl.pal[0];
-        ctx.lineWidth   = pl.r * .10;
-
-        ctx.beginPath();
-        ctx.arc(0, 0, pl.r * 1.45, 0, Math.PI * 2);
-        ctx.stroke();
-
-        ctx.globalAlpha = pl.depth * .4;
-        ctx.lineWidth   = pl.r * .05;
-
-        ctx.beginPath();
-        ctx.arc(0, 0, pl.r * 1.72, 0, Math.PI * 2);
-        ctx.stroke();
-
-    }
-
-    ctx.restore();
+    lobbyArt = {img:cv, w:W, h:H};
 
 }
 
 
-function drawLobbyScene(t){
+function drawLobbyScene(){
 
     if(!lobbyArt || lobbyArt.w !== W || lobbyArt.h !== H){
         buildLobbyArt();
     }
 
-    /* ---- la nebuleuse ---- */
-
-    ctx.save();
-
-    [[.24, .32, "#5a3aa8"], [.74, .26, "#1f6a8a"], [.5, .82, "#8a2a6a"]]
-        .forEach((n, i) => {
-
-            const cx = n[0] * W + Math.sin(t * .05 + i * 2) * W * .03;
-            const cy = n[1] * H + Math.cos(t * .04 + i * 1.7) * H * .04;
-            const rr = Math.max(W, H) * (.42 + i * .07);
-
-            const g = ctx.createRadialGradient(cx, cy, 0, cx, cy, rr);
-
-            g.addColorStop(0,  hexA(n[2], .20));
-            g.addColorStop(.5, hexA(n[2], .07));
-            g.addColorStop(1,  hexA(n[2], 0));
-
-            ctx.fillStyle = g;
-            ctx.fillRect(0, 0, W, H);
-
-        });
-
-    ctx.restore();
-
-    /* ---- les etoiles, en parallaxe lente ---- */
-
-    ctx.save();
-
-    for(const st of lobbyArt.stars){
-
-        const dx = Math.sin(t * .08) * 26 * st.par * unit;
-        const dy = Math.cos(t * .06) * 14 * st.par * unit;
-
-        ctx.globalAlpha = st.a * (.55 + .45 * Math.sin(t * st.sp + st.ph));
-        ctx.fillStyle   = "#ffffff";
-
-        ctx.beginPath();
-        ctx.arc(st.x + dx, st.y + dy, st.r, 0, Math.PI * 2);
-        ctx.fill();
-
+    if(lobbyArt && lobbyArt.img){
+        ctx.drawImage(lobbyArt.img, 0, 0, W, H);
     }
-
-    ctx.restore();
-
-    /* ---- les planetes ---- */
-
-    for(const pl of lobbyArt.planets){
-        paintLobbyPlanet(pl, t);
-    }
-
-    /* ---- la poursuite ---- */
-
-    const laneY = H * .73;
-    const loop  = 13;                       /* secondes par tour */
-    const k     = (t % loop) / loop;
-
-    /* le fuyard et ses trois poursuivants, en file */
-    const cast = [
-        {kind:"slime",     lag:0,    r:20, a:.95},
-        {kind:"hunter",    lag:.05,  r:19, a:.85},
-        {kind:"predictor", lag:.095, r:18, a:.78},
-        {kind:"traqueur",  lag:.14,  r:20, a:.72}
-    ];
-
-    /* la trajectoire ondule : on la lit deux fois, position et cap */
-    const path = u => ({
-        x:(-.2 + u * 1.4) * W,
-        y:laneY + Math.sin(u * Math.PI * 3.1) * H * .085
-    });
-
-    ctx.save();
-
-    cast.forEach((c, idx) => {
-
-        const u = k - c.lag;
-
-        if(u < -.05 || u > 1.05){
-            return;
-        }
-
-        const here = path(u);
-        const next = path(u + .004);
-
-        const ang = Math.atan2(next.y - here.y, next.x - here.x);
-
-        /* la trainee */
-        ctx.globalAlpha = c.a * .16;
-        ctx.fillStyle   = idx ? "#8fa8d8" : "#7fe0ff";
-
-        for(let s2 = 1; s2 <= 9; s2++){
-
-            const q = path(u - s2 * .006);
-
-            ctx.beginPath();
-            ctx.arc(q.x, q.y, c.r * unit * (1 - s2 * .09), 0, Math.PI * 2);
-            ctx.fill();
-
-        }
-
-        ctx.globalAlpha = c.a;
-
-        if(c.kind === "slime"){
-
-            ctx.save();
-            ctx.translate(here.x, here.y);
-            paintSkinSlime(
-                ctx,
-                SKINS.find(sk => sk.id === currentSkin) || SKINS[0],
-                c.r * unit, t, false,
-                {speed:.7, angle:ang, wave:t * 3, blink:1}
-            );
-            ctx.restore();
-
-        }else{
-
-            paintCreature(ctx, c.kind, here.x, here.y, c.r * unit, ang, t);
-
-        }
-
-    });
-
-    ctx.restore();
-
-    /* ---- premier plan : blocs en ombre chinoise ---- */
-
-    ctx.save();
-    ctx.globalAlpha = .85;
-    ctx.fillStyle   = "#04060e";
-
-    for(const b of lobbyArt.blocks){
-
-        ctx.beginPath();
-
-        if(ctx.roundRect){
-            ctx.roundRect(b.x - b.w / 2, b.y, b.w, b.h + 40 * unit, 14 * unit);
-        }else{
-            ctx.rect(b.x - b.w / 2, b.y, b.w, b.h + 40 * unit);
-        }
-
-        ctx.fill();
-
-    }
-
-    ctx.restore();
-
-    /* ---- vignette ---- */
-
-    const vg = ctx.createRadialGradient(
-        W / 2, H * .45, Math.min(W, H) * .28,
-        W / 2, H * .45, Math.max(W, H) * .78
-    );
-
-    vg.addColorStop(0, "rgba(0,0,0,0)");
-    vg.addColorStop(1, "rgba(2,3,10,.82)");
-
-    ctx.fillStyle = vg;
-    ctx.fillRect(0, 0, W, H);
 
 }
 

@@ -40,7 +40,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
 On repart de 1.00 et on monte de 0.01 a chaque livraison :
 10.8 donnait l'impression d'un jeu fini alors qu'il commence.
 */
-const VERSION = "1.04";
+const VERSION = "1.05";
 
 (function(){
 
@@ -148,6 +148,45 @@ const ABILITIES = [
         desc:"Un faux slime qui attire tout ce qui te poursuit pendant 5 s. Recharge 17 s."
     }
 ];
+
+
+/*
+Une competence achetee peut etre mise de cote : elle reste
+dans le casier, mais elle ne prend plus de place dans la
+barre pendant la partie. C'est le joueur qui decide.
+*/
+let abilityOff = {};
+
+try{
+    const raw = localStorage.getItem("mimicAbilityOff");
+    if(raw){ abilityOff = JSON.parse(raw) || {}; }
+}catch(e){ abilityOff = {}; }
+
+if(!abilityOff || typeof abilityOff !== "object" || Array.isArray(abilityOff)){
+    abilityOff = {};
+}
+
+
+function abilityEnabled(id){
+    return !abilityOff[id];
+}
+
+
+function toggleAbility(id){
+
+    if(abilityOff[id]){
+        delete abilityOff[id];
+    }else{
+        abilityOff[id] = 1;
+    }
+
+    try{
+        localStorage.setItem("mimicAbilityOff", JSON.stringify(abilityOff));
+    }catch(e){}
+
+    buildSkillBar();
+
+}
 
 
 function hasAbility(id){
@@ -443,7 +482,7 @@ function buildSkillBar(){
 
     bar.innerHTML = "";
 
-    ABILITIES.filter(ab => abilityCount(ab.id) > 0).forEach(ab => {
+    ABILITIES.filter(ab => abilityCount(ab.id) > 0 && abilityEnabled(ab.id)).forEach(ab => {
 
         const btn = document.createElement("button");
 
