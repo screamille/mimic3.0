@@ -1187,8 +1187,12 @@ function update(dt){
             totalCoins += 10;
         }
 
-        /* la foret n'a pas de blocs : ce sont les ronces le terrain */
-        if(zone === "foret"){
+        /* l'arene reste nue : c'est un terrain, pas un monde */
+        if(zone === "arene"){
+
+            /* rien : ni bloc, ni creature */
+
+        }else if(zone === "foret"){
 
             foretPeuple();
 

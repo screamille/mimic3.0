@@ -40,7 +40,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
 On repart de 1.00 et on monte de 0.01 a chaque livraison :
 10.8 donnait l'impression d'un jeu fini alors qu'il commence.
 */
-const VERSION = "1.09";
+const VERSION = "1.10";
 
 (function(){
 
@@ -1478,7 +1478,9 @@ function buildFloor(){
     floorW    = W;
     floorH    = H;
 
-    if(zone === "foret"){
+    if(zone === "arene"){
+        paintArene(c);
+    }else if(zone === "foret"){
         paintForest(c);
     }else if(zone === "ruines" || zone === "clairiere"){
         paintRuines(c);
@@ -1513,6 +1515,156 @@ function buildFloor(){
     }else{
         paintGalaxy(c);
     }
+
+}
+
+
+/* =========================================================
+   L'ARENE  —  le mode COMPETITION
+
+   Ni foret, ni ruines, ni creatures : un terrain. Du beton
+   sombre, des lignes peintes, des projecteurs au plafond et
+   un cercle au centre. Tout doit dire "match", et surtout
+   rester lisible : c'est un jeu d'esquive, le sol ne doit
+   jamais se confondre avec un rayon.
+========================================================= */
+
+function paintArene(c){
+
+    /* le beton */
+    const sol = c.createLinearGradient(0, 0, 0, H);
+    sol.addColorStop(0,   "#161a24");
+    sol.addColorStop(.42, "#1d2230");
+    sol.addColorStop(1,   "#0c0f16");
+
+    c.fillStyle = sol;
+    c.fillRect(0, 0, W, H);
+
+    /* les projecteurs : quatre cones qui tombent du plafond */
+    [[.16, "#5ad9ff"], [.38, "#ffffff"], [.62, "#ffffff"], [.84, "#ff5f8f"]]
+        .forEach(p => {
+
+            const x = p[0] * W;
+
+            const g = c.createLinearGradient(x, 0, x, H);
+            g.addColorStop(0,  hexA(p[1], .16));
+            g.addColorStop(.6, hexA(p[1], .05));
+            g.addColorStop(1,  hexA(p[1], 0));
+
+            c.fillStyle = g;
+
+            c.beginPath();
+            c.moveTo(x - W * .035, 0);
+            c.lineTo(x + W * .035, 0);
+            c.lineTo(x + W * .16, H);
+            c.lineTo(x - W * .16, H);
+            c.closePath();
+            c.fill();
+
+        });
+
+    /* le quadrillage du terrain */
+    c.globalAlpha = .16;
+    c.strokeStyle = "#7fa8d8";
+    c.lineWidth   = Math.max(1, W * .0015);
+
+    for(let i = 1; i < 12; i++){
+        c.beginPath();
+        c.moveTo(i / 12 * W, 0);
+        c.lineTo(i / 12 * W, H);
+        c.stroke();
+    }
+
+    for(let i = 1; i < 7; i++){
+        c.beginPath();
+        c.moveTo(0, i / 7 * H);
+        c.lineTo(W, i / 7 * H);
+        c.stroke();
+    }
+
+    c.globalAlpha = 1;
+
+    /* le cercle central */
+    const cx = W / 2, cy = H * .5, R = Math.min(W, H) * .26;
+
+    const rond = c.createRadialGradient(cx, cy, R * .1, cx, cy, R);
+    rond.addColorStop(0,  "rgba(90,217,255,.10)");
+    rond.addColorStop(.7, "rgba(90,217,255,.04)");
+    rond.addColorStop(1,  "rgba(90,217,255,0)");
+
+    c.fillStyle = rond;
+    c.beginPath();
+    c.arc(cx, cy, R, 0, Math.PI * 2);
+    c.fill();
+
+    c.strokeStyle = "rgba(150,220,255,.35)";
+    c.lineWidth   = Math.max(2, W * .0035);
+    c.beginPath();
+    c.arc(cx, cy, R, 0, Math.PI * 2);
+    c.stroke();
+
+    c.strokeStyle = "rgba(150,220,255,.18)";
+    c.lineWidth   = Math.max(1, W * .0022);
+    c.beginPath();
+    c.arc(cx, cy, R * .55, 0, Math.PI * 2);
+    c.stroke();
+
+    /* la ligne mediane */
+    c.strokeStyle = "rgba(150,220,255,.20)";
+    c.lineWidth   = Math.max(2, W * .003);
+    c.setLineDash([W * .02, W * .018]);
+    c.beginPath();
+    c.moveTo(cx, 0);
+    c.lineTo(cx, H);
+    c.stroke();
+    c.setLineDash([]);
+
+    /* les chevrons des quatre coins : les zones de depart */
+    [[0, 0, 1, 1], [1, 0, -1, 1], [0, 1, 1, -1], [1, 1, -1, -1]].forEach(q => {
+
+        const x  = q[0] * W;
+        const y  = q[1] * H;
+        const sx = q[2];
+        const sy = q[3];
+
+        c.strokeStyle = "rgba(255,160,80,.30)";
+        c.lineWidth   = Math.max(2, W * .004);
+
+        for(let i = 0; i < 3; i++){
+
+            const d = W * (.035 + i * .022);
+
+            c.beginPath();
+            c.moveTo(x + sx * d, y);
+            c.lineTo(x, y + sy * d * (W / H) * .6);
+            c.stroke();
+
+        }
+
+    });
+
+    /* le bord du terrain : une bande lumineuse */
+    const bordure = Math.max(3, Math.min(W, H) * .012);
+
+    c.strokeStyle = "rgba(90,217,255,.45)";
+    c.lineWidth   = bordure;
+    c.strokeRect(bordure / 2, bordure / 2, W - bordure, H - bordure);
+
+    c.strokeStyle = "rgba(255,255,255,.12)";
+    c.lineWidth   = Math.max(1, bordure * .25);
+    c.strokeRect(bordure * 1.6, bordure * 1.6, W - bordure * 3.2, H - bordure * 3.2);
+
+    /* la vignette : le centre reste clair */
+    const vg = c.createRadialGradient(
+        W / 2, H * .5, Math.min(W, H) * .25,
+        W / 2, H * .5, Math.max(W, H) * .72
+    );
+
+    vg.addColorStop(0, "rgba(0,0,0,0)");
+    vg.addColorStop(1, "rgba(2,4,8,.70)");
+
+    c.fillStyle = vg;
+    c.fillRect(0, 0, W, H);
 
 }
 
@@ -1975,7 +2127,8 @@ function drawFloor(){
     ctx.drawImage(floorCache, 0, 0, W, H);
 
     /* scintillement des étoiles */
-    if(zone !== "marais" && twinkles.length){
+    /* pas d'etoiles dans l'arene : le terrain doit rester net */
+    if(zone !== "marais" && zone !== "arene" && twinkles.length){
 
         const now = performance.now() / 1000;
 

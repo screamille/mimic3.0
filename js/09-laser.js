@@ -1206,7 +1206,21 @@ function lasMessage(d, conn, isHost){
     }
 
     if(d.t === "end"){
+
+        /*
+        La liste de l'hote ecrasait la notre — y compris NOTRE
+        temps, qui vaut 0 chez lui tant qu'on n'a pas ete
+        touche. On garde le plus grand des deux.
+        */
+        const mien = laser.players[laser.me] ? (laser.players[laser.me].time || 0) : 0;
+
         laser.players = d.players;
+
+        if(laser.players[laser.me]){
+            laser.players[laser.me].time =
+                Math.max(laser.players[laser.me].time || 0, mien);
+        }
+
         lasFinish(d.winner);
         return;
     }
@@ -1263,8 +1277,17 @@ function lasBegin(){
 
     lasSeed(laser.seed);
 
-    /* on repart d'une arene propre : ni ennemis, ni objets */
+    /*
+    La competition ne se joue dans AUCUN monde : ni foret, ni
+    ruines, donc ni guepes ni sentinelles. On bascule sur la
+    zone "arene" AVANT de lancer la partie, sinon reset()
+    repeuplerait la foret.
+    */
+    zone = "arene";
+
     startGame();
+
+    zone = "arene";
 
     mimics   = [];
     coins    = [];
@@ -1273,6 +1296,29 @@ function lasBegin(){
     solids   = [];
     archers  = [];
     trace    = [];
+
+    /* rien de la foret ni des ruines ne doit trainer */
+    if(typeof clearForet  === "function"){ clearForet();  }
+    if(typeof clearRuines === "function"){ clearRuines(); }
+
+    guepes    = [];
+    lucioles  = [];
+    blobs     = [];
+    slimes    = [];
+    balls     = [];
+    crawlers  = [];
+    gloutons  = [];
+    guimauves = [];
+    anguilles = [];
+    lanternes = [];
+    bulles    = [];
+    puddles   = [];
+    logs      = [];
+    candies   = [];
+    portal    = null;
+
+    level      = 1;
+    levelTimer = 0;
 
     lives = 1;
 
@@ -1358,12 +1404,16 @@ function lasTrophies(order, won){
     }
 
     const total = order.length;
-    const place = order.findIndex(x => x.i === laser.me) + 1;
+
+    let place = order.findIndex(x => x.i === laser.me) + 1;
 
     if(place < 1){
         box.style.display = "none";
         return;
     }
+
+    /* on a gagne : on est premier, quoi qu'en dise le tri */
+    if(won){ place = 1; }
 
     const d = trophyDelta(place, total);
 
@@ -1455,10 +1505,22 @@ function lasFinish(winner){
     v.textContent = won ? T("duel.victory") : T("duel.defeat");
     v.style.color = won ? "#61ff83" : "#ff6b8a";
 
-    /* classement : le plus longtemps debout en premier */
+    /*
+    Classement. Le tri se faisait sur le seul "temps tenu" —
+    or le temps du vainqueur peut valoir 0 : il n'a jamais
+    ete touche, donc personne n'a jamais envoye son temps.
+    Il se retrouvait DERNIER et perdait des trophees alors
+    qu'il venait de gagner. Le vainqueur passe maintenant
+    devant, puis les survivants, et le temps ne sert plus
+    qu'a departager.
+    */
     const order = laser.players
         .map((p, i) => ({p:p, i:i}))
-        .sort((a, b) => (b.p.time || 0) - (a.p.time || 0));
+        .sort((a, b) =>
+            (b.i === winner ? 1 : 0) - (a.i === winner ? 1 : 0) ||
+            (b.p.alive ? 1 : 0) - (a.p.alive ? 1 : 0) ||
+            (b.p.time || 0) - (a.p.time || 0)
+        );
 
     lasPaintList("lasRank", order.map(x => x.p));
 
