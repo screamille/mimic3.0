@@ -114,10 +114,58 @@ html,body{
     transition:width .25s ease;
 }
 
+/*
+Une case par niveau : les niveaux passes sont pleins, celui
+qu'on joue se remplit seconde par seconde, et la derniere
+case c'est le boss — elle se vide au rythme de sa vie.
+*/
+.progSegs{
+    display:flex;
+    gap:3px;
+
+    height:7px;
+}
+
+.progSegs i{
+    flex:1 1 0;
+
+    display:block;
+
+    height:100%;
+
+    border-radius:99px;
+
+    background:rgba(255,255,255,.10);
+    overflow:hidden;
+}
+
+.progSegs i.now{
+    box-shadow:0 0 8px rgba(255,255,255,.35);
+    background:rgba(255,255,255,.18);
+}
+
+.progSegs i.boss{
+    background:rgba(255,106,90,.16);
+}
+
+.progSegs i b{
+    display:block;
+
+    width:0%;
+    height:100%;
+
+    border-radius:99px;
+
+    background:linear-gradient(90deg,#55d9ff,#ffffff);
+
+    transition:width .2s linear;
+}
+
 @media (max-width:560px){
     .stat{ min-width:84px; padding:7px 10px; }
-    .stat.world{ min-width:118px; }
+    .stat.world{ min-width:126px; }
     .progBar{ height:5px; }
+    .progSegs{ height:5px; gap:2px; }
 }
 
 .stat span{

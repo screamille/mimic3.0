@@ -1288,6 +1288,8 @@ function update(dt){
             "#ff466e"
         );
 
+        paintSegs(0);
+
     }else{
 
         document.getElementById("score").textContent = Math.floor(score);
@@ -1299,6 +1301,28 @@ function update(dt){
             worldProgress(),
             wd.col
         );
+
+        /* une case par niveau, dans les mondes qui en ont */
+        if(zone === "foret" || zone === "ruines"){
+
+            const nb = worldLevels(zone) + 1;
+
+            let cur  = Math.max(0, Math.min(nb - 1, level - 1));
+            let frac = Math.min(1, levelTimer / levelSecs());
+
+            /* au boss, la derniere case suit sa vie */
+            if(zone === "foret" && gard){ cur = nb - 1; frac = 1 - gard.hp; }
+            if(zone === "ruines" && col){ cur = nb - 1; frac = 1 - col.hp;  }
+
+            if(cur === nb - 1 && !gard && !col){ frac = 0; }
+
+            paintSegs(nb, cur, frac, wd.col, "#ff6a5a");
+
+        }else{
+
+            paintSegs(0);
+
+        }
 
     }
 

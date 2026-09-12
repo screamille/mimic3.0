@@ -40,7 +40,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
 On repart de 1.00 et on monte de 0.01 a chaque livraison :
 10.8 donnait l'impression d'un jeu fini alors qu'il commence.
 */
-const VERSION = "1.08";
+const VERSION = "1.09";
 
 (function(){
 
@@ -4196,6 +4196,63 @@ function worldProgress(){
     }
 
     return Math.max(0, Math.min(1, (level - wd.from) / (wd.to - wd.from)));
+
+}
+
+
+/*
+Les cases de niveaux. On les cree une fois, puis on ne
+touche plus qu'aux largeurs : rien ne clignote.
+*/
+function paintSegs(nb, cur, frac, col, bossCol){
+
+    const box = document.getElementById("progSegs");
+    const bar = document.getElementById("progBar");
+
+    if(!box){ return; }
+
+    if(nb <= 0){
+
+        box.style.display = "none";
+
+        if(bar){ bar.style.display = "block"; }
+
+        return;
+
+    }
+
+    box.style.display = "flex";
+
+    if(bar){ bar.style.display = "none"; }
+
+    if(box.children.length !== nb){
+
+        box.innerHTML = "";
+
+        for(let i = 0; i < nb; i++){
+            const seg = document.createElement("i");
+            seg.appendChild(document.createElement("b"));
+            box.appendChild(seg);
+        }
+
+    }
+
+    for(let i = 0; i < nb; i++){
+
+        const seg  = box.children[i];
+        const fill = seg.firstChild;
+        const boss = i === nb - 1;
+
+        const k = i < cur ? 1 : i > cur ? 0 : Math.max(0, Math.min(1, frac));
+
+        fill.style.width      = (k * 100).toFixed(1) + "%";
+        fill.style.background =
+            "linear-gradient(90deg," + (boss ? bossCol : col) + ",#ffffff)";
+
+        seg.classList.toggle("now",  i === cur);
+        seg.classList.toggle("boss", boss);
+
+    }
 
 }
 
