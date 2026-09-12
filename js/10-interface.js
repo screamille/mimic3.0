@@ -963,12 +963,7 @@ function renderWorlds(){
         card.appendChild(txt);
         card.appendChild(mark);
 
-        if(open){
-            card.onclick = function(){
-                sound(700, .08, "sine", .04);
-                playWorld(wd.zone, 1);
-            };
-        }else{
+        if(!open){
             card.onclick = function(){
                 sound(140, .16, "sawtooth", .04);
             };
@@ -976,12 +971,39 @@ function renderWorlds(){
 
         box.appendChild(card);
 
-        /* les niveaux du monde : on choisit ou on commence */
+        /*
+        Les niveaux du monde. Ils sont replies : on appuie sur
+        le monde, ils se deplient — et on choisit ou on commence.
+        */
         if(open){
 
             const row = document.createElement("div");
 
             row.className = "lvlRow";
+            row.style.display = "none";
+
+            card.onclick = function(){
+
+                const ouvert = row.style.display !== "none";
+
+                /* un seul monde deplie a la fois */
+                document.querySelectorAll("#worldList .lvlRow").forEach(r => {
+                    r.style.display = "none";
+                });
+
+                document.querySelectorAll("#worldList .worldCard em").forEach(m => {
+                    if(m.textContent !== "\ud83d\udd12"){ m.textContent = "\u25b6"; }
+                });
+
+                if(!ouvert){
+                    row.style.display = "flex";
+                    mark.textContent  = "\u25bc";
+                    sound(700, .08, "sine", .04);
+                }else{
+                    sound(430, .07, "sine", .035);
+                }
+
+            };
 
             const nb = worldLevels(wd.zone) + 1;
 
