@@ -1331,8 +1331,17 @@ function update(dt){
     }
 
     paintDashButton();
-    if(!gardBar() && !colBar() && !mimBar()){
-        bossBar();
+
+    /*
+    La jauge du bas est retiree : elle disait surtout combien
+    de temps il restait a tenir, et ca gachait le combat. La
+    derniere case de la barre du haut montre deja l'usure du
+    boss — l'information reste, elle a juste change de place.
+    */
+    const jauge = document.getElementById("bossBar");
+
+    if(jauge && jauge.style.display !== "none"){
+        jauge.style.display = "none";
     }
 
     lasBoard();
