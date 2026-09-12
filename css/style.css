@@ -1893,6 +1893,71 @@ laisser un menu fige sans explication.
     background:rgba(20,30,60,.75);
 }
 
+/*
+Sous chaque monde ouvert : ses niveaux. On choisit ou on
+commence — et le dernier, c'est le boss.
+*/
+.lvlRow{
+    display:flex;
+    gap:8px;
+
+    width:100%;
+
+    margin:-2px 0 4px;
+    padding:0 2px;
+}
+
+.lvlChip{
+    --wc:#55d9ff;
+
+    flex:1 1 0;
+
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    justify-content:center;
+    gap:1px;
+
+    padding:9px 2px;
+
+    border:1px solid color-mix(in srgb, var(--wc) 34%, transparent);
+    border-radius:11px;
+
+    background:rgba(10,16,34,.55);
+
+    color:var(--wc);
+
+    font-weight:800;
+    font-size:15px;
+
+    cursor:pointer;
+}
+
+.lvlChip small{
+    font-size:8.5px;
+    font-weight:700;
+    letter-spacing:.08em;
+    color:#8b9ac0;
+}
+
+.lvlChip:hover{
+    background:color-mix(in srgb, var(--wc) 16%, rgba(10,16,34,.55));
+}
+
+.lvlChip.boss{
+    --wc:#ff6a5a;
+
+    border-color:rgba(255,106,90,.55);
+    background:rgba(40,12,14,.6);
+}
+
+.lvlChip.boss small{ color:#ff9a8c; }
+
+@media (max-height:520px){
+    .lvlChip{ padding:6px 2px; font-size:13px; }
+    .lvlChip small{ font-size:7.5px; }
+}
+
 .worldCard.locked{
     border-color:rgba(120,150,220,.16);
     background:rgba(10,14,28,.5);

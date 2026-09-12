@@ -840,7 +840,15 @@ function rejouer(){
 }
 
 
-function playWorld(zoneId){
+/* combien de niveaux avant le boss, dans ce monde */
+function worldLevels(zoneId){
+    if(zoneId === "foret"){  return FORET_LEVELS; }
+    if(zoneId === "ruines"){ return RUIN_LEVELS;  }
+    return 4;
+}
+
+
+function playWorld(zoneId, lvl){
 
     const wd = WORLDS.find(w => w.zone === zoneId);
 
@@ -854,13 +862,41 @@ function playWorld(zoneId){
 
     startGame();
 
+    /*
+    On peut viser un niveau precis : 1 a 4 pour la traversee,
+    et le dernier (5) lance directement le boss.
+    */
+    const n = Math.max(1, Math.min(worldLevels(zoneId) + 1, (lvl | 0) || 1));
+
     if(zoneId === "foret"){
+
+        zone = "foret";
+
+        enterForet();
+
+        level      = n;
+        levelTimer = 0;
+
+        foretPeuple();
+
         return;
+
+    }
+
+    if(zoneId === "ruines"){
+
+        enterRuines();
+
+        level      = n;
+        levelTimer = 0;
+
+        ruinesPeuple();
+
+        return;
+
     }
 
     level = wd.from;
-
-    if(zoneId === "ruines"){ enterRuines(); return; }
 
     if(zoneId === "marais"){ enterMarais(); }
     else if(zoneId === "bonbon"){ enterCandy(); }
@@ -930,7 +966,7 @@ function renderWorlds(){
         if(open){
             card.onclick = function(){
                 sound(700, .08, "sine", .04);
-                playWorld(wd.zone);
+                playWorld(wd.zone, 1);
             };
         }else{
             card.onclick = function(){
@@ -939,6 +975,50 @@ function renderWorlds(){
         }
 
         box.appendChild(card);
+
+        /* les niveaux du monde : on choisit ou on commence */
+        if(open){
+
+            const row = document.createElement("div");
+
+            row.className = "lvlRow";
+
+            const nb = worldLevels(wd.zone) + 1;
+
+            for(let n = 1; n <= nb; n++){
+
+                const chip = document.createElement("button");
+
+                const boss = n === nb;
+
+                chip.className = "lvlChip" + (boss ? " boss" : "");
+
+                if(!boss){
+                    chip.style.setProperty("--wc", wd.col);
+                }
+
+                const big = document.createElement("span");
+                big.textContent = boss ? "\u2620" : n;
+
+                const lab = document.createElement("small");
+                lab.textContent = boss ? T("worlds.boss") : T("hud.lvlShort");
+
+                chip.appendChild(big);
+                chip.appendChild(lab);
+
+                chip.onclick = function(e){
+                    e.stopPropagation();
+                    sound(boss ? 260 : 700, .09, boss ? "sawtooth" : "sine", .04);
+                    playWorld(wd.zone, n);
+                };
+
+                row.appendChild(chip);
+
+            }
+
+            box.appendChild(row);
+
+        }
 
     });
 
