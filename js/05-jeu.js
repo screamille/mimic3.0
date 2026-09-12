@@ -2525,6 +2525,9 @@ function drawPlayer(){
 
 function endGame(){
 
+    /* on retient ou on en etait : REJOUER repartira d'ici */
+    noteSpot();
+
     const final = Math.floor(score);
 
     if(final > bestScore){

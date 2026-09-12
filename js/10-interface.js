@@ -826,16 +826,40 @@ function lobbyModeList(){
 REJOUER ne renvoie plus au monde 1 : on repart la ou on en
 etait, si ce monde est bien ouvert.
 */
+/*
+REJOUER reprend le niveau exact ou la partie s'est arretee :
+mort au niveau 3 de la foret, on repart au niveau 3 ; mort
+contre le boss, on repart au boss.
+*/
+let lastLevel = 1;
+
+try{
+    const ll = localStorage.getItem("mimicLastLevel");
+    if(ll){ lastLevel = Math.max(1, ll | 0); }
+}catch(e){}
+
+
+function noteSpot(){
+
+    if(laser.active){ return; }
+
+    lastZone  = zone;
+    lastLevel = Math.max(1, level);
+
+    try{
+        localStorage.setItem("mimicLastZone",  lastZone);
+        localStorage.setItem("mimicLastLevel", String(lastLevel));
+    }catch(e){}
+
+}
+
+
 function rejouer(){
 
     const z = worldUnlocked(lastZone) ? lastZone : "foret";
+    const n = Math.max(1, Math.min(worldLevels(z) + 1, lastLevel));
 
-    startGame();
-
-    if(z === "ruines"){
-        level = 1;
-        enterRuines();
-    }
+    playWorld(z, n);
 
 }
 

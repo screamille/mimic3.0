@@ -40,7 +40,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
 On repart de 1.00 et on monte de 0.01 a chaque livraison :
 10.8 donnait l'impression d'un jeu fini alors qu'il commence.
 */
-const VERSION = "1.07";
+const VERSION = "1.08";
 
 (function(){
 
@@ -10955,8 +10955,8 @@ function w69Enter(zoneId, label, col){
 
 const FORET_LEVELS = 4;    /* niveaux avant le boss */
 const FORET_SECS   = 45;   /* duree d'un niveau, en secondes */
-const GARD_TIME    = 70;   /* secondes de survie pour l'user */
-const GARD_PUNCH   = .05;  /* ce qu'il regagne en te touchant */
+const GARD_TIME    = 48;   /* secondes de survie pour l'user */
+const GARD_PUNCH   = .025; /* ce qu'il regagne en te touchant */
 
 let guepes    = [];
 let sangliers = [];
@@ -12093,6 +12093,20 @@ function updateGard(dt){
     /* ---- l'usure ---- */
     gard.hp -= dt / GARD_TIME;
 
+    /*
+    A la moitie, il lache un coeur : le combat est long, et
+    perdre une vie au debut ne doit pas condamner la suite.
+    */
+    if(gard.hp <= .5 && !gard.don){
+
+        gard.don = true;
+
+        if(lives < MAX_LIVES && typeof addHeart === "function"){
+            addHeart();
+        }
+
+    }
+
     if(gard.hp <= 0){
         gard.hp   = 0;
         gard.dead = 2.4;
@@ -12109,47 +12123,47 @@ function updateGard(dt){
 
         if(ph === 0){
 
-            /* trois racines isolees, hauteurs inegales */
-            for(let i = 0; i < 3; i++){
-                const hh = (a.y1 - a.y0) * (.28 + rnd() * .28);
+            /* deux racines isolees, hauteurs inegales */
+            for(let i = 0; i < 2; i++){
+                const hh = (a.y1 - a.y0) * (.26 + rnd() * .26);
 
                 pousseRacine(
                     a.x0 + (a.x1 - a.x0) * (.10 + rnd() * .80),
                     hh * (.42 + rnd() * .16),
                     hh,
-                    1.15
+                    1.55
                 );
             }
 
-            /* une liane par-dessus, une fois sur deux */
-            if(rnd() < .5){ lanceLiane(1.3); }
+            /* une liane par-dessus, une fois sur trois */
+            if(rnd() < .34){ lanceLiane(1.7); }
 
-            gard.fire = 1.9;
+            gard.fire = 2.6;
 
         }else if(ph === 1){
 
             /* une vague qui balaie : elles montent l'une apres l'autre */
             const gauche = rnd() < .5;
-            const n      = 7;
+            const n      = 5;
 
             for(let i = 0; i < n; i++){
 
                 const k = gauche ? i : n - 1 - i;
 
-                const hh = (a.y1 - a.y0) * (.30 + rnd() * .24);
+                const hh = (a.y1 - a.y0) * (.28 + rnd() * .22);
 
                 pousseRacine(
                     a.x0 + (a.x1 - a.x0) * (.07 + k / (n - 1) * .86),
                     hh * (.44 + rnd() * .14),
                     hh,
-                    .95 + i * .16
+                    1.35 + i * .24
                 );
 
             }
 
-            lanceLiane(1.2);
+            lanceLiane(1.6);
 
-            gard.fire = 2.7;
+            gard.fire = 3.4;
 
         }else{
 
@@ -12158,38 +12172,38 @@ function updateGard(dt){
             avec un seul passage. On le voit se dessiner avant
             qu'il sorte.
             */
-            const n    = 8;
-            const trou = 1 + Math.floor(rnd() * (n - 2));
+            const n     = 7;
+            const trou  = 1 + Math.floor(rnd() * (n - 2));
+            const trou2 = (trou + 2 + Math.floor(rnd() * 2)) % n;
 
             for(let i = 0; i < n; i++){
 
-                if(i === trou){ continue; }
+                if(i === trou || i === trou2){ continue; }
 
                 pousseRacine(
                     a.x0 + (a.x1 - a.x0) * ((i + .5) / n),
-                    (a.x1 - a.x0) / n * .86,
-                    (a.y1 - a.y0) * (.38 + rnd() * .18),
-                    1.05
+                    (a.x1 - a.x0) / n * .82,
+                    (a.y1 - a.y0) * (.34 + rnd() * .16),
+                    1.45
                 );
 
             }
 
-            /* et deux retardataires, pour ne pas rester plante */
-            for(let i = 0; i < 2; i++){
-                const hh = (a.y1 - a.y0) * (.30 + rnd() * .24);
+            /* un retardataire, pour ne pas rester plante */
+            {
+                const hh = (a.y1 - a.y0) * (.28 + rnd() * .22);
 
                 pousseRacine(
                     a.x0 + (a.x1 - a.x0) * (.12 + rnd() * .76),
                     hh * (.46 + rnd() * .14),
                     hh,
-                    2.1
+                    2.5
                 );
             }
 
-            lanceLiane(1.1);
-            lanceLiane(2.6);
+            lanceLiane(1.5);
 
-            gard.fire = 2.9;
+            gard.fire = 3.6;
 
         }
 
@@ -13683,7 +13697,7 @@ function updateForest(dt){
     if(gard){
 
         /* la voute descend en trois secondes */
-        gardVoute = Math.min(1, gardVoute + dt / 3);
+        gardVoute = Math.min(1, gardVoute + dt / 4.5);
 
         /* et elle crache des pics, souvent */
         if(gardVoute > .6){
@@ -13692,20 +13706,16 @@ function updateForest(dt){
 
             if(gardPicT <= 0){
 
-                const n = 1 + Math.floor(rnd() * 2);
+                gardPics.push({
+                    u:.06 + rnd() * .88,
+                    larg:.035 + rnd() * .025,
+                    len:(playArea().y1 - playArea().y0) * (.20 + rnd() * .14),
+                    phase:"marque",
+                    t:1.0,
+                    grow:0
+                });
 
-                for(let i = 0; i < n; i++){
-                    gardPics.push({
-                        u:.06 + rnd() * .88,
-                        larg:.035 + rnd() * .025,
-                        len:(playArea().y1 - playArea().y0) * (.22 + rnd() * .18),
-                        phase:"marque",
-                        t:.75,
-                        grow:0
-                    });
-                }
-
-                gardPicT = .55 + rnd() * .55;
+                gardPicT = 1.2 + rnd() * .9;
 
             }
 
