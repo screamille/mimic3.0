@@ -116,7 +116,12 @@ const SKINS = [
     {id:"seraphin",  name:"SÉRAPHIN SLIME",  color:"#fff0bf", color2:"#e0a52c", price:800, effect:"seraphin",  rarity:3},
     {id:"kraken",    name:"KRAKEN SLIME",    color:"#2fd6b0", color2:"#06222c", price:800, effect:"kraken",    rarity:3},
     {id:"faucheuse", name:"FAUCHEUSE SLIME", color:"#7bff9c", color2:"#0c0f16", price:800, effect:"faucheuse", rarity:3},
-    {id:"chevalier", name:"CHEVALIER NOIR",  color:"#9aa7bd", color2:"#161b26", price:800, effect:"chevalier", rarity:3}
+    {id:"chevalier", name:"CHEVALIER NOIR",  color:"#9aa7bd", color2:"#161b26", price:800, effect:"chevalier", rarity:3},
+
+    /* --- les trois dessins --- */
+    {id:"chat",       name:"CHAT SLIME",       color:"#8b5a2b", color2:"#42260d", price:400, effect:"chat",       rarity:2},
+    {id:"casquette",  name:"CASQUETTE SLIME",  color:"#7d5a3c", color2:"#3a2716", price:400, effect:"casquette",  rarity:2},
+    {id:"grenouille", name:"GRENOUILLE SLIME", color:"#c9bb4f", color2:"#6f6218", price:400, effect:"grenouille", rarity:2}
 ];
 
 
@@ -567,6 +572,93 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
 
         c.shadowBlur = 0;
 
+    }else if(skin.effect === "chat"){
+
+        /* les yeux jaunes fendus du dessin */
+        [-1, 1].forEach(sgn => {
+
+            c.fillStyle = "#ffe14d";
+            c.beginPath();
+            c.ellipse(sgn * ex, ey, er * .92, er * 1.02, sgn * .12, 0, Math.PI * 2);
+            c.fill();
+
+            c.strokeStyle = "#1a1208";
+            c.lineWidth   = Math.max(1, r * .035);
+            c.stroke();
+
+            /* la fente */
+            c.fillStyle = "#1a1208";
+            c.beginPath();
+            c.ellipse(sgn * ex, ey, er * .20, er * .88, 0, 0, Math.PI * 2);
+            c.fill();
+
+        });
+
+    }else if(skin.effect === "casquette"){
+
+        /* de gros yeux blancs, et des sourcils fronces */
+        [-1, 1].forEach(sgn => {
+
+            c.fillStyle = "#ffffff";
+            c.beginPath();
+            c.ellipse(sgn * ex, ey + er * .1, er * 1.02, er * 1.12, 0, 0, Math.PI * 2);
+            c.fill();
+
+            c.strokeStyle = "#12100c";
+            c.lineWidth   = Math.max(1, r * .04);
+            c.stroke();
+
+            /* la pupille regarde sur le cote */
+            c.fillStyle = "#12100c";
+            c.beginPath();
+            c.ellipse(sgn * ex + er * .30, ey + er * .1, er * .62, er * .82, 0, 0, Math.PI * 2);
+            c.fill();
+
+        });
+
+        /* les sourcils */
+        c.fillStyle = "#12100c";
+
+        [-1, 1].forEach(sgn => {
+            c.save();
+            c.translate(sgn * ex, ey - er * 1.25);
+            c.rotate(sgn * .30);
+            c.beginPath();
+            c.ellipse(0, 0, er * 1.15, er * .30, 0, 0, Math.PI * 2);
+            c.fill();
+            c.restore();
+        });
+
+        /* les deux narines */
+        c.fillStyle = "#12100c";
+
+        [-1, 1].forEach(sgn => {
+            c.beginPath();
+            c.arc(sgn * w * .09, h * .04, r * .022, 0, Math.PI * 2);
+            c.fill();
+        });
+
+    }else if(skin.effect === "grenouille"){
+
+        /* deux yeux ronds, poses haut */
+        [-1, 1].forEach(sgn => {
+
+            c.fillStyle = "#ffffff";
+            c.beginPath();
+            c.ellipse(sgn * ex * .92, ey - er * .2, er * .98, er * .82, 0, 0, Math.PI * 2);
+            c.fill();
+
+            c.strokeStyle = "#141008";
+            c.lineWidth   = Math.max(1, r * .04);
+            c.stroke();
+
+            c.fillStyle = "#141008";
+            c.beginPath();
+            c.ellipse(sgn * ex * .92 + er * .18, ey - er * .2, er * .40, er * .52, 0, 0, Math.PI * 2);
+            c.fill();
+
+        });
+
     }else if(skin.effect === "squelette"){
 
         /* deux orbites vides */
@@ -746,6 +838,77 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
                 c.closePath();
                 c.fill();
             });
+
+        }else if(skin.effect === "chat"){
+
+            /* le museau : un nez, deux moustaches, la langue */
+            c.fillStyle = "#1a1208";
+            c.beginPath();
+            c.moveTo(-r * .09, h * .02);
+            c.lineTo(r * .09, h * .02);
+            c.lineTo(0, h * .12);
+            c.closePath();
+            c.fill();
+
+            c.strokeStyle = "#1a1208";
+            c.lineWidth   = Math.max(1, r * .05);
+
+            c.beginPath();
+            c.arc(-r * .11, h * .13, r * .12, 0, Math.PI * .9);
+            c.stroke();
+
+            c.beginPath();
+            c.arc(r * .11, h * .13, r * .12, Math.PI * .1, Math.PI);
+            c.stroke();
+
+            /* la langue qui depasse */
+            c.fillStyle = "#ff5f8f";
+            c.beginPath();
+            c.ellipse(0, h * .24, r * .07, r * .10, 0, 0, Math.PI * 2);
+            c.fill();
+
+            c.strokeStyle = "#1a1208";
+            c.lineWidth   = Math.max(1, r * .03);
+            c.stroke();
+
+        }else if(skin.effect === "casquette"){
+
+            /* la bouche inquiete, avec ses dents carrees */
+            c.fillStyle = "#12100c";
+            c.beginPath();
+            c.moveTo(-r * .30, h * .16);
+            c.quadraticCurveTo(0, h * .06, r * .30, h * .16);
+            c.quadraticCurveTo(0, h * .34, -r * .30, h * .16);
+            c.closePath();
+            c.fill();
+
+            c.fillStyle = "#ffffff";
+
+            for(let i = -1; i <= 1; i++){
+                c.beginPath();
+                c.rect(i * r * .13 - r * .045, h * .13, r * .09, r * .10);
+                c.fill();
+            }
+
+        }else if(skin.effect === "grenouille"){
+
+            /* la fente qui traverse toute la tete */
+            c.strokeStyle = "#c07a3c";
+            c.lineWidth   = Math.max(2, r * .14);
+            c.lineCap     = "round";
+
+            c.beginPath();
+            c.moveTo(-w * .78, h * .12);
+            c.bezierCurveTo(-w * .30, h * .02, w * .30, h * .22, w * .78, h * .10);
+            c.stroke();
+
+            c.strokeStyle = "#141008";
+            c.lineWidth   = Math.max(1, r * .035);
+
+            c.beginPath();
+            c.moveTo(-w * .78, h * .12);
+            c.bezierCurveTo(-w * .30, h * .02, w * .30, h * .22, w * .78, h * .10);
+            c.stroke();
 
         }else if(skin.effect === "requin"){
 
@@ -2758,6 +2921,87 @@ function paintSkinSlime(c, skin, r, t, detailed, fx){
 
     }
 
+    /* CHAT : les oreilles pointues */
+    if(skin.effect === "chat"){
+
+        [-1, 1].forEach(sg => {
+
+            /* l'oreille */
+            c.fillStyle = skin.color;
+
+            c.beginPath();
+            c.moveTo(sg * w * .20, -h * .80);
+            c.lineTo(sg * w * .50, -h * 1.38);
+            c.lineTo(sg * w * .76, -h * .62);
+            c.closePath();
+            c.fill();
+
+            c.strokeStyle = "#1a1208";
+            c.lineWidth   = Math.max(1, r * .055);
+            c.lineJoin    = "round";
+            c.stroke();
+
+            /* l'interieur rose */
+            c.fillStyle = "#e8809f";
+
+            c.beginPath();
+            c.moveTo(sg * w * .33, -h * .84);
+            c.lineTo(sg * w * .49, -h * 1.18);
+            c.lineTo(sg * w * .63, -h * .74);
+            c.closePath();
+            c.fill();
+
+        });
+
+    }
+
+    /* CASQUETTE : verte, portee a l'envers */
+    if(skin.effect === "casquette"){
+
+        const vg = c.createLinearGradient(0, -h * 1.35, 0, -h * .55);
+        vg.addColorStop(0, "#4d8c6c");
+        vg.addColorStop(1, "#2c5a44");
+
+        /* la visiere, sur le cote gauche */
+        c.fillStyle = "#2c5a44";
+
+        c.beginPath();
+        c.moveTo(-w * .52, -h * .82);
+        c.quadraticCurveTo(-w * 1.30, -h * .74, -w * 1.44, -h * .30);
+        c.quadraticCurveTo(-w * 1.00, -h * .52, -w * .48, -h * .58);
+        c.closePath();
+        c.fill();
+
+        c.strokeStyle = "#12100c";
+        c.lineWidth   = Math.max(1, r * .05);
+        c.lineJoin    = "round";
+        c.stroke();
+
+        /* la calotte */
+        c.fillStyle = vg;
+
+        c.beginPath();
+        c.moveTo(-w * .86, -h * .70);
+        c.quadraticCurveTo(-w * .78, -h * 1.36, 0, -h * 1.40);
+        c.quadraticCurveTo(w * .84, -h * 1.34, w * .90, -h * .62);
+        c.quadraticCurveTo(0, -h * .86, -w * .86, -h * .70);
+        c.closePath();
+        c.fill();
+
+        c.strokeStyle = "#12100c";
+        c.lineWidth   = Math.max(1, r * .055);
+        c.stroke();
+
+        /* la couture du milieu */
+        c.strokeStyle = "rgba(18,16,12,.45)";
+        c.lineWidth   = Math.max(1, r * .03);
+        c.beginPath();
+        c.moveTo(0, -h * 1.40);
+        c.lineTo(0, -h * .80);
+        c.stroke();
+
+    }
+
     if(skin.effect === "ghost"){
 
         c.globalAlpha = .5;
@@ -2797,6 +3041,59 @@ function paintSkinInner(c, skin, w, h, r, t, f){
     c.globalAlpha = 1;
 
     const e = skin.effect;
+
+    /* ---------- LES TROIS DESSINS : des aplats ---------- */
+    if(e === "chat" || e === "casquette" || e === "grenouille"){
+
+        /*
+        Ces trois-la viennent d'un dessin au feutre : pas de
+        degrade savant, un aplat et une ombre basse. C'est ce
+        qui leur garde leur tete de dessin.
+        */
+        const pg = c.createLinearGradient(0, -h, 0, h);
+        pg.addColorStop(0,   skin.color);
+        pg.addColorStop(.62, skin.color);
+        pg.addColorStop(1,   skin.color2);
+
+        c.fillStyle = pg;
+        c.fillRect(-w * 1.5, -h * 1.5, w * 3, h * 3);
+
+        /* le trait du dessin : un cerne sombre sur le bord */
+        c.globalAlpha = .5;
+        c.strokeStyle = "#0d0a06";
+        c.lineWidth   = r * .13;
+        c.beginPath();
+        c.arc(0, 0, r * 1.00, 0, Math.PI * 2);
+        c.stroke();
+        c.globalAlpha = 1;
+
+        if(e === "chat"){
+
+            /* le museau plus clair */
+            c.globalAlpha = .35;
+            c.fillStyle   = "#c08a52";
+            c.beginPath();
+            c.ellipse(0, h * .22, w * .42, h * .26, 0, 0, Math.PI * 2);
+            c.fill();
+            c.globalAlpha = 1;
+
+        }
+
+        if(e === "grenouille"){
+
+            /* le ventre, plus pale */
+            c.globalAlpha = .30;
+            c.fillStyle   = "#e8dc84";
+            c.beginPath();
+            c.ellipse(0, h * .45, w * .62, h * .34, 0, 0, Math.PI * 2);
+            c.fill();
+            c.globalAlpha = 1;
+
+        }
+
+        return;
+
+    }
 
     /* ---------- DÉMON : l'obsidienne fendue ---------- */
     if(e === "demon"){
