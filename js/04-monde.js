@@ -40,7 +40,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
 On repart de 1.00 et on monte de 0.01 a chaque livraison :
 10.8 donnait l'impression d'un jeu fini alors qu'il commence.
 */
-const VERSION = "1.19";
+const VERSION = "1.20";
 
 (function(){
 

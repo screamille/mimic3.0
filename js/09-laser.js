@@ -176,6 +176,73 @@ function lasSpawnWave(){
 }
 
 
+/* =========================================================
+   LES MEGA-RAYONS
+
+   Trois barres enormes, chacune un tiers de l'arene, qui
+   partent de la gauche ET de la droite en meme temps. Elles
+   ne laissent que deux coutures : c'est la, et nulle part
+   ailleurs, qu'il faut etre. Le preavis est long — c'est un
+   moment qui se voit venir, pas un piege.
+========================================================= */
+
+const MEGA_BANDE = .26;   /* hauteur d'une barre, en part d'arene */
+const MEGA_JOINT = .11;   /* la couture entre deux barres        */
+
+/* les centres des trois barres, et ceux des deux coutures */
+const MEGA_POS   = [
+    MEGA_BANDE * .5,
+    .5,
+    1 - MEGA_BANDE * .5
+];
+
+const MEGA_SAFE  = [
+    MEGA_BANDE + MEGA_JOINT * .5,
+    1 - MEGA_BANDE - MEGA_JOINT * .5
+];
+
+
+function lasMegaVivant(){
+    return laser.beams.some(b => b.mega);
+}
+
+
+function lasSpawnMega(){
+
+    /* le preavis reste long meme tard dans la partie */
+    const warn = 1.7 - .45 * lasRamp();
+
+    MEGA_POS.forEach((p, i) => {
+
+        laser.beams.push({
+            dir:"h",
+            mega:true,
+            rang:i,
+            pos:p,
+            thick:MEGA_BANDE,
+            warn:warn,
+            fire:.45,
+            t:0,
+            dead:false
+        });
+
+    });
+
+    /* la sirene : elle monte pendant tout le preavis */
+    if(typeof sweep === "function"){
+        sweep(260, 880, warn * .9, "sawtooth", .045);
+        sweep(130, 440, warn * .9, "triangle", .02);
+    }
+
+    sound(440, .12, "square", .05);
+    setTimeout(() => sound(440, .12, "square", .05), 300);
+    setTimeout(() => sound(560, .16, "square", .05), 600);
+
+    buzz([40, 60, 40, 60, 40]);
+
+}
+
+
 /*
 Passage du repere relatif (0..1) au repere de CET ecran.
 C'est le seul endroit qui connait les pixels.
@@ -187,7 +254,12 @@ function lasGeom(b){
     const aw = a.x1 - a.x0;
     const ah = a.y1 - a.y0;
 
-    const thick = b.thick * Math.min(W, H);
+    /*
+    Un mega-rayon se mesure sur la HAUTEUR DE L'ARENE : c'est
+    ce qui garantit que trois barres plus deux coutures font
+    exactement l'ecran, sur n'importe quel telephone.
+    */
+    const thick = b.mega ? b.thick * ah : b.thick * Math.min(W, H);
 
     if(b.dir === "h"){
         return {pos:a.y0 + b.pos * ah, thick:thick};
@@ -232,12 +304,30 @@ function lasHit(b, x, y, r){
 
 function lasUpdateBeams(dt){
 
+    /* ---- le mega-rayon, de temps en temps ---- */
+    if(laser.megaIn === undefined){ laser.megaIn = 12; }
+
+    laser.megaIn -= dt;
+
+    if(laser.megaIn <= 0 && !lasMegaVivant()){
+
+        lasSpawnMega();
+
+        /* il revient un peu plus souvent au fil de la partie */
+        laser.megaIn = 15 - 5 * lasRamp();
+
+    }
+
     laser.nextWave -= dt;
 
     if(laser.nextWave <= 0){
 
-        /* on ne depasse jamais le plafond, meme si une image traine */
-        if(laser.beams.length < LAS_MAX_BEAMS){
+        /*
+        Pendant un mega-rayon, on ne fabrique plus de petits
+        rayons : la couture doit rester libre, sinon il n'y a
+        plus de solution.
+        */
+        if(laser.beams.length < LAS_MAX_BEAMS && !lasMegaVivant()){
             lasSpawnWave();
         }
 
@@ -247,7 +337,30 @@ function lasUpdateBeams(dt){
 
     for(const b of laser.beams){
 
+        const avant = b.t;
+
         b.t += dt;
+
+        /* le mega part : un souffle, un grave, et l'ecran encaisse */
+        if(b.mega && b.rang === 0 && avant < b.warn && b.t >= b.warn){
+
+            if(typeof souffle === "function"){
+                souffle(.55, .14, 90, 7000);
+            }
+
+            sound(58, .7, "sine", .10);
+
+            if(typeof sweep === "function"){
+                sweep(1800, 300, .55, "sawtooth", .05);
+            }
+
+            if(typeof foretShake !== "undefined"){
+                foretShake = Math.max(foretShake, .7);
+            }
+
+            buzz([90, 50, 140]);
+
+        }
 
         if(b.t > b.warn + b.fire + .35){
             b.dead = true;
@@ -265,6 +378,153 @@ function lasBeamLethal(b){
 }
 
 
+/*
+Un mega-rayon se dessine en trois temps : l'annonce (la
+bande s'assombrit, les canons chauffent sur les deux bords,
+les coutures s'allument en vert), le tir (deux faisceaux qui
+se rejoignent au centre), puis la braise.
+*/
+function drawMegaBeam(b, g, lethal, after){
+
+    const a = playArea();
+
+    const y   = g.pos;
+    const ep  = g.thick;
+    const x0  = a.x0;
+    const x1  = a.x1;
+    const lg  = x1 - x0;
+
+    ctx.save();
+
+    if(!lethal && !after){
+
+        const k = b.t / b.warn;
+
+        /* la bande condamnee */
+        ctx.globalAlpha = .12 + k * .22;
+        ctx.fillStyle   = "#ff4f6e";
+        ctx.fillRect(x0, y - ep / 2, lg, ep);
+
+        /* ses deux bords, qui battent de plus en plus vite */
+        const puls = .4 + .6 * Math.abs(Math.sin(k * Math.PI * (3 + k * 7)));
+
+        ctx.globalAlpha = puls;
+        ctx.fillStyle   = "#ff4f6e";
+        ctx.fillRect(x0, y - ep / 2 - 2 * unit, lg, 3 * unit);
+        ctx.fillRect(x0, y + ep / 2 - unit,     lg, 3 * unit);
+
+        /* les canons, a gauche et a droite */
+        [-1, 1].forEach(sg => {
+
+            const cx = sg < 0 ? x0 : x1;
+
+            ctx.globalAlpha = 1;
+
+            const cg = ctx.createLinearGradient(cx, 0, cx + sg * 26 * unit, 0);
+            cg.addColorStop(0, "#ff4f6e");
+            cg.addColorStop(1, "rgba(255,79,110,0)");
+
+            ctx.fillStyle = cg;
+            ctx.fillRect(
+                sg < 0 ? cx : cx - 26 * unit,
+                y - ep / 2, 26 * unit, ep
+            );
+
+            /* le coeur du canon chauffe */
+            ctx.globalAlpha = .35 + k * .65;
+            ctx.fillStyle   = "#fff0c0";
+            ctx.shadowBlur  = 26 * unit * k;
+            ctx.shadowColor = "#ffb347";
+
+            ctx.beginPath();
+            ctx.ellipse(cx, y, 9 * unit * (.4 + k), ep * .30 * (.4 + k), 0, 0, Math.PI * 2);
+            ctx.fill();
+
+            ctx.shadowBlur = 0;
+
+        });
+
+        /* la couture : le seul endroit ou se mettre */
+        if(b.rang === 0){
+
+            MEGA_SAFE.forEach(p => {
+
+                const sy = a.y0 + p * (a.y1 - a.y0);
+                const se = MEGA_JOINT * (a.y1 - a.y0);
+
+                ctx.globalAlpha = .16 + Math.abs(Math.sin(b.t * 6)) * .16;
+                ctx.fillStyle   = "#61ff83";
+                ctx.fillRect(x0, sy - se / 2, lg, se);
+
+                ctx.globalAlpha = .55;
+                ctx.strokeStyle = "#61ff83";
+                ctx.lineWidth   = 2 * unit;
+                ctx.setLineDash([10 * unit, 8 * unit]);
+
+                ctx.beginPath();
+                ctx.moveTo(x0, sy - se / 2);
+                ctx.lineTo(x1, sy - se / 2);
+                ctx.moveTo(x0, sy + se / 2);
+                ctx.lineTo(x1, sy + se / 2);
+                ctx.stroke();
+
+                ctx.setLineDash([]);
+
+            });
+
+        }
+
+    }else if(lethal){
+
+        const k = (b.t - b.warn) / b.fire;
+
+        /*
+        Les deux faisceaux partent des bords et se rejoignent :
+        en 90 ms l'ecran est barre.
+        */
+        const av = Math.min(1, k / .2);
+
+        const grad = ctx.createLinearGradient(0, y - ep / 2, 0, y + ep / 2);
+        grad.addColorStop(0,   "rgba(255,90,120,0)");
+        grad.addColorStop(.18, "rgba(255,120,150,.9)");
+        grad.addColorStop(.5,  "rgba(255,255,255,1)");
+        grad.addColorStop(.82, "rgba(255,120,150,.9)");
+        grad.addColorStop(1,   "rgba(255,90,120,0)");
+
+        ctx.globalAlpha = 1 - k * .2;
+        ctx.fillStyle   = grad;
+
+        /* depuis la gauche */
+        ctx.fillRect(x0, y - ep / 2, lg * .5 * av, ep);
+        /* depuis la droite */
+        ctx.fillRect(x1 - lg * .5 * av, y - ep / 2, lg * .5 * av, ep);
+
+        /* le halo */
+        /* le halo reste dans la bande : la couture doit rester noire */
+        ctx.globalAlpha = (1 - k) * .34;
+        ctx.fillStyle   = "#ff4f6e";
+        ctx.fillRect(x0, y - ep * .60, lg, ep * 1.20);
+
+        /* la ligne blanche au coeur */
+        ctx.globalAlpha = (1 - k) * .9;
+        ctx.fillStyle   = "#ffffff";
+        ctx.fillRect(x0, y - ep * .06, lg, ep * .12);
+
+    }else{
+
+        const k = (b.t - b.warn - b.fire) / .35;
+
+        ctx.globalAlpha = (1 - k) * .45;
+        ctx.fillStyle   = "#ff8a6a";
+        ctx.fillRect(x0, y - ep / 5, lg, ep * .4);
+
+    }
+
+    ctx.restore();
+
+}
+
+
 function drawLaserBeams(){
 
     const a = playArea();
@@ -279,6 +539,12 @@ function drawLaserBeams(){
         const after  = b.t >= b.warn + b.fire;
 
         const g = lasGeom(b);
+
+        /* --- les mega-rayons ont leur propre mise en scene --- */
+        if(b.mega){
+            drawMegaBeam(b, g, lethal, after);
+            continue;
+        }
 
         ctx.save();
 
@@ -1274,6 +1540,7 @@ function lasBegin(){
     laser.time   = 0;
     laser.send   = 0;
     laser.nextWave = 1.6;
+    laser.megaIn   = 12;
 
     lasSeed(laser.seed);
 
