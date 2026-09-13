@@ -46,7 +46,6 @@ const SKINS = [
     {id:"pharaon",   name:"PHARAON SLIME",    color:"#f0c64a", color2:"#8a6410", price:500, effect:"pharaon",   rarity:3},
     {id:"maudit",    name:"MAUDIT SLIME",     color:"#3a2450", color2:"#0a040f", price:500, effect:"maudit",    rarity:3},
     {id:"tresor",    name:"TRÉSOR SLIME",     color:"#ffcf4a", color2:"#a06a10", price:500, effect:"tresor",    rarity:3},
-    {id:"phenix",    name:"PHÉNIX SLIME",     color:"#ffb43a", color2:"#c43a08", price:500, effect:"phenix",    rarity:3},
 
     /* --- troisieme fournee --- */
     {id:"pasteque",  name:"PASTÈQUE SLIME",  color:"#ff5f6e", color2:"#2f7a3a", price:100,   effect:"pasteque",  rarity:0},
@@ -56,7 +55,6 @@ const SKINS = [
     {id:"sushi",     name:"SUSHI SLIME",     color:"#f5efe2", color2:"#b8a888", price:250,  effect:"sushi",     rarity:1},
     {id:"panda",     name:"PANDA SLIME",     color:"#f4f4f4", color2:"#b8b8b8", price:250,  effect:"panda",     rarity:1},
     {id:"pixel",     name:"PIXEL SLIME",     color:"#5fe86a", color2:"#1f6a28", price:250,  effect:"pixel",     rarity:1},
-    {id:"citrouille",name:"CITROUILLE SLIME",color:"#ff8a1f", color2:"#a04a08", price:400,  effect:"citrouille",rarity:2},
     {id:"momie",     name:"MOMIE SLIME",     color:"#e6dcc0", color2:"#9a8a66", price:400,  effect:"momie",     rarity:2},
     {id:"squelette", name:"SQUELETTE SLIME", color:"#eef2f5", color2:"#8f9aa8", price:400,  effect:"squelette", rarity:2},
     {id:"requin",    name:"REQUIN SLIME",    color:"#7f95ad", color2:"#2c3f56", price:400,  effect:"requin",    rarity:2},
@@ -82,11 +80,11 @@ const SKINS = [
     {id:"kintsugi",  name:"KINTSUGI SLIME",  color:"#f0e6d8", color2:"#c9a13a", price:500,  effect:"kintsugi",  rarity:3},
 
     /* --- recompense : il ne s'achete pas --- */
-    {id:"abyssal",   name:"ABYSSAL SLIME",   color:"#2fe0ff", color2:"#04243a", price:0,    effect:"abyssal",   rarity:4, exclusive:true},
-    {id:"neant",     name:"NÉANT SLIME",     color:"#c86aff", color2:"#100322", price:0,    effect:"neant",     rarity:4, exclusive:true},
+    {id:"abyssal",   name:"ABYSSAL SLIME",   color:"#2fe0ff", color2:"#04243a", price:0,    effect:"abyssal",   rarity:5, exclusive:true},
+    {id:"neant",     name:"NÉANT SLIME",     color:"#c86aff", color2:"#100322", price:0,    effect:"neant",     rarity:5, exclusive:true},
     {id:"pantin",    name:"MARIONNETTE",     color:"#2b2038", color2:"#b06cff", price:600,  effect:"pantin",    rarity:3},
-    {id:"foret",     name:"GARDIEN SLIME",   color:"#5a4426", color2:"#1d1409", price:0,    effect:"gardien",   rarity:4, exclusive:true},
-    {id:"ruines",    name:"COLOSSE SLIME",   color:"#5d6e85", color2:"#151d27", price:0,    effect:"colosse",   rarity:4, exclusive:true},
+    {id:"foret",     name:"GARDIEN SLIME",   color:"#5a4426", color2:"#1d1409", price:0,    effect:"gardien",   rarity:5, exclusive:true},
+    {id:"ruines",    name:"COLOSSE SLIME",   color:"#5d6e85", color2:"#151d27", price:0,    effect:"colosse",   rarity:5, exclusive:true},
 
     /* --- vague 9 : 30 motifs nets, lisibles meme en tout petit --- */
     {id:"zebre",     name:"ZEBRE SLIME",     color:"#f4f4f4", color2:"#141414", price:250,  effect:"zebre",     rarity:1},
@@ -112,16 +110,14 @@ const SKINS = [
     {id:"papillon",  name:"PAPILLON SLIME",  color:"#6a8fff", color2:"#2a1a6a", price:500,  effect:"papillon",  rarity:3},
 
     /* --- les cinq legendaires --- */
-    {id:"demon",     name:"DÉMON SLIME",     color:"#ff3b2f", color2:"#150609", price:800, effect:"demon",     rarity:3},
-    {id:"seraphin",  name:"SÉRAPHIN SLIME",  color:"#fff0bf", color2:"#e0a52c", price:800, effect:"seraphin",  rarity:3},
-    {id:"kraken",    name:"KRAKEN SLIME",    color:"#2fd6b0", color2:"#06222c", price:800, effect:"kraken",    rarity:3},
-    {id:"faucheuse", name:"FAUCHEUSE SLIME", color:"#7bff9c", color2:"#0c0f16", price:800, effect:"faucheuse", rarity:3},
-    {id:"chevalier", name:"CHEVALIER NOIR",  color:"#9aa7bd", color2:"#161b26", price:800, effect:"chevalier", rarity:3},
+    {id:"demon",     name:"DÉMON SLIME",     color:"#ff3b2f", color2:"#150609", price:1200, effect:"demon",     rarity:4},
+    {id:"seraphin",  name:"SÉRAPHIN SLIME",  color:"#fff0bf", color2:"#e0a52c", price:1200, effect:"seraphin",  rarity:4},
+    {id:"kraken",    name:"KRAKEN SLIME",    color:"#2fd6b0", color2:"#06222c", price:1200, effect:"kraken",    rarity:4},
+    {id:"faucheuse", name:"FAUCHEUSE SLIME", color:"#7bff9c", color2:"#0c0f16", price:1200, effect:"faucheuse", rarity:4},
+    {id:"chevalier", name:"CHEVALIER NOIR",  color:"#9aa7bd", color2:"#161b26", price:1200, effect:"chevalier", rarity:4},
 
     /* --- les trois dessins --- */
-    {id:"chat",       name:"CHAT SLIME",       color:"#8b5a2b", color2:"#42260d", price:400, effect:"chat",       rarity:2},
-    {id:"casquette",  name:"CASQUETTE SLIME",  color:"#7d5a3c", color2:"#3a2716", price:400, effect:"casquette",  rarity:2},
-    {id:"grenouille", name:"GRENOUILLE SLIME", color:"#c9bb4f", color2:"#6f6218", price:400, effect:"grenouille", rarity:2}
+    {id:"chat",       name:"CHAT SLIME",       color:"#8b5a2b", color2:"#42260d", price:400, effect:"chat",       rarity:2}
 ];
 
 

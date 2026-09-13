@@ -39,6 +39,7 @@ const RARITIES = [
     {name:"RARE",        col:"#4fa8ff"},
     {name:"ÉPIQUE",      col:"#b06cff"},
     {name:"LÉGENDAIRE",  col:"#ffb01f"},
+    {name:"MYTHIQUE",    col:"#ff4fd8"},
     {name:"EXCLUSIF",    col:"#2fe0ff"}
 ];
 
