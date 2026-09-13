@@ -1328,6 +1328,17 @@ if(codeBtn){
 document.getElementById("codeSecretButton").onclick = () => openCode("settings");
 document.getElementById("codeBack").onclick   = closeCode;
 
+document.getElementById("eggClose").onclick = () => {
+
+    if(eggBusy){ return; }
+
+    document.getElementById("eggScreen").style.display = "none";
+
+    renderShop();
+    updateUI();
+
+};
+
 document.querySelectorAll(".keypad button").forEach(btn => {
     btn.onclick = () => codePress(btn.dataset.key);
 });

@@ -40,7 +40,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
 On repart de 1.00 et on monte de 0.01 a chaque livraison :
 10.8 donnait l'impression d'un jeu fini alors qu'il commence.
 */
-const VERSION = "1.16";
+const VERSION = "1.17";
 
 (function(){
 
@@ -3137,6 +3137,421 @@ function saveProfile(){
 /* le nom affiche : le pseudo, ou un nom par defaut */
 function playerName(){
     return profile.name || "JOUEUR";
+}
+
+
+/* =========================================================
+   LES OEUFS
+
+   On les paie en PIECES. Chacun rend trois choses : des
+   CRISTAUX, un skin tire au sort, et une charge de
+   competence. Un skin qu'on a deja est revendu sur place —
+   et plus il est rare, plus il rapporte.
+========================================================= */
+
+const EGGS = [
+    {
+        id:"mythique",
+        k:"egg.myth",
+        price:450,
+        gmin:100,
+        gmax:500,
+        col:"#8dffd8"
+    }
+];
+
+
+/* ce que rapporte un doublon, par rarete */
+const DUP_GEMS = [40, 80, 150, 300, 600, 0];
+
+
+/* les chances de tomber sur chaque rarete */
+const EGG_ODDS = [10, 28, 36, 20, 6, 0];
+
+
+let eggBusy = false;
+
+
+/* --- le dessin de la coquille --- */
+function paintOeuf(c, R, t, fissure){
+
+    c.save();
+
+    /* la coquille */
+    const pierre = c.createLinearGradient(-R, -R, R * .7, R);
+    pierre.addColorStop(0,   "#d4d8dc");
+    pierre.addColorStop(.45, "#a8aeb4");
+    pierre.addColorStop(1,   "#6d757d");
+
+    c.fillStyle = pierre;
+
+    c.beginPath();
+    c.ellipse(0, 0, R * .78, R, 0, 0, Math.PI * 2);
+    c.fill();
+
+    c.strokeStyle = "#14181c";
+    c.lineWidth   = R * .055;
+    c.stroke();
+
+    /* les veines de la pierre */
+    c.strokeStyle = "rgba(70,78,86,.55)";
+    c.lineWidth   = R * .022;
+
+    [[-.52, -.55, -.44, .55], [.54, -.5, .46, .58]].forEach(v => {
+        c.beginPath();
+        c.moveTo(v[0] * R, v[1] * R);
+        c.quadraticCurveTo(v[0] * R * 1.25, 0, v[2] * R, v[3] * R);
+        c.stroke();
+    });
+
+    /* les cristaux incrustes */
+    const gemmes = [
+        [-.30, -.80, .17], [.30, -.80, .17],
+        [-.42, -.34, .19], [.42, -.34, .19],
+        [-.72,  .04, .15], [.72,  .04, .15],
+        [-.38,  .40, .18], [.38,  .40, .18],
+        [-.26,  .80, .16], [.26,  .80, .16]
+    ];
+
+    gemmes.forEach((g, i) => {
+
+        const x  = g[0] * R * .92;
+        const y  = g[1] * R * .92;
+        const rr = g[2] * R;
+
+        const bat = .7 + Math.abs(Math.sin(t * 2 + i * .7)) * .3;
+
+        /* la gangue */
+        c.fillStyle = "#7c848c";
+        c.beginPath();
+        c.ellipse(x, y, rr * 1.3, rr * 1.15, i * .4, 0, Math.PI * 2);
+        c.fill();
+
+        /* le cristal */
+        c.shadowBlur  = rr * 1.6 * bat;
+        c.shadowColor = "#6bffd0";
+
+        const cg = c.createLinearGradient(x - rr, y - rr, x + rr, y + rr);
+        cg.addColorStop(0, "#c4fff0");
+        cg.addColorStop(1, "#2e8f7c");
+
+        c.fillStyle = cg;
+        c.beginPath();
+        c.ellipse(x, y, rr * .78, rr * .95, i * .4, 0, Math.PI * 2);
+        c.fill();
+
+        c.shadowBlur = 0;
+
+        c.strokeStyle = "rgba(20,40,36,.7)";
+        c.lineWidth   = rr * .16;
+        c.stroke();
+
+    });
+
+    /* la fissure : elle s'ouvre au fil de l'animation */
+    if(fissure > 0){
+
+        c.strokeStyle = "#0a0d10";
+        c.lineWidth   = R * (.03 + fissure * .10);
+        c.lineJoin    = "round";
+
+        c.beginPath();
+        c.moveTo(-R * .74, 0);
+
+        for(let i = 1; i <= 6; i++){
+            c.lineTo(-R * .74 + i * R * .247, (i % 2 ? -1 : 1) * R * .07 * fissure);
+        }
+
+        c.stroke();
+
+        /* la lumiere qui sort de la fente */
+        c.globalAlpha = fissure;
+        c.strokeStyle = "#b6ffe8";
+        c.lineWidth   = R * .04 * fissure;
+        c.shadowBlur  = R * .5 * fissure;
+        c.shadowColor = "#6bffd0";
+
+        c.beginPath();
+        c.moveTo(-R * .74, 0);
+
+        for(let i = 1; i <= 6; i++){
+            c.lineTo(-R * .74 + i * R * .247, (i % 2 ? -1 : 1) * R * .07 * fissure);
+        }
+
+        c.stroke();
+
+        c.shadowBlur  = 0;
+        c.globalAlpha = 1;
+
+    }
+
+    c.restore();
+
+}
+
+
+/* --- la carte, en boutique --- */
+function eggCard(){
+
+    const box = document.getElementById("shopEgg");
+
+    if(!box){ return; }
+
+    if(!shopInStore || shopCategory !== "skins"){
+        box.style.display = "none";
+        return;
+    }
+
+    const egg = EGGS[0];
+
+    box.style.display = "flex";
+
+    const assez = totalCoins >= egg.price;
+
+    box.classList.toggle("taken", !assez);
+
+    box.innerHTML =
+        '<canvas class="eggMini" width="88" height="88"></canvas>' +
+        '<span class="giftTxt">' +
+            '<b>' + T(egg.k) + '</b>' +
+            '<small>' + T("egg.sub") + '</small>' +
+        '</span>' +
+        '<button class="giftBtn"' + (assez ? "" : " disabled") + '>' +
+            '<i class="coinDot"></i> ' + egg.price +
+        '</button>';
+
+    const cv = box.querySelector("canvas");
+
+    if(cv){
+        const c = cv.getContext("2d");
+        c.clearRect(0, 0, 88, 88);
+        c.save();
+        c.translate(44, 44);
+        paintOeuf(c, 38, performance.now() / 1000, 0);
+        c.restore();
+    }
+
+    const btn = box.querySelector(".giftBtn");
+
+    if(btn && assez){
+        btn.onclick = () => openEgg(egg);
+    }
+
+}
+
+
+/* --- le tirage --- */
+function eggPickSkin(){
+
+    /* on tire d'abord une rarete, puis un skin dedans */
+    let total = 0;
+
+    const poids = EGG_ODDS.map((p, r) => {
+        const n = SKINS.filter(sk => (sk.rarity || 0) === r && !sk.exclusive).length;
+        const w = n > 0 ? p : 0;
+        total += w;
+        return w;
+    });
+
+    let x = Math.random() * total;
+    let rar = 0;
+
+    for(let r = 0; r < poids.length; r++){
+        x -= poids[r];
+        if(x <= 0){ rar = r; break; }
+    }
+
+    const lot = SKINS.filter(sk => (sk.rarity || 0) === rar && !sk.exclusive);
+
+    return lot[Math.floor(Math.random() * lot.length)] || SKINS[0];
+
+}
+
+
+function lootCard(titre, contenu, col){
+
+    const d = document.createElement("div");
+
+    d.className = "lootCard";
+
+    const s1 = document.createElement("small");
+    s1.textContent = titre;
+
+    d.appendChild(s1);
+    d.appendChild(contenu);
+
+    if(col){ d.style.borderColor = col; }
+
+    return d;
+
+}
+
+
+/* --- l'ouverture --- */
+function openEgg(egg){
+
+    if(eggBusy){ return; }
+
+    if(totalCoins < egg.price){
+        pickupMessage("❌ " + T("shop.notEnough"), "#ff466e");
+        sound(120, .18, "sawtooth", .05);
+        return;
+    }
+
+    eggBusy = true;
+
+    totalCoins -= egg.price;
+
+    /* ---- ce que l'oeuf contient ---- */
+    const gems = Math.round(egg.gmin + Math.random() * (egg.gmax - egg.gmin));
+
+    const skin  = eggPickSkin();
+    const avait = ownedSkins.includes(skin.id);
+
+    const dup = avait ? DUP_GEMS[skin.rarity || 0] : 0;
+
+    if(!avait){ ownedSkins.push(skin.id); }
+
+    totalGems += gems + dup;
+
+    const ab = ABILITIES[Math.floor(Math.random() * ABILITIES.length)];
+
+    abilityStock[ab.id] = abilityCount(ab.id) + 1;
+
+    saveGame();
+    buildSkillBar();
+
+    /* ---- l'ecran ---- */
+    const ecran = document.getElementById("eggScreen");
+    const loot  = document.getElementById("eggLoot");
+    const titre = document.getElementById("eggTitle");
+
+    titre.textContent = T("egg.opening");
+
+    loot.innerHTML = "";
+
+    ecran.style.display = "flex";
+
+    const cv = document.getElementById("eggCanvas");
+    const c  = cv.getContext("2d");
+
+    const t0 = performance.now();
+
+    sound(220, .3, "triangle", .05);
+
+    function anime(){
+
+        const t = (performance.now() - t0) / 1000;
+
+        c.clearRect(0, 0, 460, 460);
+        c.save();
+        c.translate(230, 230);
+
+        /* il tremble, puis il se fend */
+        const k = Math.min(1, t / 1.5);
+
+        const trem = k < 1 ? Math.sin(t * 34) * 9 * k : 0;
+
+        c.translate(trem, 0);
+        c.rotate(Math.sin(t * 26) * .03 * (1 - k));
+
+        paintOeuf(c, 170, t, Math.max(0, (t - .6) / .9));
+
+        c.restore();
+
+        if(t < 1.55){
+            requestAnimationFrame(anime);
+            return;
+        }
+
+        /* l'eclat */
+        c.save();
+        c.translate(230, 230);
+
+        const fl = c.createRadialGradient(0, 0, 0, 0, 0, 230);
+        fl.addColorStop(0,  "rgba(200,255,240,.95)");
+        fl.addColorStop(.5, "rgba(110,255,210,.45)");
+        fl.addColorStop(1,  "rgba(60,200,170,0)");
+
+        c.fillStyle = fl;
+        c.beginPath();
+        c.arc(0, 0, 230, 0, Math.PI * 2);
+        c.fill();
+        c.restore();
+
+        sound(660, .18, "sine", .05);
+        setTimeout(() => sound(990, .3, "sine", .05), 140);
+        buzz([40, 50, 90]);
+
+        montreLoot();
+
+    }
+
+    function montreLoot(){
+
+        titre.textContent = T(egg.k);
+
+        /* 1. les cristaux */
+        const g1 = document.createElement("b");
+        g1.style.color   = "#8dffd8";
+        g1.innerHTML     = '<i class="gemDot"></i> +' + (gems + dup);
+
+        loot.appendChild(lootCard(T("egg.gems"), g1, "rgba(120,255,215,.45)"));
+
+        /* 2. le skin */
+        const wrap = document.createElement("div");
+        wrap.style.textAlign = "center";
+
+        const mini = document.createElement("canvas");
+        mini.width = mini.height = 130;
+
+        const mc = mini.getContext("2d");
+        mc.save();
+        mc.translate(65, 65);
+        paintSkinSlime(mc, skin, 44, 1.3, true, {blink:1});
+        mc.restore();
+
+        const nom = document.createElement("b");
+        nom.textContent   = skin.name;
+        nom.style.color   = skin.color;
+        nom.style.display = "block";
+        nom.style.fontSize = "12px";
+
+        const eta = document.createElement("small");
+        eta.textContent = avait ? T("egg.dup") : T("rar." + (skin.rarity || 0));
+        eta.style.color = avait ? "#8b9ac0" : RARITIES[skin.rarity || 0].col;
+
+        wrap.appendChild(mini);
+        wrap.appendChild(nom);
+        wrap.appendChild(eta);
+
+        loot.appendChild(lootCard(T("egg.skin"), wrap,
+            RARITIES[skin.rarity || 0].col + "88"));
+
+        /* 3. la capacite */
+        const g3 = document.createElement("b");
+        g3.style.color   = ab.color;
+        g3.textContent   = ab.icon + "  " + ab.name + "  ×1";
+
+        loot.appendChild(lootCard(T("egg.ability"), g3, "rgba(140,220,255,.4)"));
+
+        /* elles apparaissent l'une apres l'autre */
+        [...loot.children].forEach((el, i) => {
+            setTimeout(() => {
+                el.classList.add("on");
+                sound(520 + i * 160, .12, "sine", .04);
+            }, 180 + i * 320);
+        });
+
+        setTimeout(() => {
+            eggBusy = false;
+            updateUI();
+        }, 900);
+
+    }
+
+    requestAnimationFrame(anime);
+
 }
 
 

@@ -56,7 +56,7 @@ function skinCard(skin, inShop){
 
     const owned    = ownedSkins.includes(skin.id);
     const equipped = currentSkin === skin.id;
-    const broke    = !owned && totalCoins < skin.price;
+    const broke    = !owned && totalGems < skin.price;
 
     const rar = RARITIES[skin.rarity || 0];
 
@@ -128,7 +128,7 @@ function skinCard(skin, inShop){
     }else{
         state.className = "skinPrice";
         state.innerHTML =
-            '<i class="coinDot"></i> ' + skin.price.toLocaleString("fr-FR");
+            '<i class="gemDot"></i> ' + skin.price.toLocaleString("fr-FR");
     }
 
     card.appendChild(state);
@@ -156,7 +156,7 @@ function skinCard(skin, inShop){
             saveGame();
             sound(800, .09, "sine", .04);
 
-        }else if(totalCoins < skin.price){
+        }else if(totalGems < skin.price){
 
             pickupMessage("❌ " + T("shop.notEnough"), "#ff466e");
             sound(120, .18, "sawtooth", .05);
@@ -164,7 +164,7 @@ function skinCard(skin, inShop){
 
         }else{
 
-            totalCoins -= skin.price;
+            totalGems -= skin.price;
             ownedSkins.push(skin.id);
             currentSkin = skin.id;
             saveGame();
@@ -439,6 +439,7 @@ function renderShop(){
 
     setTab(shopInStore);
 
+    eggCard();
     giftCard();
     adCard();
 

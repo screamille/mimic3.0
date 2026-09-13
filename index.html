@@ -10,7 +10,7 @@
 
 <title>MIMIC</title>
 
-<link rel="stylesheet" href="css/style.css?v=1.16">
+<link rel="stylesheet" href="css/style.css?v=1.17">
 </head>
 
 <body>
@@ -116,6 +116,10 @@
                 <i class="coinDot"></i> <b id="menuCoins">0</b>
             </div>
 
+            <div class="coinPill gemPill">
+                <i class="gemDot"></i> <b id="menuGems">0</b>
+            </div>
+
             <button class="iconBtn" id="settingsButton" title="Paramètres">⚙</button>
 
         </div>
@@ -158,7 +162,7 @@
         <b id="bestScore">0</b>
     </div>
 
-    <div class="version" id="versionTag">V 1.16</div>
+    <div class="version" id="versionTag">V 1.17</div>
 
     <div id="errBanner" class="errBanner" style="display:none"></div>
 
@@ -319,6 +323,25 @@
             <button class="primary" id="worldsClose" data-i18n="ui.back">← RETOUR</button>
         </div>
 
+    </div>
+
+</div>
+
+
+<!-- =========================
+     L'OEUF
+========================= -->
+
+<div id="eggScreen" class="eggScreen">
+
+    <div class="eggTitle" id="eggTitle">ŒUF MYTHIQUE</div>
+
+    <canvas id="eggCanvas" width="460" height="460"></canvas>
+
+    <div class="eggLoot" id="eggLoot"></div>
+
+    <div class="menuButtons" style="margin-top:6px">
+        <button class="primary" id="eggClose" data-i18n="ui.back">← RETOUR</button>
     </div>
 
 </div>
@@ -969,6 +992,10 @@
                     <i class="coinDot"></i> <b id="coinText">0</b>
                 </div>
 
+                <div class="gemDisplay">
+                    <i class="gemDot"></i> <b id="gemText">0</b>
+                </div>
+
 
             </div>
 
@@ -1003,6 +1030,8 @@
             <button class="chip" id="sortRich"    data-i18n="shop.byRich">Prix ↓</button>
 
         </div>
+
+        <div id="shopEgg" class="shopGift shopEgg" style="display:none"></div>
 
         <div id="shopGift" class="shopGift" style="display:none"></div>
 
@@ -1063,16 +1092,16 @@ fonctionne parfaitement même si aucun des deux ne répond.
 })();
 </script>
 
-<script src="js/01-moteur.js?v=1.16"></script>
-<script src="js/02-etat.js?v=1.16"></script>
-<script src="js/03-skins.js?v=1.16"></script>
-<script src="js/04-monde.js?v=1.16"></script>
-<script src="js/05-jeu.js?v=1.16"></script>
-<script src="js/06-boutique.js?v=1.16"></script>
-<script src="js/07-duel.js?v=1.16"></script>
-<script src="js/08-langues.js?v=1.16"></script>
-<script src="js/09-laser.js?v=1.16"></script>
-<script src="js/10-interface.js?v=1.16"></script>
+<script src="js/01-moteur.js?v=1.17"></script>
+<script src="js/02-etat.js?v=1.17"></script>
+<script src="js/03-skins.js?v=1.17"></script>
+<script src="js/04-monde.js?v=1.17"></script>
+<script src="js/05-jeu.js?v=1.17"></script>
+<script src="js/06-boutique.js?v=1.17"></script>
+<script src="js/07-duel.js?v=1.17"></script>
+<script src="js/08-langues.js?v=1.17"></script>
+<script src="js/09-laser.js?v=1.17"></script>
+<script src="js/10-interface.js?v=1.17"></script>
 
 </body>
 </html>

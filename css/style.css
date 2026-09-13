@@ -1784,6 +1784,154 @@ laisser un menu fige sans explication.
     text-align:left;
 }
 
+/* ---------- LES CRISTAUX ---------- */
+
+.gemDot{
+    display:inline-block;
+
+    width:11px;
+    height:11px;
+
+    margin-right:2px;
+
+    transform:rotate(45deg);
+    border-radius:2px;
+
+    background:linear-gradient(140deg,#a8ffe8,#2fbf9a);
+    box-shadow:0 0 8px rgba(80,255,210,.55);
+}
+
+.gemDisplay{
+    display:flex;
+    align-items:center;
+
+    gap:6px;
+
+    padding:7px 12px;
+
+    border:1px solid rgba(80,230,190,.35);
+    border-radius:99px;
+
+    background:rgba(10,40,34,.55);
+
+    color:#8dffd8;
+    font-weight:800;
+}
+
+/* ---------- LA CARTE DE L'OEUF ---------- */
+
+.shopEgg{
+    border-color:rgba(120,255,215,.45);
+    background:linear-gradient(140deg,rgba(60,220,180,.16),rgba(15,60,50,.18));
+}
+
+.shopEgg .giftTxt b{ color:#8dffd8; }
+
+.shopEgg .giftBtn{
+    background:linear-gradient(140deg,#8dffd8,#2fbf9a);
+    color:#032b22;
+}
+
+.shopEgg canvas{
+    width:44px;
+    height:44px;
+
+    flex:0 0 auto;
+}
+
+/* ---------- L'ECRAN DE L'OEUF ---------- */
+
+.eggScreen{
+    position:fixed;
+    inset:0;
+
+    display:none;
+    align-items:center;
+    justify-content:center;
+    flex-direction:column;
+
+    gap:10px;
+
+    z-index:140;
+
+    background:radial-gradient(circle at center,rgba(20,70,60,.55),rgba(2,6,10,.94) 70%);
+}
+
+#eggCanvas{
+    width:min(46vh,230px);
+    height:min(46vh,230px);
+}
+
+.eggTitle{
+    color:#8dffd8;
+
+    font-weight:900;
+    font-size:clamp(14px,3.4vw,20px);
+    letter-spacing:.12em;
+}
+
+.eggLoot{
+    display:flex;
+    flex-wrap:wrap;
+    align-items:center;
+    justify-content:center;
+
+    gap:8px;
+
+    max-width:min(92vw,560px);
+}
+
+.lootCard{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+
+    gap:2px;
+
+    min-width:116px;
+
+    padding:10px 12px;
+
+    border:1px solid rgba(140,220,255,.3);
+    border-radius:14px;
+
+    background:rgba(10,16,34,.8);
+
+    opacity:0;
+    transform:translateY(10px) scale(.9);
+
+    transition:opacity .35s ease, transform .35s ease;
+}
+
+.lootCard.on{
+    opacity:1;
+    transform:none;
+}
+
+.lootCard small{
+    color:#8b9ac0;
+
+    font-size:9px;
+    font-weight:800;
+    letter-spacing:.12em;
+}
+
+.lootCard b{
+    font-size:15px;
+    font-weight:900;
+}
+
+.lootCard canvas{
+    width:56px;
+    height:56px;
+}
+
+@media (max-height:460px){
+    #eggCanvas{ width:150px; height:150px; }
+    .lootCard{ min-width:96px; padding:7px 9px; }
+    .lootCard canvas{ width:44px; height:44px; }
+}
+
 .shopAd{
     border-color:rgba(120,190,255,.45);
     background:linear-gradient(140deg,rgba(60,150,255,.16),rgba(20,50,110,.14));

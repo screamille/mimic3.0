@@ -8565,6 +8565,13 @@ function loadJSON(key, fallback){
 let ownedSkins  = loadJSON("mimicOwnedSkins", ["cyber"]);
 let currentSkin = localStorage.getItem("mimicCurrentSkin") || "cyber";
 let totalCoins  = Number(localStorage.getItem("mimicCoins")     || 0);
+
+/*
+Deux monnaies. Les PIECES se gagnent en jouant et servent a
+acheter les oeufs. Les CRISTAUX sortent des oeufs et des
+doublons : ce sont eux qui achetent les skins.
+*/
+let totalGems   = Number(localStorage.getItem("mimicGems")      || 0);
 let bestScore   = Number(localStorage.getItem("mimicBestScore") || 0);
 
 if(!Array.isArray(ownedSkins) || !ownedSkins.length){
@@ -8618,6 +8625,7 @@ function saveGame(){
         localStorage.setItem("mimicAbilityStock", JSON.stringify(abilityStock));
         localStorage.setItem("mimicCurrentSkin", currentSkin);
         localStorage.setItem("mimicCoins", totalCoins);
+        localStorage.setItem("mimicGems", totalGems);
         localStorage.setItem("mimicBestScore", bestScore);
     }catch(e){}
 
@@ -8631,6 +8639,12 @@ function updateUI(){
     document.getElementById("coins").textContent     = totalCoins;
     document.getElementById("coinText").textContent  = totalCoins.toLocaleString("fr-FR");
     document.getElementById("menuCoins").textContent = totalCoins.toLocaleString("fr-FR");
+
+    const gt = document.getElementById("gemText");
+    const gm = document.getElementById("menuGems");
+
+    if(gt){ gt.textContent = totalGems.toLocaleString("fr-FR"); }
+    if(gm){ gm.textContent = totalGems.toLocaleString("fr-FR"); }
     document.getElementById("bestScore").textContent = bestScore;
     document.getElementById("finalBest").textContent = bestScore;
     document.getElementById("skinCount").textContent = ownedSkins.length;
