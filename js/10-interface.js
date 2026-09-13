@@ -1334,6 +1334,9 @@ document.getElementById("eggClose").onclick = e => {
 
     document.getElementById("eggScreen").style.display = "none";
 
+    eggFxStop();
+    eggFxLoop();
+
     eggLot  = null;
     eggStep = 0;
     eggBusy = false;

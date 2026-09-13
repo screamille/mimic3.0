@@ -40,7 +40,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
 On repart de 1.00 et on monte de 0.01 a chaque livraison :
 10.8 donnait l'impression d'un jeu fini alors qu'il commence.
 */
-const VERSION = "1.18";
+const VERSION = "1.19";
 
 (function(){
 
@@ -3388,6 +3388,315 @@ function lootCard(titre, contenu, col){
 
 
 /* ---------------------------------------------------------
+   LE SON DE L'OEUF
+
+   Trois briques : un glissando (la tension qui monte), un
+   souffle filtre (la pierre qui craque, le choc) et un
+   accord (la recompense). Tout est synthetise : pas un
+   octet de plus dans le fichier.
+--------------------------------------------------------- */
+
+function sweep(f0, f1, dur, type, vol){
+
+    if(!audioCtx || audioCtx.state !== "running"){ return; }
+
+    const now = audioCtx.currentTime;
+
+    const osc  = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+
+    osc.type = type || "sine";
+
+    osc.frequency.setValueAtTime(f0, now);
+    osc.frequency.exponentialRampToValueAtTime(Math.max(1, f1), now + dur);
+
+    gain.gain.setValueAtTime(.0001, now);
+    gain.gain.linearRampToValueAtTime(vol, now + Math.min(.06, dur * .2));
+    gain.gain.exponentialRampToValueAtTime(.0001, now + dur);
+
+    osc.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    osc.start(now);
+    osc.stop(now + dur + .04);
+
+    osc.onended = () => { osc.disconnect(); gain.disconnect(); };
+
+}
+
+
+/* un souffle : la pierre, le choc, la poussiere */
+function souffle(dur, vol, lo, hi){
+
+    if(!audioCtx || audioCtx.state !== "running"){ return; }
+
+    const now = audioCtx.currentTime;
+    const n   = Math.floor(audioCtx.sampleRate * dur);
+
+    const buf = audioCtx.createBuffer(1, n, audioCtx.sampleRate);
+    const dat = buf.getChannelData(0);
+
+    for(let i = 0; i < n; i++){
+        dat[i] = (Math.random() * 2 - 1) * (1 - i / n);
+    }
+
+    const src = audioCtx.createBufferSource();
+    src.buffer = buf;
+
+    const filtre = audioCtx.createBiquadFilter();
+    filtre.type = "bandpass";
+    filtre.frequency.setValueAtTime(hi, now);
+    filtre.frequency.exponentialRampToValueAtTime(Math.max(40, lo), now + dur);
+    filtre.Q.value = 1.1;
+
+    const gain = audioCtx.createGain();
+    gain.gain.setValueAtTime(vol, now);
+    gain.gain.exponentialRampToValueAtTime(.0001, now + dur);
+
+    src.connect(filtre);
+    filtre.connect(gain);
+    gain.connect(audioCtx.destination);
+
+    src.start(now);
+
+    src.onended = () => { src.disconnect(); filtre.disconnect(); gain.disconnect(); };
+
+}
+
+
+/* un accord : les notes tombent l'une apres l'autre */
+function accord(notes, dur, vol, type, ecart){
+
+    notes.forEach((f, i) => {
+        setTimeout(() => sound(f, dur, type || "sine", vol), i * (ecart || 70));
+    });
+
+}
+
+
+/* ---------------------------------------------------------
+   LES ETINCELLES
+
+   Un calque a part, au-dessus de l'ecran de l'oeuf. Il ne
+   tourne que pendant l'ouverture : ferme, il ne coute rien.
+--------------------------------------------------------- */
+
+let eggFxList = [];
+let eggFxOn   = false;
+
+
+function eggFxSize(){
+
+    const cv = document.getElementById("eggFx");
+
+    if(!cv){ return null; }
+
+    const dp = Math.min(window.devicePixelRatio || 1, 2);
+
+    const w = window.innerWidth;
+    const h = window.innerHeight;
+
+    if(cv.width !== Math.round(w * dp) || cv.height !== Math.round(h * dp)){
+        cv.width  = Math.round(w * dp);
+        cv.height = Math.round(h * dp);
+    }
+
+    const c = cv.getContext("2d");
+
+    c.setTransform(dp, 0, 0, dp, 0, 0);
+
+    return {c:c, w:w, h:h};
+
+}
+
+
+/* des eclats qui partent d'un point */
+function eggBurst(x, y, n, cols, vit, taille){
+
+    for(let i = 0; i < n; i++){
+
+        const a = Math.random() * 6.283;
+        const v = (vit || 300) * (.35 + Math.random() * .85);
+
+        eggFxList.push({
+            k:"p",
+            x:x, y:y,
+            vx:Math.cos(a) * v,
+            vy:Math.sin(a) * v - 40,
+            r:(taille || 4) * (.5 + Math.random()),
+            col:cols[Math.floor(Math.random() * cols.length)],
+            vie:.7 + Math.random() * .8,
+            t:0,
+            rot:Math.random() * 6.283,
+            spin:(Math.random() - .5) * 12,
+            carre:Math.random() < .45
+        });
+
+    }
+
+}
+
+
+/* une onde de choc */
+function eggRing(x, y, col, rmax){
+
+    eggFxList.push({k:"r", x:x, y:y, col:col, rmax:rmax || 420, vie:.55, t:0});
+
+}
+
+
+/* de la poussiere qui monte */
+function eggDust(x, y, n){
+
+    for(let i = 0; i < n; i++){
+        eggFxList.push({
+            k:"d",
+            x:x + (Math.random() - .5) * 90,
+            y:y + (Math.random() - .5) * 60,
+            vx:(Math.random() - .5) * 40,
+            vy:-20 - Math.random() * 50,
+            r:2 + Math.random() * 3,
+            vie:.8 + Math.random() * .7,
+            t:0
+        });
+    }
+
+}
+
+
+function eggFxTick(dt){
+
+    const vue = eggFxSize();
+
+    if(!vue){ return; }
+
+    vue.c.clearRect(0, 0, vue.w, vue.h);
+
+    for(const p of eggFxList){
+
+        p.t += dt;
+
+        const k = p.t / p.vie;
+
+        if(k >= 1){ continue; }
+
+        if(p.k === "r"){
+
+            const rr = p.rmax * (1 - Math.pow(1 - k, 2.2));
+
+            vue.c.save();
+            vue.c.globalAlpha = (1 - k) * .75;
+            vue.c.strokeStyle = p.col;
+            vue.c.lineWidth   = 14 * (1 - k) + 1;
+            vue.c.beginPath();
+            vue.c.arc(p.x, p.y, rr, 0, Math.PI * 2);
+            vue.c.stroke();
+            vue.c.restore();
+
+            continue;
+
+        }
+
+        p.x += p.vx * dt;
+        p.y += p.vy * dt;
+
+        if(p.k === "p"){
+
+            p.vy += 620 * dt;
+            p.vx *= Math.pow(.4, dt);
+            p.rot += p.spin * dt;
+
+            vue.c.save();
+            vue.c.globalAlpha = 1 - k * k;
+            vue.c.fillStyle   = p.col;
+            vue.c.shadowBlur  = 10;
+            vue.c.shadowColor = p.col;
+            vue.c.translate(p.x, p.y);
+            vue.c.rotate(p.rot);
+
+            if(p.carre){
+                vue.c.fillRect(-p.r, -p.r * .7, p.r * 2, p.r * 1.4);
+            }else{
+                vue.c.beginPath();
+                vue.c.arc(0, 0, p.r, 0, Math.PI * 2);
+                vue.c.fill();
+            }
+
+            vue.c.restore();
+
+        }else{
+
+            p.vy *= Math.pow(.5, dt);
+
+            vue.c.save();
+            vue.c.globalAlpha = (1 - k) * .35;
+            vue.c.fillStyle   = "#cfd8e2";
+            vue.c.beginPath();
+            vue.c.arc(p.x, p.y, p.r * (1 + k * 2), 0, Math.PI * 2);
+            vue.c.fill();
+            vue.c.restore();
+
+        }
+
+    }
+
+    eggFxList = eggFxList.filter(p => p.t < p.vie);
+
+}
+
+
+let eggFxLast = 0;
+
+
+function eggFxLoop(){
+
+    if(!eggFxOn){
+
+        const vue = eggFxSize();
+
+        if(vue){ vue.c.clearRect(0, 0, vue.w, vue.h); }
+
+        return;
+
+    }
+
+    const now = performance.now();
+    const dt  = Math.min(.05, (now - eggFxLast) / 1000);
+
+    eggFxLast = now;
+
+    eggFxTick(dt);
+
+    requestAnimationFrame(eggFxLoop);
+
+}
+
+
+function eggFxStart(){
+
+    if(eggFxOn){ return; }
+
+    eggFxOn   = true;
+    eggFxLast = performance.now();
+
+    requestAnimationFrame(eggFxLoop);
+
+}
+
+
+function eggFxStop(){
+    eggFxOn   = false;
+    eggFxList = [];
+}
+
+
+/* le centre de l'ecran, en pixels */
+function eggMid(){
+    return {x:window.innerWidth / 2, y:window.innerHeight / 2};
+}
+
+
+/* ---------------------------------------------------------
    L'OUVERTURE
 
    Le deroule est celui des grosses boites : on tape pour
@@ -3532,9 +3841,20 @@ function eggNext(){
 
         tap.textContent = "";
 
-        const t0 = performance.now();
+        const t0  = performance.now();
+        const mid = eggMid();
 
-        sound(200, .5, "triangle", .05);
+        eggFxStart();
+
+        /* la tension qui monte : un grave qui remonte lentement */
+        sweep(48, 210, 1.30, "sawtooth", .055);
+        sweep(96, 420, 1.30, "triangle", .022);
+        souffle(1.25, .05, 140, 900);
+
+        /* les trois craquements, cales sur la fissure */
+        const CRAQUE = [.38, .66, .92];
+
+        let fait = 0;
 
         function anime(){
 
@@ -3545,32 +3865,91 @@ function eggNext(){
             c.save();
             c.translate(230, 230);
 
-            const k = Math.min(1, t / 1.1);
+            const k = Math.min(1, t / 1.15);
 
-            c.translate(Math.sin(t * 40) * 11 * k, 0);
-            c.rotate(Math.sin(t * 30) * .04 * k);
-            c.scale(1 + k * .12, 1 + k * .12);
+            /*
+            Le tremblement s'accelere ET s'amplifie : c'est
+            ce qui fait monter la tension. La coquille se
+            gonfle aussi, comme si elle allait ceder.
+            */
+            const freq = 26 + k * 46;
+            const amp  = 3 + k * k * 16;
 
-            paintOeuf(c, 165, t, Math.max(0, (t - .35) / .75));
+            c.translate(Math.sin(t * freq) * amp, Math.cos(t * freq * .7) * amp * .45);
+            c.rotate(Math.sin(t * freq * .8) * .05 * k);
+
+            /* elle respire : ecrase, etire, ecrase */
+            const pulse = 1 + Math.sin(t * 13) * .035 * k;
+
+            c.scale((1 + k * .16) * pulse, (1 + k * .16) / pulse);
+
+            /* le halo qui grossit derriere */
+            const halo = c.createRadialGradient(0, 0, 40, 0, 0, 300);
+            halo.addColorStop(0, "rgba(190,130,255," + (.30 * k).toFixed(3) + ")");
+            halo.addColorStop(1, "rgba(150,80,255,0)");
+
+            c.fillStyle = halo;
+            c.fillRect(-300, -300, 600, 600);
+
+            paintOeuf(c, 165, t, Math.max(0, (t - .3) / .8));
 
             c.restore();
 
-            if(t < 1.15){
+            /* a chaque craquement : un eclat de pierre et un bruit sec */
+            while(fait < CRAQUE.length && t >= CRAQUE[fait]){
+
+                souffle(.10, .085, 300, 5200);
+                sound(150 + fait * 55, .07, "square", .05);
+
+                eggBurst(
+                    mid.x + (Math.random() - .5) * 120,
+                    mid.y + (Math.random() - .5) * 90,
+                    9 + fait * 4,
+                    ["#b9c2cc", "#8e979f", "#d7b0ff"],
+                    220 + fait * 90,
+                    3.4
+                );
+
+                eggDust(mid.x, mid.y + 60, 6);
+
+                buzz([18]);
+
+                fait++;
+
+            }
+
+            if(t < 1.2){
                 requestAnimationFrame(anime);
                 return;
             }
 
-            /* LE FLASH */
+            /* ---- LE FLASH ---- */
             eggFlash();
 
-            sound(880, .25, "sine", .06);
-            setTimeout(() => sound(1320, .3, "sine", .05), 120);
-            buzz([40, 40, 120]);
+            /* le choc : un souffle large plus un coup de grave */
+            souffle(.45, .14, 80, 7000);
+            sound(70, .6, "sine", .10);
+            sweep(1600, 420, .5, "sine", .04);
+
+            setTimeout(() => accord([523.25, 659.25, 783.99, 1046.5], .55, .05, "sine", 55), 90);
+
+            buzz([50, 40, 150]);
+
+            /* l'onde, les eclats de coquille, la poussiere */
+            eggRing(mid.x, mid.y, "rgba(225,190,255,.9)", Math.max(window.innerWidth, window.innerHeight) * .75);
+            eggRing(mid.x, mid.y, "rgba(255,255,255,.75)", Math.max(window.innerWidth, window.innerHeight) * .45);
+
+            eggBurst(mid.x, mid.y, 46, ["#b9c2cc", "#8e979f", "#5c646c"], 620, 5);
+            eggBurst(mid.x, mid.y, 34, ["#e0b6ff", "#a86cff", "#ffffff"], 760, 4.2);
+
+            eggDust(mid.x, mid.y, 18);
+
+            ecranSecoue();
 
             cv.style.display   = "none";
             rays.style.display = "block";
 
-            setTimeout(montre, 230);
+            setTimeout(montre, 260);
 
         }
 
@@ -3592,21 +3971,69 @@ function eggNext(){
 }
 
 
+function ecranSecoue(){
+
+    const ec = eggEl("eggScreen");
+
+    if(!ec){ return; }
+
+    ec.classList.remove("shake");
+    void ec.offsetWidth;
+    ec.classList.add("shake");
+
+}
+
+
 function montre(){
 
     const loot  = eggEl("eggLoot");
     const titre = eggEl("eggTitle");
     const tap   = eggEl("eggTap");
 
-    const it = eggLot.items[eggStep - 1];
+    const it  = eggLot.items[eggStep - 1];
+    const mid = eggMid();
 
     loot.innerHTML = "";
-    loot.appendChild(eggBig(it.titre, it.node(true), it.col));
+
+    const carte = eggBig(it.titre, it.node(true), it.col);
+
+    if(it.fort){ carte.classList.add("rare"); }
+
+    loot.appendChild(carte);
 
     titre.textContent = T("egg.got");
 
-    sound(560 + eggStep * 140, .16, "sine", .05);
-    buzz([30]);
+    /* l'etincelle derriere la carte */
+    eggBurst(
+        mid.x, mid.y,
+        it.fort ? 40 : 18,
+        it.eclats || ["#d7b0ff", "#ffffff"],
+        it.fort ? 480 : 280,
+        it.fort ? 4.6 : 3.4
+    );
+
+    if(it.fort){
+        eggRing(mid.x, mid.y, hexA(it.ton || "#d7b0ff", .8), 320);
+    }
+
+    /* le son monte d'une marche a chaque recompense */
+    const base = [0, 659.25, 783.99, 987.77][eggStep] || 987.77;
+
+    souffle(.18, .05, 500, 5200);
+
+    if(it.fort){
+
+        /* une vraie fanfare pour ce qui est rare */
+        accord([base, base * 1.26, base * 1.5, base * 2], .5, .055, "triangle", 65);
+        sweep(300, base * 2, .35, "sine", .03);
+        buzz([30, 40, 30, 60]);
+
+    }else{
+
+        accord([base, base * 1.5], .28, .05, "sine", 60);
+        buzz([30]);
+
+    }
 
     eggStep++;
 
@@ -3645,7 +4072,10 @@ function bilan(){
 
         loot.appendChild(d);
 
-        setTimeout(() => d.classList.add("on"), 60 + i * 140);
+        setTimeout(() => {
+            d.classList.add("on");
+            sound(880 + i * 180, .12, "sine", .04);
+        }, 60 + i * 150);
 
     });
 
@@ -3657,7 +4087,10 @@ function bilan(){
     eggBusy = false;
     eggStep = eggLot.items.length + 2;
 
-    coinChime();
+    /* l'accord final, large */
+    setTimeout(() => {
+        accord([523.25, 659.25, 783.99, 1046.5, 1318.5], .8, .045, "sine", 45);
+    }, 520);
 
 }
 
@@ -3693,21 +4126,32 @@ function openEgg(egg){
     saveGame();
     buildSkillBar();
 
+    const rar = RARITIES[skin.rarity || 0];
+
     eggLot = {
         items:[
             {
                 titre:T("egg.gems"),
                 col:"rgba(190,130,255,.5)",
+                ton:"#d7b0ff",
+                eclats:["#e0b6ff", "#a86cff", "#ffffff"],
+                fort:(gems + dup) >= 400,
                 node:g => eggGemNode(gems + dup, g)
             },
             {
                 titre:T("egg.skin"),
-                col:hexA(RARITIES[skin.rarity || 0].col, .55),
+                col:hexA(rar.col, .55),
+                ton:rar.col,
+                eclats:[rar.col, skin.color, "#ffffff"],
+                fort:!avait && (skin.rarity || 0) >= 3,
                 node:g => eggSkinNode(skin, avait, g)
             },
             {
                 titre:T("egg.ability"),
                 col:hexA(ab.color, .5),
+                ton:ab.color,
+                eclats:[ab.color, ab.color2, "#ffffff"],
+                fort:false,
                 node:g => eggAbNode(ab, g)
             }
         ]
@@ -3727,15 +4171,49 @@ function openEgg(egg){
 
     cv.style.display = "block";
 
-    const c = cv.getContext("2d");
-    c.clearRect(0, 0, 460, 460);
-    c.save();
-    c.translate(230, 230);
-    paintOeuf(c, 165, 0, 0);
-    c.restore();
-
     ecran.classList.add("tapping");
     ecran.style.display = "flex";
+
+    eggFxStop();
+    eggFxSize();
+
+    /* tant qu'on n'a pas tape, il flotte et il respire */
+    const t0 = performance.now();
+
+    function attend(){
+
+        if(eggStep !== 0 || ecran.style.display === "none"){ return; }
+
+        const t = (performance.now() - t0) / 1000;
+        const c = cv.getContext("2d");
+
+        c.clearRect(0, 0, 460, 460);
+        c.save();
+        c.translate(230, 230 + Math.sin(t * 1.5) * 9);
+
+        const p = 1 + Math.sin(t * 2.2) * .018;
+
+        c.scale(p, 1 / p);
+
+        const halo = c.createRadialGradient(0, 0, 40, 0, 0, 250);
+        halo.addColorStop(0, "rgba(190,130,255,.16)");
+        halo.addColorStop(1, "rgba(150,80,255,0)");
+
+        c.fillStyle = halo;
+        c.fillRect(-250, -250, 500, 500);
+
+        paintOeuf(c, 165, t, 0);
+
+        c.restore();
+
+        requestAnimationFrame(attend);
+
+    }
+
+    requestAnimationFrame(attend);
+
+    sound(300, .1, "triangle", .04);
+    setTimeout(() => sound(450, .14, "triangle", .04), 90);
 
     updateUI();
 

@@ -1994,6 +1994,52 @@ laisser un menu fige sans explication.
 
 .eggScreen.tapping{ cursor:pointer; }
 
+/* le calque des etincelles, par-dessus tout l'ecran */
+#eggFx{
+    position:fixed;
+    inset:0;
+
+    z-index:142;
+
+    pointer-events:none;
+}
+
+/* l'ecran encaisse le coup */
+.eggScreen.shake{
+    animation:eggShake .45s ease-out;
+}
+
+@keyframes eggShake{
+    0%{   transform:translate(0,0); }
+    12%{  transform:translate(-9px,4px); }
+    26%{  transform:translate(8px,-5px); }
+    40%{  transform:translate(-6px,-3px); }
+    56%{  transform:translate(5px,4px); }
+    72%{  transform:translate(-3px,2px); }
+    88%{  transform:translate(2px,-1px); }
+    100%{ transform:translate(0,0); }
+}
+
+/* la carte respire une fois posee */
+.eggBig{
+    animation:eggPop .42s cubic-bezier(.2,1.5,.4,1) both,
+              eggFloat 2.6s ease-in-out .42s infinite;
+}
+
+@keyframes eggFloat{
+    50%{ transform:translateY(-5px); }
+}
+
+/* le halo derriere une recompense rare */
+.eggBig.rare{
+    animation:eggPop .5s cubic-bezier(.2,1.7,.4,1) both,
+              eggThrob 1.4s ease-in-out .5s infinite;
+}
+
+@keyframes eggThrob{
+    50%{ transform:scale(1.035); }
+}
+
 .lootCard{
     display:flex;
     flex-direction:column;
