@@ -186,10 +186,10 @@ function lasSpawnWave(){
    moment qui se voit venir, pas un piege.
 ========================================================= */
 
-const MEGA_BANDE = .26;   /* hauteur d'une barre, en part d'arene */
-const MEGA_JOINT = .11;   /* la couture entre deux barres        */
+const MEGA_BANDE = .26;   /* hauteur d'une barre couchee, en part d'arene */
+const MEGA_JOINT = .11;   /* la couture entre deux barres couchees        */
 
-/* les centres des trois barres, et ceux des deux coutures */
+/* les centres des trois barres couchees, et ceux des deux coutures */
 const MEGA_POS   = [
     MEGA_BANDE * .5,
     .5,
@@ -200,6 +200,40 @@ const MEGA_SAFE  = [
     MEGA_BANDE + MEGA_JOINT * .5,
     1 - MEGA_BANDE - MEGA_JOINT * .5
 ];
+
+/*
+La meme chose debout : QUATRE barres qui tombent du haut
+vers le bas, et trois coutures. L'arene est plus large que
+haute, donc quatre barres y tiennent sans etouffer le
+passage.
+
+   4 barres + 3 coutures = 1 :  4 x .205 + 3 x .06 = 1
+*/
+const MEGA_V_BANDE = .205;
+const MEGA_V_JOINT = .06;
+
+const MEGA_V_POS = [
+    MEGA_V_BANDE * .5,
+    MEGA_V_BANDE * 1.5 + MEGA_V_JOINT,
+    MEGA_V_BANDE * 2.5 + MEGA_V_JOINT * 2,
+    MEGA_V_BANDE * 3.5 + MEGA_V_JOINT * 3
+];
+
+const MEGA_V_SAFE = [
+    MEGA_V_BANDE + MEGA_V_JOINT * .5,
+    MEGA_V_BANDE * 2 + MEGA_V_JOINT * 1.5,
+    MEGA_V_BANDE * 3 + MEGA_V_JOINT * 2.5
+];
+
+
+/* les reglages de la salve en cours, selon son sens */
+function megaPlan(debout){
+
+    return debout
+        ? {pos:MEGA_V_POS, safe:MEGA_V_SAFE, bande:MEGA_V_BANDE, joint:MEGA_V_JOINT, dir:"v"}
+        : {pos:MEGA_POS,   safe:MEGA_SAFE,   bande:MEGA_BANDE,   joint:MEGA_JOINT,   dir:"h"};
+
+}
 
 
 function lasMegaVivant(){
@@ -212,14 +246,20 @@ function lasSpawnMega(){
     /* le preavis reste long meme tard dans la partie */
     const warn = 1.7 - .45 * lasRamp();
 
-    MEGA_POS.forEach((p, i) => {
+    /* une fois couchees, une fois debout : jamais deux fois pareil */
+    laser.megaV = !laser.megaV;
+
+    const plan = megaPlan(laser.megaV);
+
+    plan.pos.forEach((p, i) => {
 
         laser.beams.push({
-            dir:"h",
+            dir:plan.dir,
             mega:true,
+            debout:laser.megaV,
             rang:i,
             pos:p,
-            thick:MEGA_BANDE,
+            thick:plan.bande,
             warn:warn,
             fire:.45,
             t:0,
@@ -259,7 +299,9 @@ function lasGeom(b){
     ce qui garantit que trois barres plus deux coutures font
     exactement l'ecran, sur n'importe quel telephone.
     */
-    const thick = b.mega ? b.thick * ah : b.thick * Math.min(W, H);
+    const thick = b.mega
+        ? b.thick * (b.debout ? aw : ah)
+        : b.thick * Math.min(W, H);
 
     if(b.dir === "h"){
         return {pos:a.y0 + b.pos * ah, thick:thick};
@@ -388,13 +430,29 @@ function drawMegaBeam(b, g, lethal, after){
 
     const a = playArea();
 
-    const y   = g.pos;
-    const ep  = g.thick;
-    const x0  = a.x0;
-    const x1  = a.x1;
-    const lg  = x1 - x0;
+    const aw = a.x1 - a.x0;
+    const ah = a.y1 - a.y0;
+
+    const ep = g.thick;
+
+    /*
+    On travaille toujours dans le meme repere : x le long de
+    la barre, y en travers. Pour les barres debout, il suffit
+    de faire pivoter le repere d'un quart de tour — le reste
+    du dessin ne change pas une ligne.
+    */
+    const lg = b.debout ? ah : aw;
 
     ctx.save();
+
+    if(b.debout){
+        ctx.translate(g.pos, a.y0);
+        ctx.rotate(Math.PI / 2);
+    }else{
+        ctx.translate(a.x0, g.pos);
+    }
+
+    const plan = megaPlan(b.debout);
 
     if(!lethal && !after){
 
@@ -403,20 +461,21 @@ function drawMegaBeam(b, g, lethal, after){
         /* la bande condamnee */
         ctx.globalAlpha = .12 + k * .22;
         ctx.fillStyle   = "#ff4f6e";
-        ctx.fillRect(x0, y - ep / 2, lg, ep);
+        ctx.fillRect(0, -ep / 2, lg, ep);
 
         /* ses deux bords, qui battent de plus en plus vite */
         const puls = .4 + .6 * Math.abs(Math.sin(k * Math.PI * (3 + k * 7)));
 
         ctx.globalAlpha = puls;
         ctx.fillStyle   = "#ff4f6e";
-        ctx.fillRect(x0, y - ep / 2 - 2 * unit, lg, 3 * unit);
-        ctx.fillRect(x0, y + ep / 2 - unit,     lg, 3 * unit);
+        ctx.fillRect(0, -ep / 2 - 2 * unit, lg, 3 * unit);
+        ctx.fillRect(0, ep / 2 - unit,      lg, 3 * unit);
 
-        /* les canons, a gauche et a droite */
-        [-1, 1].forEach(sg => {
+        /* les canons, aux deux extremites */
+        [0, 1].forEach(bout => {
 
-            const cx = sg < 0 ? x0 : x1;
+            const cx = bout * lg;
+            const sg = bout ? -1 : 1;
 
             ctx.globalAlpha = 1;
 
@@ -425,10 +484,7 @@ function drawMegaBeam(b, g, lethal, after){
             cg.addColorStop(1, "rgba(255,79,110,0)");
 
             ctx.fillStyle = cg;
-            ctx.fillRect(
-                sg < 0 ? cx : cx - 26 * unit,
-                y - ep / 2, 26 * unit, ep
-            );
+            ctx.fillRect(bout ? cx - 26 * unit : cx, -ep / 2, 26 * unit, ep);
 
             /* le coeur du canon chauffe */
             ctx.globalAlpha = .35 + k * .65;
@@ -437,24 +493,29 @@ function drawMegaBeam(b, g, lethal, after){
             ctx.shadowColor = "#ffb347";
 
             ctx.beginPath();
-            ctx.ellipse(cx, y, 9 * unit * (.4 + k), ep * .30 * (.4 + k), 0, 0, Math.PI * 2);
+            ctx.ellipse(cx, 0, 9 * unit * (.4 + k), ep * .30 * (.4 + k), 0, 0, Math.PI * 2);
             ctx.fill();
 
             ctx.shadowBlur = 0;
 
         });
 
-        /* la couture : le seul endroit ou se mettre */
+        /* les coutures : les seuls endroits ou se mettre */
         if(b.rang === 0){
 
-            MEGA_SAFE.forEach(p => {
+            const plein = b.debout ? aw : ah;
+            const dep   = b.debout ? a.x0 : a.y0;
 
-                const sy = a.y0 + p * (a.y1 - a.y0);
-                const se = MEGA_JOINT * (a.y1 - a.y0);
+            plan.safe.forEach(p => {
+
+                /* position de la couture, ramenee dans notre repere */
+                const abs = dep + p * plein;
+                const sy  = b.debout ? (g.pos - abs) : (abs - g.pos);
+                const se  = plan.joint * plein;
 
                 ctx.globalAlpha = .16 + Math.abs(Math.sin(b.t * 6)) * .16;
                 ctx.fillStyle   = "#61ff83";
-                ctx.fillRect(x0, sy - se / 2, lg, se);
+                ctx.fillRect(0, sy - se / 2, lg, se);
 
                 ctx.globalAlpha = .55;
                 ctx.strokeStyle = "#61ff83";
@@ -462,10 +523,10 @@ function drawMegaBeam(b, g, lethal, after){
                 ctx.setLineDash([10 * unit, 8 * unit]);
 
                 ctx.beginPath();
-                ctx.moveTo(x0, sy - se / 2);
-                ctx.lineTo(x1, sy - se / 2);
-                ctx.moveTo(x0, sy + se / 2);
-                ctx.lineTo(x1, sy + se / 2);
+                ctx.moveTo(0,  sy - se / 2);
+                ctx.lineTo(lg, sy - se / 2);
+                ctx.moveTo(0,  sy + se / 2);
+                ctx.lineTo(lg, sy + se / 2);
                 ctx.stroke();
 
                 ctx.setLineDash([]);
@@ -479,12 +540,12 @@ function drawMegaBeam(b, g, lethal, after){
         const k = (b.t - b.warn) / b.fire;
 
         /*
-        Les deux faisceaux partent des bords et se rejoignent :
-        en 90 ms l'ecran est barre.
+        Les deux faisceaux partent des extremites et se
+        rejoignent : en 90 ms l'arene est barree.
         */
         const av = Math.min(1, k / .2);
 
-        const grad = ctx.createLinearGradient(0, y - ep / 2, 0, y + ep / 2);
+        const grad = ctx.createLinearGradient(0, -ep / 2, 0, ep / 2);
         grad.addColorStop(0,   "rgba(255,90,120,0)");
         grad.addColorStop(.18, "rgba(255,120,150,.9)");
         grad.addColorStop(.5,  "rgba(255,255,255,1)");
@@ -494,21 +555,18 @@ function drawMegaBeam(b, g, lethal, after){
         ctx.globalAlpha = 1 - k * .2;
         ctx.fillStyle   = grad;
 
-        /* depuis la gauche */
-        ctx.fillRect(x0, y - ep / 2, lg * .5 * av, ep);
-        /* depuis la droite */
-        ctx.fillRect(x1 - lg * .5 * av, y - ep / 2, lg * .5 * av, ep);
+        ctx.fillRect(0, -ep / 2, lg * .5 * av, ep);
+        ctx.fillRect(lg - lg * .5 * av, -ep / 2, lg * .5 * av, ep);
 
-        /* le halo */
         /* le halo reste dans la bande : la couture doit rester noire */
         ctx.globalAlpha = (1 - k) * .34;
         ctx.fillStyle   = "#ff4f6e";
-        ctx.fillRect(x0, y - ep * .60, lg, ep * 1.20);
+        ctx.fillRect(0, -ep * .60, lg, ep * 1.20);
 
         /* la ligne blanche au coeur */
         ctx.globalAlpha = (1 - k) * .9;
         ctx.fillStyle   = "#ffffff";
-        ctx.fillRect(x0, y - ep * .06, lg, ep * .12);
+        ctx.fillRect(0, -ep * .06, lg, ep * .12);
 
     }else{
 
@@ -516,7 +574,7 @@ function drawMegaBeam(b, g, lethal, after){
 
         ctx.globalAlpha = (1 - k) * .45;
         ctx.fillStyle   = "#ff8a6a";
-        ctx.fillRect(x0, y - ep / 5, lg, ep * .4);
+        ctx.fillRect(0, -ep / 5, lg, ep * .4);
 
     }
 
@@ -1541,6 +1599,7 @@ function lasBegin(){
     laser.send   = 0;
     laser.nextWave = 1.6;
     laser.megaIn   = 12;
+    laser.megaV    = true;   /* la premiere salve sera couchee */
 
     lasSeed(laser.seed);
 
