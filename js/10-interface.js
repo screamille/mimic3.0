@@ -1307,10 +1307,7 @@ document.getElementById("lasQuit").onclick = () => {
 };
 
 /* l'onglet BOUTIQUE ouvre directement le rayon */
-document.getElementById("openShopStore").onclick = () => {
-    openShop();
-    showShop();
-};
+document.getElementById("openShopStore").onclick = () => openShop(true);
 
 lobbySetMode("solo");
 
@@ -1435,7 +1432,12 @@ document.getElementById("guideClose").onclick = () => {
     document.getElementById("guide").style.display     = "none";
     document.getElementById("settings").style.display  = "flex";
 };
-document.getElementById("openShop").onclick        = openShop;
+/*
+Le salon a deux portes. CASIER ouvre le casier, BOUTIQUE
+ouvre la boutique — et on reste dedans : la rangee qui
+permettait de passer de l'un a l'autre est retiree.
+*/
+document.getElementById("openShop").onclick = () => openShop(false);
 document.getElementById("gameOverShop").onclick    = openShop;
 document.getElementById("closeShop").onclick       = closeShop;
 document.getElementById("shopFloatX").onclick      = closeShop;

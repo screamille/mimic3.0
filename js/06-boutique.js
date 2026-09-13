@@ -2,7 +2,15 @@
    BOUTIQUE
 ========================================================= */
 
-function openShop(){
+/*
+openShop(true) ouvre la BOUTIQUE, openShop(false) le CASIER.
+Sans argument on garde le dernier onglet ouvert.
+*/
+function openShop(store){
+
+    if(store !== undefined){
+        shopInStore = !!store;
+    }
 
     if(playing){
         setPaused(true);
@@ -16,7 +24,7 @@ function openShop(){
 
     document.getElementById("shop").style.display = "block";
 
-    showLocker();
+    renderShop();
 
 }
 
