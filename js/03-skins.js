@@ -8572,6 +8572,30 @@ acheter les oeufs. Les CRISTAUX sortent des oeufs et des
 doublons : ce sont eux qui achetent les skins.
 */
 let totalGems   = Number(localStorage.getItem("mimicGems")      || 0);
+
+/* le code 9999 : les pieces ne descendent plus jamais */
+let piecesInfinies = false;
+
+try{
+    piecesInfinies = localStorage.getItem("mimicInfini") === "1";
+}catch(e){}
+
+
+/* le texte des pieces : un huit couche quand c'est sans fin */
+function coinLabel(){
+    return piecesInfinies ? "\u221e" : totalCoins.toLocaleString("fr-FR");
+}
+
+
+/* a-t-on de quoi payer ? */
+function canPay(prix){
+    return piecesInfinies || totalCoins >= prix;
+}
+
+
+function payCoins(prix){
+    if(!piecesInfinies){ totalCoins -= prix; }
+}
 let bestScore   = Number(localStorage.getItem("mimicBestScore") || 0);
 
 if(!Array.isArray(ownedSkins) || !ownedSkins.length){
@@ -8636,9 +8660,9 @@ function saveGame(){
 
 function updateUI(){
 
-    document.getElementById("coins").textContent     = totalCoins;
-    document.getElementById("coinText").textContent  = totalCoins.toLocaleString("fr-FR");
-    document.getElementById("menuCoins").textContent = totalCoins.toLocaleString("fr-FR");
+    document.getElementById("coins").textContent     = coinLabel();
+    document.getElementById("coinText").textContent  = coinLabel();
+    document.getElementById("menuCoins").textContent = coinLabel();
 
     const gt = document.getElementById("gemText");
     const gm = document.getElementById("menuGems");

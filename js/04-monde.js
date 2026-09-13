@@ -40,7 +40,7 @@ function burst(x, y, n = 15, color = "#55d9ff"){
 On repart de 1.00 et on monte de 0.01 a chaque livraison :
 10.8 donnait l'impression d'un jeu fini alors qu'il commence.
 */
-const VERSION = "1.17";
+const VERSION = "1.18";
 
 (function(){
 
@@ -3306,7 +3306,7 @@ function eggCard(){
 
     box.style.display = "flex";
 
-    const assez = totalCoins >= egg.price;
+    const assez = canPay(egg.price);
 
     box.classList.toggle("taken", !assez);
 
@@ -3387,20 +3387,292 @@ function lootCard(titre, contenu, col){
 }
 
 
-/* --- l'ouverture --- */
+/* ---------------------------------------------------------
+   L'OUVERTURE
+
+   Le deroule est celui des grosses boites : on tape pour
+   ouvrir, l'ecran blanchit d'un coup, puis les recompenses
+   arrivent UNE PAR UNE — on tape entre chaque. A la fin, on
+   les revoit toutes ensemble.
+--------------------------------------------------------- */
+
+let eggLot  = null;   /* ce que l'oeuf contient */
+let eggStep = 0;      /* 0 : ferme · 1..n : recompense n · n+1 : le bilan */
+
+
+function eggEl(id){
+    return document.getElementById(id);
+}
+
+
+function eggFlash(){
+
+    const fl = eggEl("eggFlash");
+
+    if(!fl){ return; }
+
+    fl.style.transition = "none";
+    fl.style.opacity    = "1";
+
+    /* on force le navigateur a prendre l'opacite avant de l'effacer */
+    void fl.offsetWidth;
+
+    fl.style.transition = "opacity .55s ease";
+    fl.style.opacity    = "0";
+
+}
+
+
+/* la grande carte d'une recompense */
+function eggBig(titre, dedans, col){
+
+    const d = document.createElement("div");
+
+    d.className = "eggBig";
+
+    if(col){
+        d.style.borderColor = col;
+        d.style.boxShadow   = "0 0 60px " + col;
+    }
+
+    const t = document.createElement("small");
+    t.textContent = titre;
+
+    d.appendChild(t);
+    d.appendChild(dedans);
+
+    return d;
+
+}
+
+
+function eggGemNode(n, gros){
+
+    const b = document.createElement("b");
+
+    b.style.color = "#d7b0ff";
+    b.innerHTML   = '<i class="gemDot"></i> +' + n;
+
+    if(gros){ b.style.fontSize = "clamp(22px,6vw,34px)"; }
+
+    return b;
+
+}
+
+
+function eggSkinNode(skin, avait, gros){
+
+    const wrap = document.createElement("div");
+
+    wrap.style.textAlign = "center";
+
+    const cv = document.createElement("canvas");
+
+    cv.width = cv.height = 260;
+
+    if(!gros){
+        cv.style.width = cv.style.height = "56px";
+    }
+
+    const c = cv.getContext("2d");
+    c.save();
+    c.translate(130, 130);
+    paintSkinSlime(c, skin, gros ? 92 : 88, 1.3, true, {blink:1});
+    c.restore();
+
+    const nom = document.createElement("b");
+    nom.textContent    = skin.name;
+    nom.style.color    = skin.color;
+    nom.style.display  = "block";
+    nom.style.fontSize = gros ? "clamp(14px,3.6vw,20px)" : "12px";
+
+    const eta = document.createElement("small");
+    eta.textContent = avait ? T("egg.dup") : T("rar." + (skin.rarity || 0));
+    eta.style.color = avait ? "#8b9ac0" : RARITIES[skin.rarity || 0].col;
+
+    wrap.appendChild(cv);
+    wrap.appendChild(nom);
+    wrap.appendChild(eta);
+
+    return wrap;
+
+}
+
+
+function eggAbNode(ab, gros){
+
+    const b = document.createElement("b");
+
+    b.style.color = ab.color;
+    b.textContent = ab.icon + "  " + ab.name + "  ×1";
+
+    if(gros){ b.style.fontSize = "clamp(18px,4.6vw,26px)"; }
+
+    return b;
+
+}
+
+
+/* on passe a l'etape suivante : c'est le clic qui commande */
+function eggNext(){
+
+    if(!eggLot){ return; }
+
+    const loot  = eggEl("eggLoot");
+    const titre = eggEl("eggTitle");
+    const tap   = eggEl("eggTap");
+    const rays  = eggEl("eggRays");
+    const cv    = eggEl("eggCanvas");
+
+    /* --- premier tap : la coquille explose --- */
+    if(eggStep === 0){
+
+        eggStep = 1;
+        eggBusy = true;
+
+        tap.textContent = "";
+
+        const t0 = performance.now();
+
+        sound(200, .5, "triangle", .05);
+
+        function anime(){
+
+            const t = (performance.now() - t0) / 1000;
+            const c = cv.getContext("2d");
+
+            c.clearRect(0, 0, 460, 460);
+            c.save();
+            c.translate(230, 230);
+
+            const k = Math.min(1, t / 1.1);
+
+            c.translate(Math.sin(t * 40) * 11 * k, 0);
+            c.rotate(Math.sin(t * 30) * .04 * k);
+            c.scale(1 + k * .12, 1 + k * .12);
+
+            paintOeuf(c, 165, t, Math.max(0, (t - .35) / .75));
+
+            c.restore();
+
+            if(t < 1.15){
+                requestAnimationFrame(anime);
+                return;
+            }
+
+            /* LE FLASH */
+            eggFlash();
+
+            sound(880, .25, "sine", .06);
+            setTimeout(() => sound(1320, .3, "sine", .05), 120);
+            buzz([40, 40, 120]);
+
+            cv.style.display   = "none";
+            rays.style.display = "block";
+
+            setTimeout(montre, 230);
+
+        }
+
+        requestAnimationFrame(anime);
+
+        return;
+
+    }
+
+    /* --- les recompenses, une par une --- */
+    if(eggStep <= eggLot.items.length){
+        montre();
+        return;
+    }
+
+    /* --- le bilan --- */
+    bilan();
+
+}
+
+
+function montre(){
+
+    const loot  = eggEl("eggLoot");
+    const titre = eggEl("eggTitle");
+    const tap   = eggEl("eggTap");
+
+    const it = eggLot.items[eggStep - 1];
+
+    loot.innerHTML = "";
+    loot.appendChild(eggBig(it.titre, it.node(true), it.col));
+
+    titre.textContent = T("egg.got");
+
+    sound(560 + eggStep * 140, .16, "sine", .05);
+    buzz([30]);
+
+    eggStep++;
+
+    tap.textContent = eggStep <= eggLot.items.length
+        ? T("egg.tapNext")
+        : T("egg.tapEnd");
+
+    eggBusy = false;
+
+}
+
+
+function bilan(){
+
+    const loot  = eggEl("eggLoot");
+    const titre = eggEl("eggTitle");
+    const tap   = eggEl("eggTap");
+
+    titre.textContent = T("egg.all");
+
+    loot.innerHTML = "";
+
+    eggLot.items.forEach((it, i) => {
+
+        const d = document.createElement("div");
+
+        d.className = "lootCard";
+
+        const t = document.createElement("small");
+        t.textContent = it.titre;
+
+        d.appendChild(t);
+        d.appendChild(it.node(false));
+
+        if(it.col){ d.style.borderColor = it.col; }
+
+        loot.appendChild(d);
+
+        setTimeout(() => d.classList.add("on"), 60 + i * 140);
+
+    });
+
+    tap.textContent = "";
+
+    eggEl("eggRays").style.display = "none";
+    eggEl("eggClose").style.display = "block";
+
+    eggBusy = false;
+    eggStep = eggLot.items.length + 2;
+
+    coinChime();
+
+}
+
+
 function openEgg(egg){
 
     if(eggBusy){ return; }
 
-    if(totalCoins < egg.price){
+    if(!canPay(egg.price)){
         pickupMessage("❌ " + T("shop.notEnough"), "#ff466e");
         sound(120, .18, "sawtooth", .05);
         return;
     }
 
-    eggBusy = true;
-
-    totalCoins -= egg.price;
+    payCoins(egg.price);
 
     /* ---- ce que l'oeuf contient ---- */
     const gems = Math.round(egg.gmin + Math.random() * (egg.gmax - egg.gmin));
@@ -3421,136 +3693,51 @@ function openEgg(egg){
     saveGame();
     buildSkillBar();
 
+    eggLot = {
+        items:[
+            {
+                titre:T("egg.gems"),
+                col:"rgba(190,130,255,.5)",
+                node:g => eggGemNode(gems + dup, g)
+            },
+            {
+                titre:T("egg.skin"),
+                col:hexA(RARITIES[skin.rarity || 0].col, .55),
+                node:g => eggSkinNode(skin, avait, g)
+            },
+            {
+                titre:T("egg.ability"),
+                col:hexA(ab.color, .5),
+                node:g => eggAbNode(ab, g)
+            }
+        ]
+    };
+
+    eggStep = 0;
+
     /* ---- l'ecran ---- */
-    const ecran = document.getElementById("eggScreen");
-    const loot  = document.getElementById("eggLoot");
-    const titre = document.getElementById("eggTitle");
+    const ecran = eggEl("eggScreen");
+    const cv    = eggEl("eggCanvas");
 
-    titre.textContent = T("egg.opening");
+    eggEl("eggTitle").textContent = T(egg.k);
+    eggEl("eggLoot").innerHTML    = "";
+    eggEl("eggTap").textContent   = T("egg.tapOpen");
+    eggEl("eggRays").style.display  = "none";
+    eggEl("eggClose").style.display = "none";
 
-    loot.innerHTML = "";
+    cv.style.display = "block";
 
+    const c = cv.getContext("2d");
+    c.clearRect(0, 0, 460, 460);
+    c.save();
+    c.translate(230, 230);
+    paintOeuf(c, 165, 0, 0);
+    c.restore();
+
+    ecran.classList.add("tapping");
     ecran.style.display = "flex";
 
-    const cv = document.getElementById("eggCanvas");
-    const c  = cv.getContext("2d");
-
-    const t0 = performance.now();
-
-    sound(220, .3, "triangle", .05);
-
-    function anime(){
-
-        const t = (performance.now() - t0) / 1000;
-
-        c.clearRect(0, 0, 460, 460);
-        c.save();
-        c.translate(230, 230);
-
-        /* il tremble, puis il se fend */
-        const k = Math.min(1, t / 1.5);
-
-        const trem = k < 1 ? Math.sin(t * 34) * 9 * k : 0;
-
-        c.translate(trem, 0);
-        c.rotate(Math.sin(t * 26) * .03 * (1 - k));
-
-        paintOeuf(c, 170, t, Math.max(0, (t - .6) / .9));
-
-        c.restore();
-
-        if(t < 1.55){
-            requestAnimationFrame(anime);
-            return;
-        }
-
-        /* l'eclat */
-        c.save();
-        c.translate(230, 230);
-
-        const fl = c.createRadialGradient(0, 0, 0, 0, 0, 230);
-        fl.addColorStop(0,  "rgba(200,255,240,.95)");
-        fl.addColorStop(.5, "rgba(110,255,210,.45)");
-        fl.addColorStop(1,  "rgba(60,200,170,0)");
-
-        c.fillStyle = fl;
-        c.beginPath();
-        c.arc(0, 0, 230, 0, Math.PI * 2);
-        c.fill();
-        c.restore();
-
-        sound(660, .18, "sine", .05);
-        setTimeout(() => sound(990, .3, "sine", .05), 140);
-        buzz([40, 50, 90]);
-
-        montreLoot();
-
-    }
-
-    function montreLoot(){
-
-        titre.textContent = T(egg.k);
-
-        /* 1. les cristaux */
-        const g1 = document.createElement("b");
-        g1.style.color   = "#8dffd8";
-        g1.innerHTML     = '<i class="gemDot"></i> +' + (gems + dup);
-
-        loot.appendChild(lootCard(T("egg.gems"), g1, "rgba(120,255,215,.45)"));
-
-        /* 2. le skin */
-        const wrap = document.createElement("div");
-        wrap.style.textAlign = "center";
-
-        const mini = document.createElement("canvas");
-        mini.width = mini.height = 130;
-
-        const mc = mini.getContext("2d");
-        mc.save();
-        mc.translate(65, 65);
-        paintSkinSlime(mc, skin, 44, 1.3, true, {blink:1});
-        mc.restore();
-
-        const nom = document.createElement("b");
-        nom.textContent   = skin.name;
-        nom.style.color   = skin.color;
-        nom.style.display = "block";
-        nom.style.fontSize = "12px";
-
-        const eta = document.createElement("small");
-        eta.textContent = avait ? T("egg.dup") : T("rar." + (skin.rarity || 0));
-        eta.style.color = avait ? "#8b9ac0" : RARITIES[skin.rarity || 0].col;
-
-        wrap.appendChild(mini);
-        wrap.appendChild(nom);
-        wrap.appendChild(eta);
-
-        loot.appendChild(lootCard(T("egg.skin"), wrap,
-            RARITIES[skin.rarity || 0].col + "88"));
-
-        /* 3. la capacite */
-        const g3 = document.createElement("b");
-        g3.style.color   = ab.color;
-        g3.textContent   = ab.icon + "  " + ab.name + "  ×1";
-
-        loot.appendChild(lootCard(T("egg.ability"), g3, "rgba(140,220,255,.4)"));
-
-        /* elles apparaissent l'une apres l'autre */
-        [...loot.children].forEach((el, i) => {
-            setTimeout(() => {
-                el.classList.add("on");
-                sound(520 + i * 160, .12, "sine", .04);
-            }, 180 + i * 320);
-        });
-
-        setTimeout(() => {
-            eggBusy = false;
-            updateUI();
-        }, 900);
-
-    }
-
-    requestAnimationFrame(anime);
+    updateUI();
 
 }
 
@@ -4194,7 +4381,7 @@ function renderPass(){
 ========================================================= */
 
 const SHOP_PICKS = 3;
-const GIFT_COINS = 25;
+const GIFT_COINS = 70;   /* cristaux offerts chaque jour */
 
 let shopDay = loadJSON("mimicShopDay", null);
 let giftDay = localStorage.getItem("mimicGift") || "";
@@ -4257,14 +4444,14 @@ function claimGift(){
 
     try{ localStorage.setItem("mimicGift", giftDay); }catch(e){}
 
-    totalCoins += GIFT_COINS;
+    totalGems += GIFT_COINS;
 
     saveGame();
 
     coinChime();
     buzz([25, 50, 25]);
 
-    pickupMessage("🎁 +" + GIFT_COINS + " 🪙", "#ffd84d");
+    pickupMessage("🎁 +" + GIFT_COINS + " 💎", "#d7b0ff");
 
     renderShop();
 
@@ -4310,12 +4497,12 @@ function giftCard(){
             '<b>CADEAU DU JOUR</b>' +
             '<small>' +
                 (ready
-                    ? GIFT_COINS + " pièces offertes"
+                    ? GIFT_COINS + " " + T("egg.gems").toLowerCase()
                     : "Reviens dans " + untilMidnight()) +
             '</small>' +
         '</span>' +
         '<button class="giftBtn"' + (ready ? "" : " disabled") + '>' +
-            (ready ? '<i class="coinDot"></i> +' + GIFT_COINS : "✅") +
+            (ready ? '<i class="gemDot"></i> +' + GIFT_COINS : "✅") +
         '</button>';
 
     const btn = box.querySelector(".giftBtn");
@@ -4336,7 +4523,7 @@ function giftCard(){
    est present. Le reste du jeu n'a pas a savoir lequel.
 ========================================================= */
 
-const AD_REWARD  = 100;   /* pieces gagnees par pub regardee */
+const AD_REWARD  = 120;   /* cristaux gagnes par pub regardee */
 const AD_MAX_DAY = 3;     /* pubs par jour au maximum        */
 
 let ads = loadJSON("mimicAds", null);
@@ -4467,13 +4654,13 @@ function watchAd(){
         ads.n++;
         saveAds();
 
-        totalCoins += AD_REWARD;
+        totalGems += AD_REWARD;
 
         saveGame();
         coinChime();
         buzz([25, 50, 25]);
 
-        pickupMessage("📺 +" + AD_REWARD + " 🪙", "#ffd84d");
+        pickupMessage("📺 +" + AD_REWARD + " 💎", "#d7b0ff");
 
         renderShop();
 
@@ -4508,12 +4695,12 @@ function adCard(){
             '<b>REGARDER UNE PUB</b>' +
             '<small>' +
                 (left > 0
-                    ? AD_REWARD + " pièces  ·  " + left + " restantes aujourd'hui"
+                    ? AD_REWARD + " " + T("egg.gems").toLowerCase() + "  ·  " + left + " restantes aujourd'hui"
                     : "Reviens dans " + untilMidnight()) +
             '</small>' +
         '</span>' +
         '<button class="giftBtn"' + (left > 0 ? "" : " disabled") + '>' +
-            (left > 0 ? '<i class="coinDot"></i> +' + AD_REWARD : "✅") +
+            (left > 0 ? '<i class="gemDot"></i> +' + AD_REWARD : "✅") +
         '</button>';
 
     const btn = box.querySelector(".giftBtn");

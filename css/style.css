@@ -1776,12 +1776,19 @@ laisser un menu fige sans explication.
     margin:10px 0 2px;
     padding:10px 12px;
 
-    border:1px solid rgba(255,205,80,.45);
+    border:1px solid rgba(190,130,255,.45);
     border-radius:14px;
 
-    background:linear-gradient(140deg,rgba(255,196,60,.16),rgba(120,80,10,.14));
+    background:linear-gradient(140deg,rgba(150,80,255,.16),rgba(60,20,110,.16));
 
     text-align:left;
+}
+
+.shopGift .giftTxt b{ color:#d7b0ff; }
+
+.shopGift .giftBtn{
+    background:linear-gradient(140deg,#dcb4ff,#8b3ff0);
+    color:#1b0636;
 }
 
 /* ---------- LES CRISTAUX ---------- */
@@ -1797,8 +1804,8 @@ laisser un menu fige sans explication.
     transform:rotate(45deg);
     border-radius:2px;
 
-    background:linear-gradient(140deg,#a8ffe8,#2fbf9a);
-    box-shadow:0 0 8px rgba(80,255,210,.55);
+    background:linear-gradient(140deg,#e0b6ff,#8b3ff0);
+    box-shadow:0 0 8px rgba(180,110,255,.6);
 }
 
 .gemDisplay{
@@ -1809,12 +1816,12 @@ laisser un menu fige sans explication.
 
     padding:7px 12px;
 
-    border:1px solid rgba(80,230,190,.35);
+    border:1px solid rgba(190,130,255,.35);
     border-radius:99px;
 
-    background:rgba(10,40,34,.55);
+    background:rgba(28,12,50,.55);
 
-    color:#8dffd8;
+    color:#d7b0ff;
     font-weight:800;
 }
 
@@ -1854,7 +1861,7 @@ laisser un menu fige sans explication.
 
     z-index:140;
 
-    background:radial-gradient(circle at center,rgba(20,70,60,.55),rgba(2,6,10,.94) 70%);
+    background:radial-gradient(circle at center,rgba(42,16,74,.88),rgba(2,4,10,.975) 68%);
 }
 
 #eggCanvas{
@@ -1863,7 +1870,7 @@ laisser un menu fige sans explication.
 }
 
 .eggTitle{
-    color:#8dffd8;
+    color:#d7b0ff;
 
     font-weight:900;
     font-size:clamp(14px,3.4vw,20px);
@@ -1880,6 +1887,112 @@ laisser un menu fige sans explication.
 
     max-width:min(92vw,560px);
 }
+
+/* le flash de l'ouverture : tout l'ecran blanchit d'un coup */
+.eggFlash{
+    position:fixed;
+    inset:0;
+
+    z-index:145;
+
+    background:#ffffff;
+
+    opacity:0;
+    pointer-events:none;
+}
+
+/* la recompense, une par une, en grand */
+.eggBig{
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+
+    gap:4px;
+
+    padding:18px 26px;
+
+    border:2px solid rgba(190,130,255,.5);
+    border-radius:22px;
+
+    background:rgba(12,10,26,.82);
+
+    box-shadow:0 0 60px rgba(150,80,255,.35);
+
+    animation:eggPop .42s cubic-bezier(.2,1.5,.4,1) both;
+}
+
+@keyframes eggPop{
+    from{ opacity:0; transform:scale(.5) translateY(18px); }
+    to{   opacity:1; transform:none; }
+}
+
+.eggBig small{
+    color:#8b9ac0;
+
+    font-size:10px;
+    font-weight:800;
+    letter-spacing:.16em;
+}
+
+.eggBig b{
+    font-size:clamp(18px,4.6vw,26px);
+    font-weight:900;
+}
+
+.eggBig canvas{
+    width:clamp(88px,22vh,130px);
+    height:clamp(88px,22vh,130px);
+}
+
+/* les rayons qui tournent derriere la recompense */
+.eggRays{
+    position:absolute;
+
+    width:min(80vh,520px);
+    height:min(80vh,520px);
+
+    pointer-events:none;
+
+    background:conic-gradient(
+        rgba(190,130,255,.22) 0deg, transparent 14deg,
+        rgba(190,130,255,.22) 28deg, transparent 42deg,
+        rgba(190,130,255,.22) 56deg, transparent 70deg,
+        rgba(190,130,255,.22) 84deg, transparent 98deg,
+        rgba(190,130,255,.22) 112deg, transparent 126deg,
+        rgba(190,130,255,.22) 140deg, transparent 154deg,
+        rgba(190,130,255,.22) 168deg, transparent 182deg,
+        rgba(190,130,255,.22) 196deg, transparent 210deg,
+        rgba(190,130,255,.22) 224deg, transparent 238deg,
+        rgba(190,130,255,.22) 252deg, transparent 266deg,
+        rgba(190,130,255,.22) 280deg, transparent 294deg,
+        rgba(190,130,255,.22) 308deg, transparent 322deg,
+        rgba(190,130,255,.22) 336deg, transparent 350deg
+    );
+
+    border-radius:50%;
+
+    animation:eggSpin 14s linear infinite;
+}
+
+@keyframes eggSpin{
+    to{ transform:rotate(360deg); }
+}
+
+.eggTap{
+    color:#9fb0d8;
+
+    font-size:12px;
+    font-weight:700;
+    letter-spacing:.14em;
+
+    animation:eggBlink 1.3s ease-in-out infinite;
+}
+
+@keyframes eggBlink{
+    50%{ opacity:.25; }
+}
+
+.eggScreen.tapping{ cursor:pointer; }
 
 .lootCard{
     display:flex;

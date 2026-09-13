@@ -258,7 +258,7 @@ function abilityCard(ab, inShop){
 
     const left  = abilityCount(ab.id);
     const owned = left > 0;
-    const broke = totalCoins < ab.price;
+    const broke = !canPay(ab.price);
 
     const rar = RARITIES[ab.rarity || 0];
 
@@ -371,7 +371,7 @@ function abilityCard(ab, inShop){
 
     btn.onclick = () => {
 
-        if(totalCoins < ab.price){
+        if(!canPay(ab.price)){
 
             pickupMessage("❌ " + T("shop.notEnough"), "#ff466e");
             sound(120, .18, "sawtooth", .05);
@@ -383,7 +383,7 @@ function abilityCard(ab, inShop){
         Une carte, une charge. On peut en racheter autant de
         fois qu'on veut : c'est le principe des munitions.
         */
-        totalCoins -= ab.price;
+        payCoins(ab.price);
 
         abilityStock[ab.id] = abilityCount(ab.id) + 1;
 

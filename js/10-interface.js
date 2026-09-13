@@ -603,18 +603,18 @@ La table est vide pour l'instant : on remettra des codes plus
 tard. Tout le mecanisme reste en place, il suffit d'ajouter
 une ligne ici pour en recreer un.
 */
-function unlockAllSkins(){
+/*
+Le code 9999 ne donne plus les skins : il donne des PIECES
+SANS FIN. Les skins, on va les chercher dans les oeufs —
+c'est tout l'interet du systeme.
+*/
+function coinsSansFin(){
 
-    let n = 0;
+    piecesInfinies = true;
 
-    for(const sk of SKINS){
-        if(!ownedSkins.includes(sk.id)){
-            ownedSkins.push(sk.id);
-            n++;
-        }
-    }
+    try{ localStorage.setItem("mimicInfini", "1"); }catch(e){}
 
-    saveGame();
+    updateUI();
 
     if(typeof renderShop === "function"){
         try{ renderShop(); }catch(e){}
@@ -622,7 +622,7 @@ function unlockAllSkins(){
 
     backFromCode();
 
-    return n;
+    return 1;
 
 }
 
@@ -630,8 +630,8 @@ function unlockAllSkins(){
 const SECRET_CODES = {
 
     "9999":{
-        get label(){ return T("code.allSkins"); },
-        run:unlockAllSkins
+        get label(){ return T("code.infinite"); },
+        run:coinsSansFin
     }
 
 };
@@ -1328,14 +1328,27 @@ if(codeBtn){
 document.getElementById("codeSecretButton").onclick = () => openCode("settings");
 document.getElementById("codeBack").onclick   = closeCode;
 
-document.getElementById("eggClose").onclick = () => {
+document.getElementById("eggClose").onclick = e => {
 
-    if(eggBusy){ return; }
+    e.stopPropagation();
 
     document.getElementById("eggScreen").style.display = "none";
 
+    eggLot  = null;
+    eggStep = 0;
+    eggBusy = false;
+
     renderShop();
     updateUI();
+
+};
+
+/* tout l'ecran est un bouton : on tape pour voir la suite */
+document.getElementById("eggScreen").onclick = () => {
+
+    if(eggBusy || !eggLot){ return; }
+
+    eggNext();
 
 };
 
